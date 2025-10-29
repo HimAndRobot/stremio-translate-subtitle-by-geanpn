@@ -3,3 +3,6 @@
 /node_modules
 /debug
 /subtitles
+/data
+*.db
+*.db-journal
