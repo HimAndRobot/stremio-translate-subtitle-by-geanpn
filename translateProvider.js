@@ -40,6 +40,12 @@ async function translateTextWithRetry(
         }
         break;
       }
+      case "OpenAI":
+      case "Google Gemini":
+      case "OpenRouter":
+      case "Groq":
+      case "Together AI":
+      case "Custom":
       case "ChatGPT API": {
         const openai = new OpenAI({
           apiKey: apikey,
@@ -71,7 +77,7 @@ async function translateTextWithRetry(
         break;
       }
       default:
-        throw new Error("Provider not found");
+        throw new Error(`Provider not supported: ${provider}`);
     }
 
     if (texts.length != resultArray.length) {

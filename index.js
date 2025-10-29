@@ -35,7 +35,7 @@ const builder = new addonBuilder({
     {
       key: "provider",
       type: "select",
-      options: ["Google Translate", "ChatGPT API"],
+      options: ["Google Translate", "OpenAI", "Google Gemini", "OpenRouter", "Groq", "Together AI", "Custom"],
     },
     {
       key: "translateto",

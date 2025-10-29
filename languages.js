@@ -12,10 +12,16 @@ function getKeyFromValue(value, provider) {
       langMap = googleLanguages;
       break;
     case "ChatGPT API":
+    case "OpenAI":
+    case "Google Gemini":
+    case "OpenRouter":
+    case "Groq":
+    case "Together AI":
+    case "Custom":
       langMap = chatgptLanguages;
       break;
     default:
-      throw new Error("Provider not found");
+      throw new Error(`Provider not found: ${provider}`);
   }
 
   for (let key in langMap) {

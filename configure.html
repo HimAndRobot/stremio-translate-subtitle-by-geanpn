@@ -116,7 +116,12 @@
                 <label for="provider">Translation Provider</label>
                 <select id="provider" name="provider" required>
                     <option value="Google Translate">Google Translate</option>
-                    <option value="ChatGPT API">ChatGPT API</option>
+                    <option value="OpenAI">OpenAI</option>
+                    <option value="Google Gemini">Google Gemini</option>
+                    <option value="OpenRouter">OpenRouter</option>
+                    <option value="Groq">Groq</option>
+                    <option value="Together AI">Together AI</option>
+                    <option value="Custom">Custom (OpenAI Compatible)</option>
                 </select>
             </div>
 
@@ -126,22 +131,28 @@
                 </select>
             </div>
 
-            <div id="chatgptFields" class="chatgpt-fields hidden">
-                <h3>ChatGPT Configuration</h3>
+            <div id="aiFields" class="chatgpt-fields hidden">
+                <h3 id="aiFieldsTitle">AI Configuration</h3>
 
                 <div class="form-group">
-                    <label for="apikey">API Key (Required)</label>
-                    <input type="text" id="apikey" name="apikey" placeholder="sk-...">
+                    <label for="apikey">API Key</label>
+                    <input type="text" id="apikey" name="apikey" placeholder="Enter your API key">
                 </div>
 
-                <div class="form-group">
-                    <label for="base_url">API Base URL (Optional)</label>
-                    <input type="text" id="base_url" name="base_url" value="https://api.openai.com/v1/chat/completions" placeholder="https://api.openai.com/v1/chat/completions">
+                <div class="form-group" id="modelSelectGroup">
+                    <label for="model_select">Model</label>
+                    <select id="model_select" class="input">
+                    </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="model_name">Model Name (Optional)</label>
-                    <input type="text" id="model_name" name="model_name" value="gpt-4o-mini" placeholder="gpt-4o-mini">
+                <div class="form-group hidden" id="baseUrlGroup">
+                    <label for="base_url">API Base URL</label>
+                    <input type="text" id="base_url" name="base_url" placeholder="https://api.example.com/v1">
+                </div>
+
+                <div class="form-group hidden" id="modelNameGroup">
+                    <label for="model_name">Model Name</label>
+                    <input type="text" id="model_name" name="model_name" placeholder="model-name">
                 </div>
             </div>
 
@@ -167,25 +178,124 @@
         languageSelect.value = 'English';
 
         const providerSelect = document.getElementById('provider');
-        const chatgptFields = document.getElementById('chatgptFields');
+        const aiFields = document.getElementById('aiFields');
+        const aiFieldsTitle = document.getElementById('aiFieldsTitle');
+        const modelSelectGroup = document.getElementById('modelSelectGroup');
+        const modelSelect = document.getElementById('model_select');
+        const baseUrlGroup = document.getElementById('baseUrlGroup');
+        const modelNameGroup = document.getElementById('modelNameGroup');
 
-        function toggleChatGPTFields() {
-            const isChatGPT = providerSelect.value === 'ChatGPT API';
-            chatgptFields.classList.toggle('hidden', !isChatGPT);
+        const providerConfig = {
+            'Google Translate': {
+                showFields: false
+            },
+            'OpenAI': {
+                showFields: true,
+                title: 'OpenAI Configuration',
+                baseUrl: 'https://api.openai.com/v1',
+                models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+                showModelSelect: true,
+                showCustomFields: false
+            },
+            'Google Gemini': {
+                showFields: true,
+                title: 'Google Gemini Configuration',
+                baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+                models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'],
+                showModelSelect: true,
+                showCustomFields: false
+            },
+            'OpenRouter': {
+                showFields: true,
+                title: 'OpenRouter Configuration',
+                baseUrl: 'https://openrouter.ai/api/v1',
+                models: ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b-instruct'],
+                showModelSelect: true,
+                showCustomFields: false
+            },
+            'Groq': {
+                showFields: true,
+                title: 'Groq Configuration',
+                baseUrl: 'https://api.groq.com/openai/v1',
+                models: ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
+                showModelSelect: true,
+                showCustomFields: false
+            },
+            'Together AI': {
+                showFields: true,
+                title: 'Together AI Configuration',
+                baseUrl: 'https://api.together.xyz/v1',
+                models: ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
+                showModelSelect: true,
+                showCustomFields: false
+            },
+            'Custom': {
+                showFields: true,
+                title: 'Custom Provider Configuration',
+                showModelSelect: false,
+                showCustomFields: true
+            }
+        };
+
+        function updateProviderFields() {
+            const provider = providerSelect.value;
+            const config = providerConfig[provider];
+
+            if (!config.showFields) {
+                aiFields.classList.add('hidden');
+                return;
+            }
+
+            aiFields.classList.remove('hidden');
+            aiFieldsTitle.textContent = config.title;
+
+            if (config.showModelSelect) {
+                modelSelectGroup.classList.remove('hidden');
+                baseUrlGroup.classList.add('hidden');
+                modelNameGroup.classList.add('hidden');
+
+                modelSelect.innerHTML = '';
+                config.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            } else if (config.showCustomFields) {
+                modelSelectGroup.classList.add('hidden');
+                baseUrlGroup.classList.remove('hidden');
+                modelNameGroup.classList.remove('hidden');
+            }
         }
 
-        providerSelect.addEventListener('change', toggleChatGPTFields);
-        toggleChatGPTFields();
+        providerSelect.addEventListener('change', updateProviderFields);
+        updateProviderFields();
 
         document.getElementById('configForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const provider = document.getElementById('provider').value;
+            const providerCfg = providerConfig[provider];
+
+            let base_url = '';
+            let model_name = '';
+
+            if (provider !== 'Google Translate') {
+                if (providerCfg.showModelSelect) {
+                    base_url = providerCfg.baseUrl;
+                    model_name = document.getElementById('model_select').value;
+                } else if (providerCfg.showCustomFields) {
+                    base_url = document.getElementById('base_url').value;
+                    model_name = document.getElementById('model_name').value;
+                }
+            }
+
             const config = {
-                provider: document.getElementById('provider').value,
+                provider: provider,
                 translateto: document.getElementById('translateto').value,
                 apikey: document.getElementById('apikey').value || '',
-                base_url: document.getElementById('base_url').value || 'https://api.openai.com/v1/chat/completions',
-                model_name: document.getElementById('model_name').value || 'gpt-4o-mini'
+                base_url: base_url,
+                model_name: model_name
             };
 
             const configStr = encodeURIComponent(JSON.stringify(config));
