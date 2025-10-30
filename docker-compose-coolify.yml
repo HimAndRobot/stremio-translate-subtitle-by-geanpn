@@ -10,44 +10,16 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
 
   stremio-translate:
     build: .
     ports:
       - "${PORT:-3000}:3000"
-    environment:
-      - PORT=3000
-      - ADDRESS=0.0.0.0
-      - BASE_URL=${BASE_URL}
-      - DB_TYPE=mysql
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_USER=${MYSQL_USER:-stremio}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-stremio_translate}
-      - PUBLISH_IN_STREMIO_STORE=${PUBLISH_IN_STREMIO_STORE:-TRUE}
-      - REDIS_URL=redis://redis:6379
-      - QUEUE_CONCURRENCY=${QUEUE_CONCURRENCY:-3}
-      - BATCH_QUEUE_CONCURRENCY=${BATCH_QUEUE_CONCURRENCY:-20}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - BULL_BOARD_USERNAME=${BULL_BOARD_USERNAME:-admin}
-      - BULL_BOARD_PASSWORD=${BULL_BOARD_PASSWORD:-admin}
-      - CORS_URL=${CORS_URL:-}
     volumes:
       - subtitles-data:/app/subtitles
     restart: unless-stopped
@@ -56,11 +28,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/configure"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   mysql-data:
