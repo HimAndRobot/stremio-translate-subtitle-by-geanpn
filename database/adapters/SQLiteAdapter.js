@@ -88,18 +88,19 @@ class SQLiteAdapter extends BaseAdapter {
     apikey_encrypted = null,
     base_url_encrypted = null,
     model_name_encrypted = null,
-    series_name = null
+    series_name = null,
+    poster = null
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
+          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?)",
-          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
+          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster) VALUES (?,?,?,?,?,?,?,?,?)",
+          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster]
         );
       }
     } catch (error) {

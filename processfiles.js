@@ -290,11 +290,13 @@ async function startTranslation(
     );
 
     let series_name = null;
+    let poster = null;
     if (!existingStatus) {
       try {
         const type = season && episode ? "series" : "movie";
         const metadata = await getMetadata(imdbid, type);
         series_name = metadata.name;
+        poster = metadata.poster;
         console.log(`Fetched metadata: ${series_name}`);
       } catch (metaError) {
         console.error("Failed to fetch series metadata:", metaError.message);
@@ -311,7 +313,8 @@ async function startTranslation(
         apikey_encrypted,
         base_url_encrypted,
         model_name_encrypted,
-        series_name
+        series_name,
+        poster
       );
     } else if (password_hash) {
       await connection.updateTranslationCredentials(
