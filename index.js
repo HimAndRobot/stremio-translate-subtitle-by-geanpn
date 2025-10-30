@@ -247,6 +247,7 @@ builder.defineSubtitlesHandler(async function (args) {
         base_url: config.base_url ?? "https://api.openai.com/v1/responses",
         model_name: config.model_name ?? "gpt-4o-mini",
         password: config.password ?? null,
+        saveCredentials: config.saveCredentials ?? true,
       });
 
       return Promise.resolve({
@@ -287,6 +288,7 @@ builder.defineSubtitlesHandler(async function (args) {
       base_url: config.base_url ?? "https://api.openai.com/v1/responses",
       model_name: config.model_name ?? "gpt-4o-mini",
       password: config.password ?? null,
+      saveCredentials: config.saveCredentials ?? true,
     });
 
     console.log(
@@ -557,6 +559,7 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
         apikey: apikey,
         base_url: base_url,
         model_name: model_name,
+        saveCredentials: false,
       });
 
       console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider}`);
@@ -565,6 +568,68 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Reprocess error:', error);
+    res.status(500).json({ error: 'Failed to reprocess' });
+  }
+});
+
+app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
+  const { id, provider, apikey, base_url, model_name } = req.body;
+
+  try {
+    const adapter = await connection.getAdapter();
+    const result = await adapter.query(
+      'SELECT * FROM translation_queue WHERE id = ? AND password_hash = ?',
+      [id, req.session.userPasswordHash]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Translation not found' });
+    }
+
+    const translation = result[0];
+
+    await connection.updateTranslationStatus(
+      translation.series_imdbid,
+      translation.series_seasonno,
+      translation.series_episodeno,
+      translation.langcode,
+      'processing'
+    );
+
+    const newRetryCount = (translation.retry_attempts || 0) + 1;
+    await adapter.query(
+      'UPDATE translation_queue SET retry_attempts = ?, last_retry_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newRetryCount, translation.id]
+    );
+
+    const subs = await opensubtitles.getsubtitles(
+      translation.series_seasonno ? 'series' : 'movie',
+      translation.series_imdbid,
+      translation.series_seasonno,
+      translation.series_episodeno,
+      translation.langcode
+    );
+
+    if (subs && subs.length > 0) {
+      translationQueue.push({
+        subs: subs,
+        imdbid: translation.series_imdbid,
+        season: translation.series_seasonno,
+        episode: translation.series_episodeno,
+        oldisocode: translation.langcode,
+        provider: provider,
+        apikey: apikey || null,
+        base_url: base_url || null,
+        model_name: model_name || null,
+        saveCredentials: false,
+      });
+
+      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider} (credentials from modal)`);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reprocess with credentials error:', error);
     res.status(500).json({ error: 'Failed to reprocess' });
   }
 });
@@ -681,6 +746,7 @@ app.use("/subtitles", async (req, _res, next) => {
           apikey: process.env.DEFAULT_API_KEY || null,
           base_url: process.env.DEFAULT_BASE_URL || null,
           model_name: process.env.DEFAULT_MODEL || null,
+          saveCredentials: false,
         });
 
         console.log(`Retry job created for ${imdbid}, serving error subtitle meanwhile`);

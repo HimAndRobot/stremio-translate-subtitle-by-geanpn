@@ -261,7 +261,8 @@ async function startTranslation(
   apikey,
   base_url,
   model_name,
-  password = null
+  password = null,
+  saveCredentials = true
 ) {
   let filepaths = [];
   let success = false;
@@ -277,10 +278,14 @@ async function startTranslation(
       if (encryptionKey && encryptionKey.length === 32) {
         password_hash = crypto.createHash('sha256').update(password).digest('hex');
 
-        if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
-        if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
-        if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);
-        console.log('Credentials encrypted and will be saved');
+        if (saveCredentials) {
+          if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
+          if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
+          if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);
+          console.log('Credentials encrypted and will be saved');
+        } else {
+          console.log('Password saved, credentials NOT saved (Save Access Only mode)');
+        }
       }
     }
 

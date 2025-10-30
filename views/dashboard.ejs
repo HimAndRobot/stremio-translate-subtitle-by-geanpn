@@ -210,6 +210,94 @@
             color: #999;
             font-size: 16px;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            margin-bottom: 25px;
+        }
+        .modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .modal-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .modal-form-group select,
+        .modal-form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .modal-form-group select:focus,
+        .modal-form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .modal-btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .modal-btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -267,7 +355,11 @@
 
                         <div class="card-actions">
                             <% if (translation.status === 'failed') { %>
-                                <button onclick="reprocess(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                <% if (translation.apikey_encrypted) { %>
+                                    <button onclick="reprocess(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                <% } else { %>
+                                    <button onclick="openReprocessModal(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                <% } %>
                             <% } %>
                             <button onclick="deleteTranslation(<%= translation.id %>)" class="btn btn-danger btn-sm">Delete</button>
                         </div>
@@ -276,6 +368,53 @@
             <% }); %>
         </div>
     <% } %>
+
+    <div id="reprocessModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reprocess Translation</h2>
+                <p>Provide credentials to reprocess this failed translation</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="modalProvider">Provider</label>
+                <select id="modalProvider">
+                    <option value="Google Translate">Google Translate</option>
+                    <option value="OpenAI">OpenAI</option>
+                    <option value="Google Gemini">Google Gemini</option>
+                    <option value="OpenRouter">OpenRouter</option>
+                    <option value="Groq">Groq</option>
+                    <option value="Together AI">Together AI</option>
+                    <option value="Custom">Custom (OpenAI Compatible)</option>
+                </select>
+            </div>
+
+            <div class="modal-form-group" id="modalApiKeyGroup">
+                <label for="modalApiKey">API Key</label>
+                <input type="text" id="modalApiKey" placeholder="Enter your API key">
+            </div>
+
+            <div class="modal-form-group" id="modalModelGroup">
+                <label for="modalModel">Model</label>
+                <select id="modalModel"></select>
+            </div>
+
+            <div class="modal-form-group hidden" id="modalBaseUrlGroup">
+                <label for="modalBaseUrl">API Base URL</label>
+                <input type="text" id="modalBaseUrl" placeholder="https://api.example.com/v1">
+            </div>
+
+            <div class="modal-form-group hidden" id="modalModelNameGroup">
+                <label for="modalModelName">Model Name</label>
+                <input type="text" id="modalModelName" placeholder="model-name">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeReprocessModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitReprocess()">Reprocess</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         async function logout() {
@@ -334,6 +473,122 @@
                 }
             } catch (error) {
                 alert('Connection error. Please try again.');
+            }
+        }
+
+        let currentReprocessId = null;
+
+        const providerModels = {
+            'OpenAI': ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+            'Google Gemini': ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+            'OpenRouter': ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b-instruct'],
+            'Groq': ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
+            'Together AI': ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct-Turbo']
+        };
+
+        const providerBaseUrls = {
+            'OpenAI': 'https://api.openai.com/v1',
+            'Google Gemini': 'https://generativelanguage.googleapis.com/v1beta/openai/',
+            'OpenRouter': 'https://openrouter.ai/api/v1',
+            'Groq': 'https://api.groq.com/openai/v1',
+            'Together AI': 'https://api.together.xyz/v1'
+        };
+
+        function openReprocessModal(id) {
+            currentReprocessId = id;
+            document.getElementById('reprocessModal').style.display = 'block';
+            updateModalFields();
+        }
+
+        function closeReprocessModal() {
+            document.getElementById('reprocessModal').style.display = 'none';
+            currentReprocessId = null;
+        }
+
+        function updateModalFields() {
+            const provider = document.getElementById('modalProvider').value;
+            const modelGroup = document.getElementById('modalModelGroup');
+            const apiKeyGroup = document.getElementById('modalApiKeyGroup');
+            const baseUrlGroup = document.getElementById('modalBaseUrlGroup');
+            const modelNameGroup = document.getElementById('modalModelNameGroup');
+            const modelSelect = document.getElementById('modalModel');
+
+            if (provider === 'Google Translate') {
+                apiKeyGroup.style.display = 'none';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'none';
+                modelNameGroup.style.display = 'none';
+            } else if (provider === 'Custom') {
+                apiKeyGroup.style.display = 'block';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'block';
+                modelNameGroup.style.display = 'block';
+            } else {
+                apiKeyGroup.style.display = 'block';
+                modelGroup.style.display = 'block';
+                baseUrlGroup.style.display = 'none';
+                modelNameGroup.style.display = 'none';
+
+                modelSelect.innerHTML = '';
+                providerModels[provider].forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+
+        document.getElementById('modalProvider').addEventListener('change', updateModalFields);
+
+        async function submitReprocess() {
+            if (!currentReprocessId) return;
+
+            const provider = document.getElementById('modalProvider').value;
+            let apikey = '', base_url = '', model_name = '';
+
+            if (provider !== 'Google Translate') {
+                if (provider === 'Custom') {
+                    apikey = document.getElementById('modalApiKey').value;
+                    base_url = document.getElementById('modalBaseUrl').value;
+                    model_name = document.getElementById('modalModelName').value;
+                } else {
+                    apikey = document.getElementById('modalApiKey').value;
+                    base_url = providerBaseUrls[provider];
+                    model_name = document.getElementById('modalModel').value;
+                }
+            }
+
+            try {
+                const response = await fetch('/admin/reprocess-with-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentReprocessId,
+                        provider,
+                        apikey,
+                        base_url,
+                        model_name
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Translation queued for reprocessing!');
+                    closeReprocessModal();
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + (data.error || 'Failed to reprocess'));
+                }
+            } catch (error) {
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('reprocessModal');
+            if (event.target == modal) {
+                closeReprocessModal();
             }
         }
     </script>
