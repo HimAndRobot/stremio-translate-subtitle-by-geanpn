@@ -24,10 +24,8 @@ services:
       - subtitles-data:/app/subtitles
     restart: unless-stopped
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - mysql
+      - redis
 
 volumes:
   mysql-data:
