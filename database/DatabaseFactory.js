@@ -9,10 +9,11 @@ class DatabaseFactory {
     switch (dbType.toLowerCase()) {
       case "mysql":
         return new MySQLAdapter({
-          host: process.env.DATABASEHOST,
-          user: process.env.DATABASEUSER,
-          password: process.env.DATABASEPASSWORD,
-          database: process.env.DATABASE,
+          host: process.env.MYSQL_HOST || process.env.DATABASEHOST || 'localhost',
+          port: process.env.MYSQL_PORT || 3306,
+          user: process.env.MYSQL_USER || process.env.DATABASEUSER,
+          password: process.env.MYSQL_PASSWORD || process.env.DATABASEPASSWORD,
+          database: process.env.MYSQL_DATABASE || process.env.DATABASE,
         });
 
       case "sqlite":

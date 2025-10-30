@@ -715,7 +715,30 @@ createBullBoard({
   serverAdapter,
 });
 
-app.use("/admin/queues", serverAdapter.getRouter());
+const bullBoardAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Bull Board"');
+    return res.status(401).send('Authentication required');
+  }
+
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
+
+  const validUsername = process.env.BULL_BOARD_USERNAME || 'admin';
+  const validPassword = process.env.BULL_BOARD_PASSWORD || 'admin';
+
+  if (username === validUsername && password === validPassword) {
+    return next();
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Bull Board"');
+  return res.status(401).send('Invalid credentials');
+};
+
+app.use("/admin/queues", bullBoardAuth, serverAdapter.getRouter());
 
 app.use("/subtitles", async (req, _res, next) => {
   if (!req.path.endsWith('.srt')) {
