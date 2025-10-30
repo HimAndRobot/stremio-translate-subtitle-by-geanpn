@@ -505,6 +505,12 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
       'processing'
     );
 
+    const newRetryCount = (translation.retry_attempts || 0) + 1;
+    await adapter.query(
+      'UPDATE translation_queue SET retry_attempts = ?, last_retry_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newRetryCount, translation.id]
+    );
+
     const subs = await opensubtitles.getsubtitles(
       translation.series_seasonno ? 'series' : 'movie',
       translation.series_imdbid,
@@ -514,17 +520,46 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
     );
 
     if (subs && subs.length > 0) {
+      const { decryptCredential } = require('./utils/crypto');
+      const encryptionKey = process.env.ENCRYPTION_KEY;
+
+      let apikey = null;
+      let base_url = null;
+      let model_name = null;
+
+      if (encryptionKey && encryptionKey.length === 32) {
+        if (translation.apikey_encrypted) {
+          apikey = decryptCredential(translation.apikey_encrypted, encryptionKey);
+        }
+        if (translation.base_url_encrypted) {
+          base_url = decryptCredential(translation.base_url_encrypted, encryptionKey);
+        }
+        if (translation.model_name_encrypted) {
+          model_name = decryptCredential(translation.model_name_encrypted, encryptionKey);
+        }
+      }
+
+      const provider = base_url ?
+        (base_url.includes('openai.com') ? 'OpenAI' :
+         base_url.includes('generativelanguage.googleapis.com') ? 'Google Gemini' :
+         base_url.includes('openrouter.ai') ? 'OpenRouter' :
+         base_url.includes('groq.com') ? 'Groq' :
+         base_url.includes('together.xyz') ? 'Together AI' : 'Custom')
+        : 'Google Translate';
+
       translationQueue.push({
         subs: subs,
         imdbid: translation.series_imdbid,
         season: translation.series_seasonno,
         episode: translation.series_episodeno,
         oldisocode: translation.langcode,
-        provider: 'Google Translate',
-        apikey: null,
-        base_url: null,
-        model_name: null,
+        provider: provider,
+        apikey: apikey,
+        base_url: base_url,
+        model_name: model_name,
       });
+
+      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider}`);
     }
 
     res.json({ success: true });

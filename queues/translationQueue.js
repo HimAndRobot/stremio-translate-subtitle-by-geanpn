@@ -90,7 +90,7 @@ worker.on("error", (err) => {
 
 translationQueue.push = function (jobData) {
   return this.add("translate", jobData, {
-    jobId: `${jobData.imdbid}-${jobData.season}-${jobData.episode}-${jobData.oldisocode}`,
+    jobId: `${jobData.imdbid}-${jobData.season}-${jobData.episode}-${jobData.oldisocode}-${Date.now()}`,
   });
 };
 
