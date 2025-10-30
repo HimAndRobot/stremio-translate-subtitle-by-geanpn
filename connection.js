@@ -25,9 +25,9 @@ async function getAdapter() {
 }
 
 // Utility methods for backward API compatibility
-async function addToTranslationQueue(imdbid, season = null, episode = null, count, langcode) {
+async function addToTranslationQueue(imdbid, season = null, episode = null, count, langcode, password_hash = null, apikey_encrypted = null, base_url_encrypted = null, model_name_encrypted = null) {
     const adapter = await getAdapter();
-    return adapter.addToTranslationQueue(imdbid, season, episode, count, langcode);
+    return adapter.addToTranslationQueue(imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted);
 }
 
 async function deletetranslationQueue(imdbid, season = null, episode = null, langcode) {
@@ -43,6 +43,11 @@ async function checkForTranslation(imdbid, season = null, episode = null, langco
 async function updateTranslationStatus(imdbid, season = null, episode = null, langcode, status) {
     const adapter = await getAdapter();
     return adapter.updateTranslationStatus(imdbid, season, episode, langcode, status);
+}
+
+async function updateTranslationCredentials(imdbid, season = null, episode = null, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted) {
+    const adapter = await getAdapter();
+    return adapter.updateTranslationCredentials(imdbid, season, episode, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted);
 }
 
 async function checkseries(imdbid) {

@@ -98,6 +98,10 @@ class SQLiteAdapter extends BaseAdapter {
                 subcount INTEGER NOT NULL,
                 langcode TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'processing',
+                password_hash TEXT NULL,
+                apikey_encrypted TEXT NULL,
+                base_url_encrypted TEXT NULL,
+                model_name_encrypted TEXT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
@@ -112,18 +116,22 @@ class SQLiteAdapter extends BaseAdapter {
     season = null,
     episode = null,
     count,
-    langcode
+    langcode,
+    password_hash = null,
+    apikey_encrypted = null,
+    base_url_encrypted = null,
+    model_name_encrypted = null
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode) VALUES (?,?,?,?,?)",
-          [imdbid, season, episode, count, langcode]
+          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?,?,?)",
+          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,subcount,langcode) VALUES (?,?,?)",
-          [imdbid, count, langcode]
+          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?)",
+          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
         );
       }
     } catch (error) {
@@ -177,6 +185,34 @@ class SQLiteAdapter extends BaseAdapter {
       }
     } catch (error) {
       console.error("Error updating translation status:", error.message);
+      throw error;
+    }
+  }
+
+  async updateTranslationCredentials(
+    imdbid,
+    season = null,
+    episode = null,
+    langcode,
+    password_hash,
+    apikey_encrypted,
+    base_url_encrypted,
+    model_name_encrypted
+  ) {
+    try {
+      if (season && episode) {
+        await this.query(
+          "UPDATE translation_queue SET password_hash = ?, apikey_encrypted = ?, base_url_encrypted = ?, model_name_encrypted = ? WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
+          [password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, imdbid, season, episode, langcode]
+        );
+      } else {
+        await this.query(
+          "UPDATE translation_queue SET password_hash = ?, apikey_encrypted = ?, base_url_encrypted = ?, model_name_encrypted = ? WHERE series_imdbid = ? AND langcode = ?",
+          [password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, imdbid, langcode]
+        );
+      }
+    } catch (error) {
+      console.error("Error updating translation credentials:", error.message);
       throw error;
     }
   }

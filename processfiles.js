@@ -6,6 +6,7 @@ const connection = require("./connection");
 const fs = require("fs").promises;
 const { translateText } = require("./translateProvider");
 const { createOrUpdateMessageSub } = require("./subtitles");
+const { hashPassword, encryptCredential } = require("./utils/crypto");
 
 class SubtitleProcessor {
   constructor() {
@@ -247,12 +248,29 @@ async function startTranslation(
   provider,
   apikey,
   base_url,
-  model_name
+  model_name,
+  password = null
 ) {
   let filepaths = [];
   let success = false;
 
   try {
+    let password_hash = null;
+    let apikey_encrypted = null;
+    let base_url_encrypted = null;
+    let model_name_encrypted = null;
+
+    if (password) {
+      const encryptionKey = process.env.ENCRYPTION_KEY;
+      if (encryptionKey && encryptionKey.length === 32) {
+        password_hash = await hashPassword(password);
+        if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
+        if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
+        if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);
+        console.log('Credentials encrypted and will be saved');
+      }
+    }
+
     const existingStatus = await connection.checkForTranslation(
       imdbid,
       season,
@@ -266,7 +284,22 @@ async function startTranslation(
         season,
         episode,
         0,
-        oldisocode
+        oldisocode,
+        password_hash,
+        apikey_encrypted,
+        base_url_encrypted,
+        model_name_encrypted
+      );
+    } else if (password_hash) {
+      await connection.updateTranslationCredentials(
+        imdbid,
+        season,
+        episode,
+        oldisocode,
+        password_hash,
+        apikey_encrypted,
+        base_url_encrypted,
+        model_name_encrypted
       );
     }
 

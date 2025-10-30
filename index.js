@@ -246,6 +246,7 @@ builder.defineSubtitlesHandler(async function (args) {
         apikey: config.apikey ?? null,
         base_url: config.base_url ?? "https://api.openai.com/v1/responses",
         model_name: config.model_name ?? "gpt-4o-mini",
+        password: config.password ?? null,
       });
 
       return Promise.resolve({
@@ -285,6 +286,7 @@ builder.defineSubtitlesHandler(async function (args) {
       apikey: config.apikey ?? null,
       base_url: config.base_url ?? "https://api.openai.com/v1/responses",
       model_name: config.model_name ?? "gpt-4o-mini",
+      password: config.password ?? null,
     });
 
     console.log(

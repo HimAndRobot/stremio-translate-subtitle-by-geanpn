@@ -38,6 +38,7 @@ const worker = new Worker(
       apikey,
       base_url,
       model_name,
+      password,
     } = job.data;
 
     await job.log(`[START] Processing translation for ${imdbid}`);
@@ -59,7 +60,8 @@ const worker = new Worker(
       provider,
       apikey,
       base_url,
-      model_name
+      model_name,
+      password
     );
 
     await job.updateProgress(100);

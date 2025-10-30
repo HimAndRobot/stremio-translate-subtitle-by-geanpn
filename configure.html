@@ -48,7 +48,7 @@
             font-weight: 500;
             font-size: 14px;
         }
-        select, input[type="text"] {
+        select, input[type="text"], input[type="password"] {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -56,9 +56,15 @@
             font-size: 14px;
             transition: border-color 0.2s;
         }
-        select:focus, input[type="text"]:focus {
+        select:focus, input[type="text"]:focus, input[type="password"]:focus {
             outline: none;
             border-color: #555;
+        }
+        .help-text {
+            color: #666;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
         }
         .hidden {
             display: none !important;
@@ -154,6 +160,12 @@
                     <label for="model_name">Model Name</label>
                     <input type="text" id="model_name" name="model_name" placeholder="model-name">
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password (Optional)</label>
+                <input type="password" id="password" name="password" placeholder="Leave empty to not save credentials">
+                <small class="help-text">Password allows you to reprocess failed translations and track token usage on your translations</small>
             </div>
 
             <button type="submit" class="btn">Install Addon</button>
@@ -290,12 +302,15 @@
                 }
             }
 
+            const password = document.getElementById('password').value;
+
             const config = {
                 provider: provider,
                 translateto: document.getElementById('translateto').value,
                 apikey: document.getElementById('apikey').value || '',
                 base_url: base_url,
-                model_name: model_name
+                model_name: model_name,
+                password: password || undefined
             };
 
             const configStr = encodeURIComponent(JSON.stringify(config));
