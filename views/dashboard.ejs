@@ -351,6 +351,12 @@
                                 <div class="stat-label">Retries</div>
                                 <div class="stat-value retries"><%= translation.retry_attempts || 0 %></div>
                             </div>
+                            <% if (translation.batches_total > 0) { %>
+                                <div class="stat-box">
+                                    <div class="stat-label">Batches</div>
+                                    <div class="stat-value batches"><%= translation.batches_completed %>/<%= translation.batches_total %></div>
+                                </div>
+                            <% } %>
                         </div>
 
                         <div class="card-actions">

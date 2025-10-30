@@ -320,6 +320,110 @@ class MySQLAdapter extends BaseAdapter {
       return false;
     }
   }
+
+  async createSubtitleBatches(translationQueueId, batches) {
+    try {
+      for (const batch of batches) {
+        await this.query(
+          "INSERT INTO subtitle_batches (translation_queue_id, batch_number, subtitle_entries, status) VALUES (?, ?, ?, 'pending')",
+          [translationQueueId, batch.batch_number, JSON.stringify(batch.subtitle_entries)]
+        );
+      }
+    } catch (error) {
+      console.error("Error creating subtitle batches:", error.message);
+      throw error;
+    }
+  }
+
+  async getSubtitleBatch(batchId) {
+    try {
+      const result = await this.query(
+        "SELECT * FROM subtitle_batches WHERE id = ?",
+        [batchId]
+      );
+      if (result.length > 0) {
+        const batch = result[0];
+        batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
+        if (batch.translated_entries) {
+          batch.translated_entries = JSON.parse(batch.translated_entries);
+        }
+        return batch;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting subtitle batch:", error.message);
+      throw error;
+    }
+  }
+
+  async updateBatchTranslation(batchId, translatedEntries, tokenUsage) {
+    try {
+      await this.query(
+        "UPDATE subtitle_batches SET translated_entries = ?, token_usage = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [JSON.stringify(translatedEntries), tokenUsage, batchId]
+      );
+    } catch (error) {
+      console.error("Error updating batch translation:", error.message);
+      throw error;
+    }
+  }
+
+  async updateBatchStatus(batchId, status) {
+    try {
+      await this.query(
+        "UPDATE subtitle_batches SET status = ? WHERE id = ?",
+        [status, batchId]
+      );
+    } catch (error) {
+      console.error("Error updating batch status:", error.message);
+      throw error;
+    }
+  }
+
+  async getBatchesForTranslation(translationQueueId) {
+    try {
+      const result = await this.query(
+        "SELECT * FROM subtitle_batches WHERE translation_queue_id = ? ORDER BY batch_number ASC",
+        [translationQueueId]
+      );
+      return result.map(batch => {
+        batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
+        if (batch.translated_entries) {
+          batch.translated_entries = JSON.parse(batch.translated_entries);
+        }
+        return batch;
+      });
+    } catch (error) {
+      console.error("Error getting batches for translation:", error.message);
+      throw error;
+    }
+  }
+
+  async areAllBatchesComplete(translationQueueId) {
+    try {
+      const result = await this.query(
+        "SELECT COUNT(*) as count FROM subtitle_batches WHERE translation_queue_id = ? AND status != 'completed'",
+        [translationQueueId]
+      );
+      return result[0].count === 0;
+    } catch (error) {
+      console.error("Error checking batches completion:", error.message);
+      throw error;
+    }
+  }
+
+  async getTranslationQueueIdFromBatch(batchId) {
+    try {
+      const result = await this.query(
+        "SELECT translation_queue_id FROM subtitle_batches WHERE id = ?",
+        [batchId]
+      );
+      return result.length > 0 ? result[0].translation_queue_id : null;
+    } catch (error) {
+      console.error("Error getting translation queue ID from batch:", error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = MySQLAdapter;

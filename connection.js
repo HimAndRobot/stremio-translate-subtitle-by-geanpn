@@ -85,6 +85,41 @@ async function checksubtitle(imdbid, season = null, episode = null, subtitlepath
     return adapter.checksubtitle(imdbid, season, episode, subtitlepath, langcode);
 }
 
+async function createSubtitleBatches(translationQueueId, batches) {
+    const adapter = await getAdapter();
+    return adapter.createSubtitleBatches(translationQueueId, batches);
+}
+
+async function getSubtitleBatch(batchId) {
+    const adapter = await getAdapter();
+    return adapter.getSubtitleBatch(batchId);
+}
+
+async function updateBatchTranslation(batchId, translatedEntries, tokenUsage) {
+    const adapter = await getAdapter();
+    return adapter.updateBatchTranslation(batchId, translatedEntries, tokenUsage);
+}
+
+async function updateBatchStatus(batchId, status) {
+    const adapter = await getAdapter();
+    return adapter.updateBatchStatus(batchId, status);
+}
+
+async function getBatchesForTranslation(translationQueueId) {
+    const adapter = await getAdapter();
+    return adapter.getBatchesForTranslation(translationQueueId);
+}
+
+async function areAllBatchesComplete(translationQueueId) {
+    const adapter = await getAdapter();
+    return adapter.areAllBatchesComplete(translationQueueId);
+}
+
+async function getTranslationQueueIdFromBatch(batchId) {
+    const adapter = await getAdapter();
+    return adapter.getTranslationQueueIdFromBatch(batchId);
+}
+
 // Function to close the connection
 async function closeConnection() {
     if (dbAdapter) {
@@ -110,5 +145,12 @@ module.exports = {
     checkForTranslation,
     checksubtitle,
     closeConnection,
-    getAdapter
+    getAdapter,
+    createSubtitleBatches,
+    getSubtitleBatch,
+    updateBatchTranslation,
+    updateBatchStatus,
+    getBatchesForTranslation,
+    areAllBatchesComplete,
+    getTranslationQueueIdFromBatch
 };

@@ -9,6 +9,7 @@ const { createOrUpdateMessageSub } = require("./subtitles");
 const translationQueue = require("./queues/translationQueue");
 const baseLanguages = require("./langs/base.lang.json");
 const isoCodeMapping = require("./langs/iso_code_mapping.json");
+const crypto = require("crypto");
 require("dotenv").config();
 
 function generateSubtitleUrl(
@@ -96,6 +97,10 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const { type, season = null, episode = null } = parseId(id);
 
+  const providerPath = config.password
+    ? crypto.createHash('sha256').update(config.password).digest('hex')
+    : `translated-${targetLanguage}`;
+
   try {
     // 1. Check if already exists in database
     const existingSubtitle = await connection.getsubtitles(
@@ -113,7 +118,7 @@ builder.defineSubtitlesHandler(async function (args) {
           imdbid,
           season,
           episode,
-          config.provider
+          providerPath
         )
       );
       return Promise.resolve({
@@ -125,7 +130,7 @@ builder.defineSubtitlesHandler(async function (args) {
               imdbid,
               season,
               episode,
-              config.provider
+              providerPath
             ),
             lang: `${targetLanguage}-translated`,
           },
@@ -149,7 +154,7 @@ builder.defineSubtitlesHandler(async function (args) {
         season,
         episode,
         targetLanguage,
-        config.provider
+        providerPath
       );
       return Promise.resolve({
         subtitles: [
@@ -160,7 +165,7 @@ builder.defineSubtitlesHandler(async function (args) {
               imdbid,
               season,
               episode,
-              config.provider
+              providerPath
             ),
             lang: `${targetLanguage}-translated`,
           },
@@ -217,7 +222,7 @@ builder.defineSubtitlesHandler(async function (args) {
               imdbid,
               season,
               episode,
-              config.provider
+              providerPath
             ),
             lang: `${targetLanguage}-translated`,
           },
@@ -259,7 +264,7 @@ builder.defineSubtitlesHandler(async function (args) {
               imdbid,
               season,
               episode,
-              config.provider
+              providerPath
             ),
             lang: `${targetLanguage}-translated`,
           },
@@ -273,7 +278,7 @@ builder.defineSubtitlesHandler(async function (args) {
       season,
       episode,
       targetLanguage,
-      config.provider
+      providerPath
     );
 
     // 3. Process and translate subtitles
@@ -298,7 +303,7 @@ builder.defineSubtitlesHandler(async function (args) {
         imdbid,
         season,
         episode,
-        config.provider
+        providerPath
       )
     );
 
@@ -312,7 +317,7 @@ builder.defineSubtitlesHandler(async function (args) {
         imdbid,
         season,
         episode,
-        config.provider
+        providerPath
       ).replace(`${process.env.BASE_URL}/`, ""),
       targetLanguage
     );
@@ -326,7 +331,7 @@ builder.defineSubtitlesHandler(async function (args) {
             imdbid,
             season,
             episode,
-            config.provider
+            providerPath
           ),
           lang: `${targetLanguage}-translated`,
         },
@@ -380,7 +385,6 @@ const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
-const crypto = require("crypto");
 const getRouter = require("stremio-addon-sdk/src/getRouter");
 
 const { createBullBoard } = require("@bull-board/api");
@@ -468,6 +472,21 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
        ORDER BY created_at DESC`,
       [req.session.userPasswordHash]
     );
+
+    for (const translation of translations) {
+      const batchStats = await adapter.query(
+        `SELECT COUNT(*) as total,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+         FROM subtitle_batches
+         WHERE translation_queue_id = ?`,
+        [translation.id]
+      );
+
+      translation.batches_total = batchStats[0]?.total || 0;
+      translation.batches_completed = batchStats[0]?.completed || 0;
+      translation.batches_failed = batchStats[0]?.failed || 0;
+    }
 
     const corsProxy = process.env.CORS_URL || '';
 
@@ -683,11 +702,16 @@ app.get("/configure", (_req, res) => {
   });
 });
 
+const batchQueue = require("./queues/batchQueue");
+
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
 
 createBullBoard({
-  queues: [new BullMQAdapter(translationQueue)],
+  queues: [
+    new BullMQAdapter(translationQueue),
+    new BullMQAdapter(batchQueue)
+  ],
   serverAdapter,
 });
 
