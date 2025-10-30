@@ -7,6 +7,7 @@ const fs = require("fs").promises;
 const { translateText } = require("./translateProvider");
 const { createOrUpdateMessageSub } = require("./subtitles");
 const { hashPassword, encryptCredential } = require("./utils/crypto");
+const { getMetadata } = require("./utils/metadata");
 
 class SubtitleProcessor {
   constructor() {
@@ -15,6 +16,7 @@ class SubtitleProcessor {
     this.texts = [];
     this.translatedSubtitle = [];
     this.count = 0;
+    this.totalTokens = 0;
   }
 
   async processSubtitles(
@@ -29,6 +31,8 @@ class SubtitleProcessor {
     model_name
   ) {
     try {
+      this.totalTokens = 0;
+
       const originalSubtitleFilePath = filepath[0];
       const originalSubtitleContent = await fs.readFile(
         originalSubtitleFilePath,
@@ -62,7 +66,7 @@ class SubtitleProcessor {
           // Translate when batch size is reached
           if (subtitleBatch.length === batchSize) {
             try {
-              await this.translateBatch(
+              const tokens = await this.translateBatch(
                 subtitleBatch,
                 oldisocode,
                 provider,
@@ -70,6 +74,7 @@ class SubtitleProcessor {
                 base_url,
                 model_name
               );
+              this.totalTokens += tokens;
               subtitleBatch = [];
             } catch (error) {
               console.error("Batch translation error: ", error);
@@ -115,7 +120,7 @@ class SubtitleProcessor {
       if (subtitleBatch.length > 0) {
         try {
           subtitleBatch.push(this.texts[this.texts.length - 1]);
-          await this.translateBatch(
+          const tokens = await this.translateBatch(
             subtitleBatch,
             oldisocode,
             provider,
@@ -123,6 +128,7 @@ class SubtitleProcessor {
             base_url,
             model_name
           );
+          this.totalTokens += tokens;
         } catch (error) {
           console.log("Subtitle batch error: ", error);
           throw error;
@@ -138,7 +144,8 @@ class SubtitleProcessor {
           oldisocode,
           provider
         );
-        console.log("Subtitles saved successfully");
+        console.log(`Subtitles saved successfully. Total tokens used: ${this.totalTokens}`);
+        return this.totalTokens;
       } catch (error) {
         console.error("Error saving translated subtitles:", error);
         throw error;
@@ -158,7 +165,7 @@ class SubtitleProcessor {
     model_name
   ) {
     try {
-      const translations = await translateText(
+      const result = await translateText(
         subtitleBatch,
         oldisocode,
         provider,
@@ -167,11 +174,15 @@ class SubtitleProcessor {
         model_name
       );
 
+      const translations = result.translatedText;
+      const tokenUsage = result.tokenUsage || 0;
+
       translations.forEach((translatedText) => {
         this.translatedSubtitle.push(translatedText);
       });
 
-      console.log("Batch translation completed");
+      console.log(`Batch translation completed. Tokens used: ${tokenUsage}`);
+      return tokenUsage;
     } catch (error) {
       console.error("Batch translation error:", error);
       throw error;
@@ -278,7 +289,18 @@ async function startTranslation(
       oldisocode
     );
 
+    let series_name = null;
     if (!existingStatus) {
+      try {
+        const type = season && episode ? "series" : "movie";
+        const metadata = await getMetadata(imdbid, type);
+        series_name = metadata.name;
+        console.log(`Fetched metadata: ${series_name}`);
+      } catch (metaError) {
+        console.error("Failed to fetch series metadata:", metaError.message);
+        series_name = imdbid;
+      }
+
       await connection.addToTranslationQueue(
         imdbid,
         season,
@@ -288,7 +310,8 @@ async function startTranslation(
         password_hash,
         apikey_encrypted,
         base_url_encrypted,
-        model_name_encrypted
+        model_name_encrypted,
+        series_name
       );
     } else if (password_hash) {
       await connection.updateTranslationCredentials(
@@ -313,7 +336,7 @@ async function startTranslation(
     );
 
     if (filepaths && filepaths.length > 0) {
-      await processor.processSubtitles(
+      const totalTokens = await processor.processSubtitles(
         filepaths,
         imdbid,
         season,
@@ -324,6 +347,21 @@ async function startTranslation(
         base_url,
         model_name
       );
+
+      if (totalTokens > 0) {
+        try {
+          await connection.updateTokenUsage(
+            imdbid,
+            season,
+            episode,
+            oldisocode,
+            totalTokens
+          );
+          console.log(`Token usage updated: ${totalTokens} tokens`);
+        } catch (tokenError) {
+          console.error("Failed to update token usage:", tokenError);
+        }
+      }
 
       console.log("Translation process completed successfully");
       success = true;

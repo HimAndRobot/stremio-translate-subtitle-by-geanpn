@@ -77,18 +77,19 @@ class MySQLAdapter extends BaseAdapter {
     password_hash = null,
     apikey_encrypted = null,
     base_url_encrypted = null,
-    model_name_encrypted = null
+    model_name_encrypted = null,
+    series_name = null
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?,?,?)",
-          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
+          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?)",
-          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
+          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?)",
+          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
         );
       }
     } catch (error) {
@@ -188,6 +189,25 @@ class MySQLAdapter extends BaseAdapter {
     } catch (error) {
       console.error("Translation check error:", error.message);
       return null;
+    }
+  }
+
+  async updateTokenUsage(imdbid, season = null, episode = null, langcode, tokens) {
+    try {
+      if (season && episode) {
+        await this.query(
+          "UPDATE translation_queue SET token_usage_total = token_usage_total + ? WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
+          [tokens, imdbid, season, episode, langcode]
+        );
+      } else {
+        await this.query(
+          "UPDATE translation_queue SET token_usage_total = token_usage_total + ? WHERE series_imdbid = ? AND langcode = ?",
+          [tokens, imdbid, langcode]
+        );
+      }
+    } catch (error) {
+      console.error("Error updating token usage:", error.message);
+      throw error;
     }
   }
 

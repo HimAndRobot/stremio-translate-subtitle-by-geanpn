@@ -67,48 +67,15 @@ class SQLiteAdapter extends BaseAdapter {
   }
 
   async _createTables() {
-    const createSeriesTable = `
-            CREATE TABLE IF NOT EXISTS series (
+    const createMigrationsTable = `
+            CREATE TABLE IF NOT EXISTS migrations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                series_imdbid TEXT NOT NULL,
-                series_type INTEGER NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                name TEXT NOT NULL UNIQUE,
+                executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
 
-    const createSubtitleTable = `
-            CREATE TABLE IF NOT EXISTS subtitle (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                series_imdbid TEXT NOT NULL,
-                subtitle_type INTEGER NOT NULL,
-                subtitle_seasonno INTEGER,
-                subtitle_episodeno INTEGER,
-                subtitle_langcode TEXT NOT NULL,
-                subtitle_path TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `;
-
-    const createTranslationQueueTable = `
-            CREATE TABLE IF NOT EXISTS translation_queue (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                series_imdbid TEXT NOT NULL,
-                series_seasonno INTEGER,
-                series_episodeno INTEGER,
-                subcount INTEGER NOT NULL,
-                langcode TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'processing',
-                password_hash TEXT NULL,
-                apikey_encrypted TEXT NULL,
-                base_url_encrypted TEXT NULL,
-                model_name_encrypted TEXT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `;
-
-    await this.query(createSeriesTable);
-    await this.query(createSubtitleTable);
-    await this.query(createTranslationQueueTable);
+    await this.query(createMigrationsTable);
   }
 
   async addToTranslationQueue(
@@ -120,18 +87,19 @@ class SQLiteAdapter extends BaseAdapter {
     password_hash = null,
     apikey_encrypted = null,
     base_url_encrypted = null,
-    model_name_encrypted = null
+    model_name_encrypted = null,
+    series_name = null
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?,?,?)",
-          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
+          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted) VALUES (?,?,?,?,?,?,?)",
-          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted]
+          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name) VALUES (?,?,?,?,?,?,?,?)",
+          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name]
         );
       }
     } catch (error) {
@@ -231,6 +199,25 @@ class SQLiteAdapter extends BaseAdapter {
     } catch (error) {
       console.error("Translation check error:", error.message);
       return null;
+    }
+  }
+
+  async updateTokenUsage(imdbid, season = null, episode = null, langcode, tokens) {
+    try {
+      if (season && episode) {
+        await this.query(
+          "UPDATE translation_queue SET token_usage_total = token_usage_total + ? WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
+          [tokens, imdbid, season, episode, langcode]
+        );
+      } else {
+        await this.query(
+          "UPDATE translation_queue SET token_usage_total = token_usage_total + ? WHERE series_imdbid = ? AND langcode = ?",
+          [tokens, imdbid, langcode]
+        );
+      }
+    } catch (error) {
+      console.error("Error updating token usage:", error.message);
+      throw error;
     }
   }
 

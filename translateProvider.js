@@ -17,6 +17,7 @@ async function translateTextWithRetry(
   try {
     let result = null;
     let resultArray = [];
+    let tokenUsage = 0;
 
     switch (provider) {
       case "Google Translate": {
@@ -74,6 +75,10 @@ async function translateTextWithRetry(
           .sort((a, b) => a.index - b.index)
           .map((item) => item.text);
 
+        if (completion.usage && completion.usage.total_tokens) {
+          tokenUsage = completion.usage.total_tokens;
+        }
+
         break;
       }
       default:
@@ -124,7 +129,10 @@ async function translateTextWithRetry(
     }
 
     count++;
-    return Array.isArray(texts) ? resultArray : result.text;
+    return {
+      translatedText: Array.isArray(texts) ? resultArray : result.text,
+      tokenUsage: tokenUsage
+    };
   } catch (error) {
     if (attempt >= maxRetries) {
       throw error;
