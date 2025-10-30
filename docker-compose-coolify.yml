@@ -18,14 +18,9 @@ services:
 
   stremio-translate:
     build: .
-    ports:
-      - "${PORT:-3000}:3000"
     volumes:
       - subtitles-data:/app/subtitles
     restart: unless-stopped
-    depends_on:
-      - mysql
-      - redis
 
 volumes:
   mysql-data:
