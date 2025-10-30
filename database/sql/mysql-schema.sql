@@ -30,10 +30,12 @@ CREATE TABLE IF NOT EXISTS translation_queue (
     series_episodeno INT NULL,
     subcount INT NOT NULL,
     langcode VARCHAR(10) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'processing',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_translation_queue_imdbid (series_imdbid),
     INDEX idx_translation_queue_season_episode (series_seasonno, series_episodeno),
-    INDEX idx_translation_queue_langcode (langcode)
+    INDEX idx_translation_queue_langcode (langcode),
+    INDEX idx_translation_queue_status (status)
 );
 
 -- Commands for management

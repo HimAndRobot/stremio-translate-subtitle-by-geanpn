@@ -97,6 +97,7 @@ class SQLiteAdapter extends BaseAdapter {
                 series_episodeno INTEGER,
                 subcount INTEGER NOT NULL,
                 langcode TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'processing',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
@@ -155,22 +156,45 @@ class SQLiteAdapter extends BaseAdapter {
     }
   }
 
+  async updateTranslationStatus(
+    imdbid,
+    season = null,
+    episode = null,
+    langcode,
+    status
+  ) {
+    try {
+      if (season && episode) {
+        await this.query(
+          "UPDATE translation_queue SET status = ? WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
+          [status, imdbid, season, episode, langcode]
+        );
+      } else {
+        await this.query(
+          "UPDATE translation_queue SET status = ? WHERE series_imdbid = ? AND langcode = ?",
+          [status, imdbid, langcode]
+        );
+      }
+    } catch (error) {
+      console.error("Error updating translation status:", error.message);
+      throw error;
+    }
+  }
+
   async checkForTranslation(imdbid, season = null, episode = null, langcode) {
     try {
       const result = await this.query(
-        "SELECT COUNT(*) AS count,subcount FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
+        "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
         [imdbid, season, episode, langcode]
       );
-      const count = result[0].count;
-      const subcount = result[0].subcount;
 
-      if (count > 0) {
-        return subcount;
-      } else {
-        return false;
+      if (result.length > 0) {
+        return result[0].status;
       }
+      return null;
     } catch (error) {
       console.error("Translation check error:", error.message);
+      return null;
     }
   }
 

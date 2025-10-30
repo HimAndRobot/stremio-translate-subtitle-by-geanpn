@@ -199,6 +199,72 @@ builder.defineSubtitlesHandler(async function (args) {
       "Subtitles found on OpenSubtitles, but not in target language. Translating..."
     );
 
+    const queueStatus = await connection.checkForTranslation(
+      imdbid,
+      season,
+      episode,
+      targetLanguage
+    );
+
+    if (queueStatus === 'processing') {
+      console.log("Translation already in progress, returning placeholder");
+      return Promise.resolve({
+        subtitles: [
+          {
+            id: `${imdbid}-subtitle`,
+            url: generateSubtitleUrl(
+              targetLanguage,
+              imdbid,
+              season,
+              episode,
+              config.provider
+            ),
+            lang: `${targetLanguage}-translated`,
+          },
+        ],
+      });
+    }
+
+    if (queueStatus === 'failed') {
+      console.log("Previous translation failed, retrying and returning error subtitle");
+
+      await connection.updateTranslationStatus(
+        imdbid,
+        season,
+        episode,
+        targetLanguage,
+        'processing'
+      );
+
+      translationQueue.push({
+        subs: [foundSubtitle],
+        imdbid: imdbid,
+        season: season,
+        episode: episode,
+        oldisocode: targetLanguage,
+        provider: config.provider,
+        apikey: config.apikey ?? null,
+        base_url: config.base_url ?? "https://api.openai.com/v1/responses",
+        model_name: config.model_name ?? "gpt-4o-mini",
+      });
+
+      return Promise.resolve({
+        subtitles: [
+          {
+            id: `${imdbid}-subtitle`,
+            url: generateSubtitleUrl(
+              targetLanguage,
+              imdbid,
+              season,
+              episode,
+              config.provider
+            ),
+            lang: `${targetLanguage}-translated`,
+          },
+        ],
+      });
+    }
+
     await createOrUpdateMessageSub(
       "Translating subtitles. Please wait 1 minute and try again.",
       imdbid,
@@ -356,6 +422,75 @@ createBullBoard({
 });
 
 app.use("/admin/queues", serverAdapter.getRouter());
+
+app.use("/subtitles", async (req, _res, next) => {
+  if (!req.path.endsWith('.srt')) {
+    return next();
+  }
+
+  const pathMatch = req.path.match(/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(?:season(\d+)\/)?([^\/]+)-translated/);
+
+  if (!pathMatch) {
+    return next();
+  }
+
+  const [, provider, langcode, imdbid, season] = pathMatch;
+  const episodeMatch = req.path.match(/-translated-(\d+)-/);
+  const episode = episodeMatch ? episodeMatch[1] : null;
+
+  try {
+    const queueStatus = await connection.checkForTranslation(
+      imdbid,
+      season ? parseInt(season) : null,
+      episode ? parseInt(episode) : null,
+      langcode
+    );
+
+    if (queueStatus === 'failed') {
+      console.log(`File access for failed translation ${imdbid}, triggering retry...`);
+
+      await connection.updateTranslationStatus(
+        imdbid,
+        season ? parseInt(season) : null,
+        episode ? parseInt(episode) : null,
+        langcode,
+        'processing'
+      );
+
+      const subs = await opensubtitles.getsubtitles(
+        season ? 'series' : 'movie',
+        imdbid,
+        season ? parseInt(season) : null,
+        episode ? parseInt(episode) : null,
+        langcode
+      );
+
+      if (subs && subs.length > 0) {
+        translationQueue.push({
+          subs: subs,
+          imdbid: imdbid,
+          season: season ? parseInt(season) : null,
+          episode: episode ? parseInt(episode) : null,
+          oldisocode: langcode,
+          provider: provider,
+          apikey: process.env.DEFAULT_API_KEY || null,
+          base_url: process.env.DEFAULT_BASE_URL || null,
+          model_name: process.env.DEFAULT_MODEL || null,
+        });
+
+        console.log(`Retry job created for ${imdbid}, serving error subtitle meanwhile`);
+      }
+    } else if (queueStatus === 'processing') {
+      console.log(`File access for processing translation ${imdbid}, serving placeholder...`);
+    } else if (queueStatus === 'completed') {
+      console.log(`File access for completed translation ${imdbid}, serving translated file`);
+    }
+  } catch (error) {
+    console.error('Error checking translation status:', error);
+  }
+
+  next();
+});
 
 app.use("/subtitles", express.static("subtitles"));
 

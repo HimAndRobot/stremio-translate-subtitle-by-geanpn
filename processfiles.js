@@ -250,7 +250,26 @@ async function startTranslation(
   model_name
 ) {
   let filepaths = [];
+  let success = false;
+
   try {
+    const existingStatus = await connection.checkForTranslation(
+      imdbid,
+      season,
+      episode,
+      oldisocode
+    );
+
+    if (!existingStatus) {
+      await connection.addToTranslationQueue(
+        imdbid,
+        season,
+        episode,
+        0,
+        oldisocode
+      );
+    }
+
     const processor = new SubtitleProcessor();
     filepaths = await opensubtitles.downloadSubtitles(
       subtitles,
@@ -261,15 +280,6 @@ async function startTranslation(
     );
 
     if (filepaths && filepaths.length > 0) {
-      await connection.addToTranslationQueue(
-        imdbid,
-        season,
-        episode,
-        filepaths.length,
-        oldisocode,
-        provider,
-        apikey
-      );
       await processor.processSubtitles(
         filepaths,
         imdbid,
@@ -281,14 +291,34 @@ async function startTranslation(
         base_url,
         model_name
       );
+
+      console.log("Translation process completed successfully");
+      success = true;
       return true;
     }
+
+    console.error("No subtitle files to process");
+    success = false;
     return false;
   } catch (error) {
     console.error("General catch error:", error);
+    success = false;
+
+    try {
+      await createOrUpdateMessageSub(
+        "An error occurred while generating your subtitle. We will try again.",
+        imdbid,
+        season,
+        episode,
+        oldisocode,
+        provider
+      );
+    } catch (subError) {
+      console.error("Error creating error subtitle:", subError);
+    }
+
     return false;
   } finally {
-    // Cleanup: Delete downloaded original subtitle files
     for (const fp of filepaths) {
       try {
         await fs.unlink(fp);
@@ -297,17 +327,19 @@ async function startTranslation(
         console.error(`Error cleaning up file ${fp}:`, unlinkError);
       }
     }
-    // Cleanup: Delete entry from translation queue in DB
+
     try {
-      await connection.deletetranslationQueue(
+      const finalStatus = success ? 'completed' : 'failed';
+      await connection.updateTranslationStatus(
         imdbid,
         season,
         episode,
-        oldisocode
+        oldisocode,
+        finalStatus
       );
-      console.log("Cleaned up translation queue entry in DB.");
-    } catch (dbCleanupError) {
-      console.error("Error cleaning up DB translation queue entry:", dbCleanupError);
+      console.log(`Updated translation queue status to: ${finalStatus}`);
+    } catch (dbUpdateError) {
+      console.error("Error updating translation queue status:", dbUpdateError);
     }
   }
 }

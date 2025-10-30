@@ -80,6 +80,10 @@ async function translateTextWithRetry(
         throw new Error(`Provider not supported: ${provider}`);
     }
 
+    if (!resultArray || resultArray.length === 0) {
+      throw new Error(`Translation failed: No results returned from provider ${provider}`);
+    }
+
     if (texts.length != resultArray.length) {
       console.log(
         `Attempt ${attempt}/${maxRetries} failed. Text count mismatch:`,

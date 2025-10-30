@@ -40,6 +40,11 @@ async function checkForTranslation(imdbid, season = null, episode = null, langco
     return adapter.checkForTranslation(imdbid, season, episode, langcode);
 }
 
+async function updateTranslationStatus(imdbid, season = null, episode = null, langcode, status) {
+    const adapter = await getAdapter();
+    return adapter.updateTranslationStatus(imdbid, season, episode, langcode, status);
+}
+
 async function checkseries(imdbid) {
     const adapter = await getAdapter();
     return adapter.checkseries(imdbid);
@@ -84,6 +89,7 @@ initializeDatabase().catch(console.error);
 module.exports = {
     addToTranslationQueue,
     deletetranslationQueue,
+    updateTranslationStatus,
     getSubCount,
     checkseries,
     addseries,
