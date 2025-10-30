@@ -311,6 +311,10 @@ const express = require("express");
 const cors = require("cors");
 const getRouter = require("stremio-addon-sdk/src/getRouter");
 
+const { createBullBoard } = require("@bull-board/api");
+const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
+const { ExpressAdapter } = require("@bull-board/express");
+
 const app = express();
 
 app.use(cors());
@@ -343,6 +347,16 @@ app.get("/configure", (_req, res) => {
   });
 });
 
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath("/admin/queues");
+
+createBullBoard({
+  queues: [new BullMQAdapter(translationQueue)],
+  serverAdapter,
+});
+
+app.use("/admin/queues", serverAdapter.getRouter());
+
 app.use("/subtitles", express.static("subtitles"));
 
 app.use(getRouter(builder.getInterface()));
@@ -351,6 +365,7 @@ const server = app.listen(port, address, () => {
   console.log(`Server started: http://${address}:${port}`);
   console.log("Manifest available:", `http://${address}:${port}/manifest.json`);
   console.log("Configuration:", `http://${address}:${port}/configure`);
+  console.log("Bull Board Dashboard:", `http://${address}:${port}/admin/queues`);
 });
 
 server.on("error", (error) => {

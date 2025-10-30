@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - stremio-net
+
   stremio-translate:
     build: .
     ports:
@@ -12,8 +26,22 @@ services:
       - DB_TYPE=${DB_TYPE:-sqlite}
       - SQLITE_PATH=/app/data/database.db
       - PUBLISH_IN_STREMIO_STORE=${PUBLISH_IN_STREMIO_STORE:-FALSE}
+      - REDIS_URL=redis://redis:6379
+      - QUEUE_CONCURRENCY=${QUEUE_CONCURRENCY:-3}
     volumes:
       - ./data:/app/data
       - ./subtitles:/app/subtitles
       - ./debug:/app/debug
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - stremio-net
+
+volumes:
+  redis-data:
+
+networks:
+  stremio-net:
+    driver: bridge
