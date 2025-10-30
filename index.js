@@ -377,6 +377,8 @@ const address = process.env.ADDRESS || "0.0.0.0";
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
+const crypto = require("crypto");
 const getRouter = require("stremio-addon-sdk/src/getRouter");
 
 const { createBullBoard } = require("@bull-board/api");
@@ -385,15 +387,181 @@ const { ExpressAdapter } = require("@bull-board/express");
 
 const app = express();
 
+app.set('view engine', 'ejs');
+app.set('views', './views');
+
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(session({
+  secret: process.env.ENCRYPTION_KEY || 'your-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
 app.use((_, res, next) => {
   res.setHeader("Cache-Control", "max-age=10, public");
   next();
 });
 
+function requireAuth(req, res, next) {
+  if (!req.session.userPasswordHash) {
+    return res.redirect('/admin/login');
+  }
+  next();
+}
+
 app.get("/", (_, res) => {
   res.redirect("/configure");
+});
+
+app.get("/admin/login", (req, res) => {
+  if (req.session.userPasswordHash) {
+    return res.redirect('/admin/dashboard');
+  }
+  res.sendFile(__dirname + '/views/login.html');
+});
+
+app.post("/admin/auth", async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Password required' });
+  }
+
+  try {
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+
+    const adapter = await connection.getAdapter();
+    const results = await adapter.query(
+      'SELECT COUNT(*) as count FROM translation_queue WHERE password_hash = ?',
+      [passwordHash]
+    );
+
+    if (results[0].count > 0) {
+      req.session.userPasswordHash = passwordHash;
+      return res.json({ success: true, redirect: '/admin/dashboard' });
+    }
+
+    return res.status(401).json({ error: 'Invalid password' });
+  } catch (error) {
+    console.error('Auth error:', error);
+    return res.status(500).json({ error: 'Authentication failed' });
+  }
+});
+
+app.get("/admin/dashboard", requireAuth, async (req, res) => {
+  try {
+    const adapter = await connection.getAdapter();
+    const translations = await adapter.query(
+      `SELECT id, series_imdbid, series_seasonno, series_episodeno, langcode, status,
+              series_name, poster, retry_attempts, token_usage_total, created_at
+       FROM translation_queue
+       WHERE password_hash = ?
+       ORDER BY created_at DESC`,
+      [req.session.userPasswordHash]
+    );
+
+    const corsProxy = process.env.CORS_URL || '';
+
+    res.render('dashboard', { translations, corsProxy });
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).send('Error loading dashboard');
+  }
+});
+
+app.post("/admin/logout", (req, res) => {
+  req.session.destroy();
+  res.json({ success: true, redirect: '/admin/login' });
+});
+
+app.post("/admin/reprocess", requireAuth, async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    const adapter = await connection.getAdapter();
+    const result = await adapter.query(
+      'SELECT * FROM translation_queue WHERE id = ? AND password_hash = ?',
+      [id, req.session.userPasswordHash]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Translation not found' });
+    }
+
+    const translation = result[0];
+
+    await connection.updateTranslationStatus(
+      translation.series_imdbid,
+      translation.series_seasonno,
+      translation.series_episodeno,
+      translation.langcode,
+      'processing'
+    );
+
+    const subs = await opensubtitles.getsubtitles(
+      translation.series_seasonno ? 'series' : 'movie',
+      translation.series_imdbid,
+      translation.series_seasonno,
+      translation.series_episodeno,
+      translation.langcode
+    );
+
+    if (subs && subs.length > 0) {
+      translationQueue.push({
+        subs: subs,
+        imdbid: translation.series_imdbid,
+        season: translation.series_seasonno,
+        episode: translation.series_episodeno,
+        oldisocode: translation.langcode,
+        provider: 'Google Translate',
+        apikey: null,
+        base_url: null,
+        model_name: null,
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reprocess error:', error);
+    res.status(500).json({ error: 'Failed to reprocess' });
+  }
+});
+
+app.post("/admin/delete", requireAuth, async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    const adapter = await connection.getAdapter();
+    const result = await adapter.query(
+      'SELECT * FROM translation_queue WHERE id = ? AND password_hash = ?',
+      [id, req.session.userPasswordHash]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Translation not found' });
+    }
+
+    const translation = result[0];
+
+    await connection.deletetranslationQueue(
+      translation.series_imdbid,
+      translation.series_seasonno,
+      translation.series_episodeno,
+      translation.langcode
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete' });
+  }
 });
 
 app.get("/configure", (_req, res) => {

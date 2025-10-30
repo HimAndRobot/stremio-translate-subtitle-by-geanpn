@@ -27,6 +27,8 @@
     "bcrypt": "^5.1.1",
     "bullmq": "^5.0.0",
     "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express-session": "^1.17.3",
     "google-translate-api-browser": "^5.0.0",
     "ioredis": "^5.3.0",
     "mysql2": "^3.11.4",

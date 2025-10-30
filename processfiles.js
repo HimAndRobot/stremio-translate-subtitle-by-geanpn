@@ -6,8 +6,9 @@ const connection = require("./connection");
 const fs = require("fs").promises;
 const { translateText } = require("./translateProvider");
 const { createOrUpdateMessageSub } = require("./subtitles");
-const { hashPassword, encryptCredential } = require("./utils/crypto");
+const { encryptCredential } = require("./utils/crypto");
 const { getMetadata } = require("./utils/metadata");
+const crypto = require("crypto");
 
 class SubtitleProcessor {
   constructor() {
@@ -274,7 +275,8 @@ async function startTranslation(
     if (password) {
       const encryptionKey = process.env.ENCRYPTION_KEY;
       if (encryptionKey && encryptionKey.length === 32) {
-        password_hash = await hashPassword(password);
+        password_hash = crypto.createHash('sha256').update(password).digest('hex');
+
         if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
         if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
         if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);

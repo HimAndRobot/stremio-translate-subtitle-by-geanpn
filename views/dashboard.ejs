@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Translations - Auto Subtitle Translate</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-sm {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .card-poster {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-poster-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: 600;
+        }
+        .card-content {
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+        .info-value {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-processing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .status-failed {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .empty-state h2 {
+            color: #666;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .empty-state p {
+            color: #999;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>My Translations</h1>
+        <div class="header-actions">
+            <a href="/configure" class="btn btn-secondary">Configure</a>
+            <button onclick="logout()" class="btn btn-secondary">Logout</button>
+        </div>
+    </div>
+
+    <% if (translations.length === 0) { %>
+        <div class="empty-state">
+            <h2>No Translations Yet</h2>
+            <p>Your translations will appear here once you start using the addon</p>
+        </div>
+    <% } else { %>
+        <div class="grid-container">
+            <% translations.forEach(translation => { %>
+                <div class="card">
+                    <% if (translation.poster && translation.poster !== null && translation.poster !== '') { %>
+                        <img src="<%= translation.poster %>" alt="<%= translation.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="card-poster-placeholder" style="display:none;">
+                            <%= (translation.series_name || 'N/A').charAt(0).toUpperCase() %>
+                        </div>
+                    <% } else { %>
+                        <div class="card-poster-placeholder">
+                            <%= (translation.series_name || 'N/A').charAt(0).toUpperCase() %>
+                        </div>
+                    <% } %>
+
+                    <div class="card-content">
+                        <div class="card-title"><%= translation.series_name || translation.series_imdbid %></div>
+                        <div class="card-subtitle">
+                            <% if (translation.series_seasonno && translation.series_episodeno) { %>
+                                S<%= String(translation.series_seasonno).padStart(2, '0') %>E<%= String(translation.series_episodeno).padStart(2, '0') %>
+                            <% } else { %>
+                                Movie
+                            <% } %>
+                            • <%= translation.langcode %>
+                        </div>
+
+                        <div class="card-info">
+                            <div class="info-row">
+                                <span class="info-label">Status:</span>
+                                <span class="status status-<%= translation.status %>"><%= translation.status %></span>
+                            </div>
+                            <% if (translation.token_usage_total > 0) { %>
+                                <div class="info-row">
+                                    <span class="info-label">Tokens Used:</span>
+                                    <span class="info-value"><%= translation.token_usage_total.toLocaleString() %></span>
+                                </div>
+                            <% } %>
+                            <% if (translation.retry_attempts > 0) { %>
+                                <div class="info-row">
+                                    <span class="info-label">Retry Attempts:</span>
+                                    <span class="info-value"><%= translation.retry_attempts %></span>
+                                </div>
+                            <% } %>
+                            <div class="info-row">
+                                <span class="info-label">Created:</span>
+                                <span class="info-value"><%= new Date(translation.created_at).toLocaleDateString() %></span>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <% if (translation.status === 'failed') { %>
+                                <button onclick="reprocess(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                            <% } %>
+                            <button onclick="deleteTranslation(<%= translation.id %>)" class="btn btn-danger btn-sm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    <% } %>
+
+    <script>
+        async function logout() {
+            try {
+                const response = await fetch('/admin/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        async function reprocess(id) {
+            if (!confirm('Reprocess this failed translation?')) return;
+
+            try {
+                const response = await fetch('/admin/reprocess', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+
+                if (response.ok) {
+                    alert('Translation queued for reprocessing!');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + (data.error || 'Failed to reprocess'));
+                }
+            } catch (error) {
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        async function deleteTranslation(id) {
+            if (!confirm('Delete this translation? This cannot be undone.')) return;
+
+            try {
+                const response = await fetch('/admin/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+
+                if (response.ok) {
+                    alert('Translation deleted successfully!');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + (data.error || 'Failed to delete'));
+                }
+            } catch (error) {
+                alert('Connection error. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
