@@ -21,6 +21,8 @@ services:
     volumes:
       - subtitles-data:/app/subtitles
     restart: unless-stopped
+    depends_on:
+      - mysql
 
 volumes:
   mysql-data:
