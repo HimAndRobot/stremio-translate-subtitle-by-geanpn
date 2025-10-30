@@ -1,16 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-stremio_translate}
-      MYSQL_USER: ${MYSQL_USER:-stremio}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - mysql-data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -21,9 +9,6 @@ services:
     volumes:
       - subtitles-data:/app/subtitles
     restart: unless-stopped
-    depends_on:
-      - mysql
 
 volumes:
-  mysql-data:
   subtitles-data:
