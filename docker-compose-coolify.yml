@@ -2,6 +2,8 @@ services:
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    ports:
+      - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-stremio_translate}
