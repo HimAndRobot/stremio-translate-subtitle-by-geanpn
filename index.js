@@ -204,12 +204,19 @@ builder.defineSubtitlesHandler(async function (args) {
       "Subtitles found on OpenSubtitles, but not in target language. Translating..."
     );
 
+    const password_hash = config.password
+      ? crypto.createHash('sha256').update(config.password).digest('hex')
+      : null;
+
     const queueStatus = await connection.checkForTranslation(
       imdbid,
       season,
       episode,
-      targetLanguage
+      targetLanguage,
+      password_hash
     );
+
+    console.log(`[CHECK] queueStatus="${queueStatus}" | ${imdbid} S${season}E${episode} lang:${targetLanguage} | pwHash:${password_hash ? password_hash.substring(0,8)+'...' : 'NULL'}`);
 
     if (queueStatus === 'processing') {
       console.log("Translation already in progress, returning placeholder");
@@ -231,7 +238,7 @@ builder.defineSubtitlesHandler(async function (args) {
     }
 
     if (queueStatus === 'failed') {
-      console.log("Previous translation failed, returning error subtitle");
+      console.log(`[FAILED] Translation ${imdbid} S${season}E${episode} lang:${targetLanguage} is FAILED - returning error subtitle WITHOUT adding to queue`);
 
       return Promise.resolve({
         subtitles: [
@@ -249,6 +256,8 @@ builder.defineSubtitlesHandler(async function (args) {
         ],
       });
     }
+
+    console.log(`[NEW] Translation ${imdbid} S${season}E${episode} lang:${targetLanguage} does NOT exist - adding to queue`);
 
     await createOrUpdateMessageSub(
       "Translating subtitles. Please wait 1 minute and try again.",

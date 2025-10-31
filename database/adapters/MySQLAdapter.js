@@ -176,12 +176,19 @@ class MySQLAdapter extends BaseAdapter {
     }
   }
 
-  async checkForTranslation(imdbid, season = null, episode = null, langcode) {
+  async checkForTranslation(imdbid, season = null, episode = null, langcode, password_hash = null) {
     try {
-      const result = await this.query(
-        "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?",
-        [imdbid, season, episode, langcode]
-      );
+      let query, params;
+
+      if (password_hash) {
+        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash = ?";
+        params = [imdbid, season, episode, langcode, password_hash];
+      } else {
+        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash IS NULL";
+        params = [imdbid, season, episode, langcode];
+      }
+
+      const result = await this.query(query, params);
 
       if (result.length > 0) {
         return result[0].status;
