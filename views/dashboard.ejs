@@ -507,7 +507,7 @@
             'Together AI': 'https://api.together.xyz/v1'
         };
 
-        const availableLanguages = <%= JSON.stringify(languages) %>;
+        const availableLanguages = <%- JSON.stringify(languages) %>;
 
         function openReprocessModal(id) {
             currentReprocessId = id;
