@@ -516,6 +516,15 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
   }
 });
 
+app.get("/admin/settings", requireAuth, async (req, res) => {
+  try {
+    res.render('settings');
+  } catch (error) {
+    console.error('Settings error:', error);
+    res.status(500).send('Error loading settings');
+  }
+});
+
 app.post("/admin/logout", (req, res) => {
   req.session.destroy();
   res.json({ success: true, redirect: '/admin/login' });

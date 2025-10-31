@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Auto Subtitle Translate</title>
+    <script src="/public/translation-config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .settings-layout {
+            display: flex;
+            gap: 20px;
+        }
+        .settings-sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            min-width: 200px;
+        }
+        .settings-tab {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .settings-tab:hover {
+            background: #f8f9fa;
+        }
+        .settings-tab.active {
+            background: #007bff;
+            color: white;
+        }
+        .settings-content {
+            flex: 1;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .credentials-list {
+            margin-top: 30px;
+        }
+        .credential-item {
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .credential-info {
+            flex: 1;
+        }
+        .credential-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+        .credential-provider {
+            font-size: 13px;
+            color: #6c757d;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        h2 {
+            font-size: 22px;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .info-box h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .info-box p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+        .info-box ul {
+            margin-top: 12px;
+            padding-left: 20px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .info-box ul li {
+            margin-bottom: 6px;
+        }
+        .form-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+        .form-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        .credential-item {
+            background: white;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .credential-item:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.1);
+        }
+        .credential-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+            margin-right: 16px;
+        }
+        .credential-details {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 13px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Settings</h1>
+            <div class="header-actions">
+                <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+
+        <div class="settings-layout">
+            <div class="settings-sidebar">
+                <div class="settings-tab active" onclick="switchTab('credentials')">Credentials</div>
+            </div>
+
+            <div class="settings-content">
+                <div id="credentials-tab" class="tab-pane active">
+                    <h2>API Credentials</h2>
+
+                    <div class="info-box">
+                        <h3>🔐 Client-Side Encryption</h3>
+                        <p>Your credentials are secured with military-grade encryption before being stored in your browser:</p>
+                        <ul>
+                            <li><strong>AES-256-GCM</strong> encryption (same standard used by governments)</li>
+                            <li><strong>PBKDF2</strong> with 100,000 iterations to derive encryption key from your master password</li>
+                            <li><strong>Random salt & IV</strong> generated for each credential</li>
+                            <li><strong>Zero server storage</strong> - credentials never leave your browser</li>
+                            <li><strong>Master password</strong> is never stored anywhere</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-card">
+                        <h3>Add New Credential</h3>
+                        <form id="credential-form" onsubmit="saveCredential(event)">
+                            <div class="form-group">
+                                <label>Name (Identifier)</label>
+                                <input type="text" id="cred-name" placeholder="e.g., My OpenAI Account" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Provider</label>
+                                <select id="cred-provider" required onchange="updateProviderFields()">
+                                    <option value="">Select Provider</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="apikey-group" style="display: none;">
+                                <label>API Key</label>
+                                <input type="password" id="cred-apikey" placeholder="Enter your API key">
+                            </div>
+
+                            <div class="form-group" id="baseurl-group" style="display: none;">
+                                <label>Base URL</label>
+                                <input type="text" id="cred-baseurl" placeholder="https://api.example.com/v1">
+                            </div>
+
+                            <div class="form-group" id="model-group" style="display: none;">
+                                <label>Model Name</label>
+                                <select id="cred-model">
+                                    <option value="">Select or enter custom model</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">💾 Save Credential</button>
+                        </form>
+                    </div>
+
+                    <div class="credentials-list">
+                        <h2>Saved Credentials</h2>
+                        <div id="credentials-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="master-password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Enter Master Password</div>
+            <p style="color: #6c757d; margin-bottom: 20px; font-size: 14px;">
+                This password will be used to encrypt your credentials. Choose a strong password and remember it.
+            </p>
+            <div class="form-group">
+                <label>Master Password</label>
+                <input type="password" id="master-password-input" placeholder="Enter master password">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmMasterPassword()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pendingCredential = null;
+
+        function initializeProviders() {
+            const providerSelect = document.getElementById('cred-provider');
+            PROVIDERS.forEach(provider => {
+                if (provider !== 'Google Translate') {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider;
+                    providerSelect.appendChild(option);
+                }
+            });
+        }
+
+        function updateProviderFields() {
+            const provider = document.getElementById('cred-provider').value;
+            if (!provider) {
+                document.getElementById('apikey-group').style.display = 'none';
+                document.getElementById('baseurl-group').style.display = 'none';
+                document.getElementById('model-group').style.display = 'none';
+                return;
+            }
+
+            const config = PROVIDER_CONFIGS[provider];
+
+            document.getElementById('apikey-group').style.display = config.requiresApiKey ? 'block' : 'none';
+            document.getElementById('baseurl-group').style.display = config.requiresBaseUrl ? 'block' : 'none';
+            document.getElementById('model-group').style.display = config.requiresModel ? 'block' : 'none';
+
+            document.getElementById('cred-apikey').required = config.requiresApiKey;
+            document.getElementById('cred-baseurl').required = false;
+            document.getElementById('cred-model').required = false;
+
+            if (config.defaultBaseUrl) {
+                document.getElementById('cred-baseurl').value = config.defaultBaseUrl;
+            }
+
+            const modelSelect = document.getElementById('cred-model');
+            modelSelect.innerHTML = '<option value="">Select model</option>';
+
+            if (config.models && config.models.length > 0) {
+                config.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    if (model === config.defaultModel) {
+                        option.selected = true;
+                    }
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                fetch('/admin/logout', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = data.redirect;
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Logout error:', err);
+                        alert('Error logging out');
+                    });
+            }
+        }
+
+        async function deriveKey(password, salt) {
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available. Please use HTTPS or localhost.');
+            }
+
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+
+            const importedKey = await window.crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+
+            return window.crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                importedKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptData(data, password) {
+            const encoder = new TextEncoder();
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+            const key = await deriveKey(password, salt);
+
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: iv },
+                key,
+                encoder.encode(JSON.stringify(data))
+            );
+
+            return {
+                encrypted: Array.from(new Uint8Array(encrypted)),
+                salt: Array.from(salt),
+                iv: Array.from(iv)
+            };
+        }
+
+        async function decryptData(encryptedData, salt, iv, password) {
+            const key = await deriveKey(password, new Uint8Array(salt));
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: new Uint8Array(iv) },
+                key,
+                new Uint8Array(encryptedData)
+            );
+
+            const decoder = new TextDecoder();
+            return JSON.parse(decoder.decode(decrypted));
+        }
+
+        function saveCredential(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('cred-name').value;
+            const provider = document.getElementById('cred-provider').value;
+            const apikey = document.getElementById('cred-apikey').value;
+            const baseurl = document.getElementById('cred-baseurl').value;
+            const model = document.getElementById('cred-model').value;
+
+            pendingCredential = {
+                name: name,
+                provider: provider,
+                apikey: apikey,
+                baseurl: baseurl,
+                model: model
+            };
+
+            document.getElementById('master-password-modal').classList.add('show');
+            document.getElementById('master-password-input').value = '';
+            document.getElementById('master-password-input').focus();
+        }
+
+        function closeMasterPasswordModal() {
+            document.getElementById('master-password-modal').classList.remove('show');
+            pendingCredential = null;
+        }
+
+        async function confirmMasterPassword() {
+            const masterPassword = document.getElementById('master-password-input').value;
+
+            if (!masterPassword) {
+                alert('Please enter a master password');
+                return;
+            }
+
+            try {
+                const sensitiveData = {
+                    apikey: pendingCredential.apikey,
+                    baseurl: pendingCredential.baseurl,
+                    model: pendingCredential.model
+                };
+
+                const encrypted = await encryptData(sensitiveData, masterPassword);
+
+                const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
+
+                credentials.push({
+                    name: pendingCredential.name,
+                    provider: pendingCredential.provider,
+                    encrypted_data: encrypted.encrypted,
+                    salt: encrypted.salt,
+                    iv: encrypted.iv
+                });
+
+                localStorage.setItem('user_credentials', JSON.stringify(credentials));
+
+                closeMasterPasswordModal();
+                document.getElementById('credential-form').reset();
+                loadCredentials();
+
+                alert('Credential saved successfully!');
+            } catch (error) {
+                console.error('Encryption error:', error);
+                alert('Error encrypting credential: ' + error.message);
+            }
+        }
+
+        function loadCredentials() {
+            const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
+            const container = document.getElementById('credentials-container');
+
+            if (credentials.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔑</div>
+                        <h3>No credentials saved yet</h3>
+                        <p>Add your first API credential using the form above</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = credentials.map((cred, index) => {
+                const initials = cred.name.substring(0, 2).toUpperCase();
+                return `
+                    <div class="credential-item">
+                        <div class="credential-details">
+                            <div class="credential-icon">${initials}</div>
+                            <div class="credential-info">
+                                <div class="credential-name">${cred.name}</div>
+                                <div class="credential-provider">${cred.provider}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCredential(${index})">🗑 Delete</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteCredential(index) {
+            if (!confirm('Are you sure you want to delete this credential?')) {
+                return;
+            }
+
+            const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
+            credentials.splice(index, 1);
+            localStorage.setItem('user_credentials', JSON.stringify(credentials));
+            loadCredentials();
+        }
+
+        initializeProviders();
+        loadCredentials();
+    </script>
+</body>
+</html>
