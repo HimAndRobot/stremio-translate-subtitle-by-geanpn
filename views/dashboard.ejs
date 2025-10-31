@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Translations - Auto Subtitle Translate</title>
+    <script src="/public/translation-config.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -93,6 +94,8 @@
             overflow: visible;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
         .card:hover {
             transform: translateY(-8px);
@@ -124,6 +127,9 @@
         }
         .card-content {
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
         .card-title {
             font-size: 19px;
@@ -139,8 +145,30 @@
         .card-subtitle {
             font-size: 14px;
             color: #888;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             font-weight: 500;
+        }
+        .series-total-tokens {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .series-total-tokens .tokens-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .series-total-tokens .tokens-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
         }
         .stats-grid {
             display: grid;
@@ -351,6 +379,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex-grow: 1;
         }
         .episode-item {
             padding: 10px 12px;
@@ -493,6 +522,204 @@
         .search-box::placeholder {
             color: #999;
         }
+        .add-subtitle-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .add-subtitle-modal-content {
+            background: white;
+            margin: 3% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .add-subtitle-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .add-subtitle-modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+        .add-subtitle-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .add-subtitle-modal-close:hover {
+            color: #333;
+        }
+        .search-modal-input {
+            width: 100%;
+            padding: 14px 20px;
+            padding-left: 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 15px center;
+        }
+        .search-modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .search-result-item {
+            cursor: pointer;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            background: white;
+            border: 2px solid #e8e8e8;
+        }
+        .search-result-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        .search-result-poster {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .search-result-info {
+            padding: 10px;
+        }
+        .search-result-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .search-result-meta {
+            font-size: 11px;
+            color: #888;
+        }
+        .episodes-selection-container {
+            display: none;
+        }
+        .episodes-selection-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        .back-button:hover {
+            background: #e0e0e0;
+        }
+        .episodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .episode-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e8e8e8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .episode-checkbox-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .episode-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .episode-checkbox-label {
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .confirm-selection-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        .confirm-selection-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .confirm-selection-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -500,6 +727,7 @@
         <div class="header">
             <h1>My Translations</h1>
             <div class="header-actions">
+                <button onclick="openAddSubtitleModal()" class="btn btn-secondary">Add Subtitle</button>
                 <a href="/configure" class="btn btn-secondary">Configure</a>
                 <button onclick="logout()" class="btn btn-secondary">Logout</button>
             </div>
@@ -529,19 +757,25 @@
                     <% } %>
 
                     <div class="card-content">
-                        <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
-                        <div class="card-subtitle">
-                            <% if (series.isMovie) { %>
-                                Movie • <%= series.langcode %>
-                            <% } else { %>
-                                <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.langcode %>
-                            <% } %>
-                        </div>
+                        <div style="flex-grow: 1;">
+                            <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
+                            <div class="card-subtitle">
+                                <% if (series.isMovie) { %>
+                                    Movie • <%= series.langcode %>
+                                <% } else { %>
+                                    <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.langcode %>
+                                <% } %>
+                            </div>
 
-                        <% if (!series.isMovie && series.episodes.length > 1) { %>
-                            <div class="episodes-list">
-                                <% const firstThree = series.episodes.slice(0, 3); %>
-                                <% firstThree.forEach(episode => { %>
+                            <div class="series-total-tokens">
+                                <span class="tokens-label">Total Tokens</span>
+                                <span class="tokens-value">🪙 <%= series.total_tokens.toLocaleString() %></span>
+                            </div>
+
+                            <% if (!series.isMovie && series.episodes.length > 1) { %>
+                                <div class="episodes-list">
+                                    <% const firstThree = series.episodes.slice(0, 3); %>
+                                    <% firstThree.forEach(episode => { %>
                                     <div class="episode-item">
                                         <div class="episode-info">
                                             <span class="episode-label">S<%= String(episode.series_seasonno).padStart(2, '0') %>E<%= String(episode.series_episodeno).padStart(2, '0') %></span>
@@ -574,12 +808,12 @@
                                 <% }); %>
                             </div>
 
-                            <% if (series.episodes.length > 3) { %>
-                                <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>_<%= series.langcode %>')">
-                                    + <%= series.episodes.length - 3 %> more episodes
-                                </button>
-                            <% } %>
-                        <% } else { %>
+                                <% if (series.episodes.length > 3) { %>
+                                    <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>_<%= series.langcode %>')">
+                                        + <%= series.episodes.length - 3 %> more episodes
+                                    </button>
+                                <% } %>
+                            <% } else { %>
                             <% const item = series.episodes[0]; %>
                             <div class="stats-grid">
                                 <div class="stat-box">
@@ -614,11 +848,88 @@
                                 <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm">Delete</button>
                             </div>
                         <% } %>
+                        </div>
+
+                        <% if (!series.isMovie) { %>
+                            <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="btn btn-primary btn-sm" style="width: 100%;">
+                                    📥 Download More Subtitles
+                                </button>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
             <% }); %>
         </div>
     <% } %>
+
+    <div id="addSubtitleModal" class="add-subtitle-modal">
+        <div class="add-subtitle-modal-content">
+            <div class="add-subtitle-modal-header">
+                <h2 id="addSubtitleModalTitle">Add Subtitle</h2>
+                <button class="add-subtitle-modal-close" onclick="closeAddSubtitleModal()">&times;</button>
+            </div>
+
+            <div id="searchContainer">
+                <input type="text" id="searchModalInput" class="search-modal-input" placeholder="Search for series or movies..." onkeyup="handleSearchInput()">
+                <div id="searchLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Searching...</p>
+                </div>
+                <div id="searchResultsGrid" class="search-results-grid"></div>
+            </div>
+
+            <div id="episodesSelectionContainer" class="episodes-selection-container">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToSearch()">←</button>
+                    <div>
+                        <h3 id="selectedSeriesTitle" style="margin: 0; font-size: 18px; color: #1a1a1a;"></h3>
+                        <p id="selectedSeriesMeta" style="margin: 5px 0 0 0; font-size: 12px; color: #888;"></p>
+                    </div>
+                </div>
+                <div id="episodesLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading episodes...</p>
+                </div>
+                <div id="episodesGrid" class="episodes-grid"></div>
+                <button class="confirm-selection-btn" onclick="confirmSelection()" disabled>Confirm Selection</button>
+            </div>
+
+            <div id="translationOptionsContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToEpisodes()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Translation Options</h3>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadLanguage">Target Language</label>
+                    <select id="downloadLanguage"></select>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadProvider">Provider</label>
+                    <select id="downloadProvider"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadApiKeyGroup">
+                    <label for="downloadApiKey">API Key</label>
+                    <input type="text" id="downloadApiKey" placeholder="Enter your API key">
+                </div>
+
+                <div class="modal-form-group" id="downloadModelGroup">
+                    <label for="downloadModel">Model Name</label>
+                    <select id="downloadModel"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadBaseUrlGroup">
+                    <label for="downloadBaseUrl">Base URL</label>
+                    <input type="text" id="downloadBaseUrl" placeholder="e.g., https://api.openai.com/v1">
+                </div>
+
+                <button class="confirm-selection-btn" onclick="startTranslation()">Start Translation</button>
+            </div>
+        </div>
+    </div>
 
     <div id="episodesModal" class="episodes-modal">
         <div class="episodes-modal-content">
@@ -647,13 +958,6 @@
             <div class="modal-form-group">
                 <label for="modalProvider">Provider</label>
                 <select id="modalProvider">
-                    <option value="Google Translate">Google Translate</option>
-                    <option value="OpenAI">OpenAI</option>
-                    <option value="Google Gemini">Google Gemini</option>
-                    <option value="OpenRouter">OpenRouter</option>
-                    <option value="Groq">Groq</option>
-                    <option value="Together AI">Together AI</option>
-                    <option value="Custom">Custom (OpenAI Compatible)</option>
                 </select>
             </div>
 
@@ -686,6 +990,368 @@
 
     <script>
         const seriesData = <%- JSON.stringify(groupedSeries) %>;
+
+        let searchTimeout;
+        let selectedEpisodes = [];
+        let currentSelectedSeries = null;
+
+        function openAddSubtitleModal() {
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'block';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('searchModalInput').value = '';
+            document.getElementById('searchResultsGrid').innerHTML = '';
+            selectedEpisodes = [];
+            currentSelectedSeries = null;
+        }
+
+        function closeAddSubtitleModal() {
+            document.getElementById('addSubtitleModal').style.display = 'none';
+        }
+
+        async function openDownloadMoreModal(imdbId, seriesName) {
+            currentSelectedSeries = {
+                imdbId: imdbId,
+                name: seriesName,
+                type: 'series',
+                poster: '',
+                year: ''
+            };
+
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = seriesName;
+            document.getElementById('selectedSeriesMeta').textContent = 'series';
+
+            const loadingState = document.getElementById('episodesLoadingState');
+            const episodesGrid = document.getElementById('episodesGrid');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+
+            loadingState.style.display = 'block';
+            episodesGrid.innerHTML = '';
+            selectedEpisodes = [];
+            confirmBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/episodes/' + imdbId);
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.episodes && data.episodes.length > 0) {
+                    let html = '';
+                    data.episodes.forEach((episode, index) => {
+                        const season = episode.season || 0;
+                        const episodeNum = episode.episode || 0;
+                        const title = episode.title || 'Episode ' + episodeNum;
+                        const checkboxId = 'ep-' + index;
+
+                        html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
+                        html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
+                        html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
+                        html += '</div>';
+                    });
+                    episodesGrid.innerHTML = html;
+                } else {
+                    episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No episodes found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                episodesGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading episodes</p>';
+                console.error('Episodes error:', error);
+            }
+        }
+
+        function handleSearchInput() {
+            const query = document.getElementById('searchModalInput').value.trim();
+
+            clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+                document.getElementById('searchResultsGrid').innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                searchContent(query);
+            }, 300);
+        }
+
+        async function searchContent(query) {
+            const loadingState = document.getElementById('searchLoadingState');
+            const resultsGrid = document.getElementById('searchResultsGrid');
+
+            loadingState.style.display = 'block';
+            resultsGrid.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/search?q=' + encodeURIComponent(query));
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.results && data.results.length > 0) {
+                    let html = '';
+                    data.results.forEach(item => {
+                        const poster = item.poster || '';
+                        const title = item.name || 'Unknown';
+                        const year = item.year || '';
+                        const type = item.contentType || item.type || '';
+                        const imdbId = item.id || '';
+
+                        html += '<div class="search-result-item" onclick="selectSeries(\'' + imdbId + '\', \'' + title.replace(/'/g, "\\'") + '\', \'' + type + '\', \'' + poster.replace(/'/g, "\\'") + '\', \'' + year + '\')">';
+                        if (poster) {
+                            html += '<img src="' + poster + '" class="search-result-poster" alt="' + title + '">';
+                        } else {
+                            html += '<div class="search-result-poster"></div>';
+                        }
+                        html += '<div class="search-result-info">';
+                        html += '<div class="search-result-title">' + title + '</div>';
+                        html += '<div class="search-result-meta">' + (year ? year + ' • ' : '') + type + '</div>';
+                        html += '</div></div>';
+                    });
+                    resultsGrid.innerHTML = html;
+                } else {
+                    resultsGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No results found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                resultsGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading results</p>';
+                console.error('Search error:', error);
+            }
+        }
+
+        async function selectSeries(imdbId, name, type, poster, year) {
+            currentSelectedSeries = { imdbId, name, type, poster, year };
+
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = name;
+            document.getElementById('selectedSeriesMeta').textContent = (year ? year + ' • ' : '') + type;
+
+            const loadingState = document.getElementById('episodesLoadingState');
+            const episodesGrid = document.getElementById('episodesGrid');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+
+            loadingState.style.display = 'block';
+            episodesGrid.innerHTML = '';
+            selectedEpisodes = [];
+            confirmBtn.disabled = true;
+
+            if (type === 'movie') {
+                loadingState.style.display = 'none';
+                selectedEpisodes = [];
+                showTranslationOptions();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/episodes/' + imdbId);
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.episodes && data.episodes.length > 0) {
+                    let html = '';
+                    data.episodes.forEach((episode, index) => {
+                        const season = episode.season || 0;
+                        const episodeNum = episode.episode || 0;
+                        const title = episode.title || 'Episode ' + episodeNum;
+                        const checkboxId = 'ep-' + index;
+
+                        html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
+                        html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
+                        html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
+                        html += '</div>';
+                    });
+                    episodesGrid.innerHTML = html;
+                } else {
+                    episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No episodes found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                episodesGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading episodes</p>';
+                console.error('Episodes error:', error);
+            }
+        }
+
+        function toggleEpisodeCheckbox(checkboxId) {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                updateSelectedEpisodes();
+            }
+        }
+
+        function updateSelectedEpisodes() {
+            const checkboxes = document.querySelectorAll('#episodesGrid input[type="checkbox"]:checked');
+            selectedEpisodes = [];
+
+            checkboxes.forEach(checkbox => {
+                selectedEpisodes.push({
+                    season: parseInt(checkbox.dataset.season),
+                    episode: parseInt(checkbox.dataset.episode)
+                });
+            });
+
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+            confirmBtn.disabled = selectedEpisodes.length === 0;
+        }
+
+        function backToSearch() {
+            document.getElementById('searchContainer').style.display = 'block';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            selectedEpisodes = [];
+            currentSelectedSeries = null;
+        }
+
+        function confirmSelection() {
+            if (selectedEpisodes.length === 0) {
+                alert('Please select at least one episode');
+                return;
+            }
+
+            showTranslationOptions();
+        }
+
+        function showTranslationOptions() {
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('translationOptionsContainer').style.display = 'block';
+
+            const langSelect = document.getElementById('downloadLanguage');
+            langSelect.innerHTML = '';
+            const languages = <%- JSON.stringify(languages) %>;
+            languages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = lang;
+                langSelect.appendChild(option);
+            });
+
+            const providerSelect = document.getElementById('downloadProvider');
+            providerSelect.innerHTML = '';
+            PROVIDERS.forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = provider;
+                providerSelect.appendChild(option);
+            });
+
+            providerSelect.addEventListener('change', function() {
+                updateProviderFields('download');
+            });
+
+            updateProviderFields('download');
+        }
+
+        function updateProviderFields(prefix) {
+            const provider = document.getElementById(prefix + 'Provider').value;
+            const config = PROVIDER_CONFIGS[provider];
+
+            const apiKeyGroup = document.getElementById(prefix + 'ApiKeyGroup');
+            const modelGroup = document.getElementById(prefix + 'ModelGroup');
+            const baseUrlGroup = document.getElementById(prefix + 'BaseUrlGroup');
+            const modelSelect = document.getElementById(prefix + 'Model');
+            const baseUrlInput = document.getElementById(prefix + 'BaseUrl');
+
+            if (!config.requiresApiKey) {
+                apiKeyGroup.style.display = 'none';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'none';
+            } else {
+                apiKeyGroup.style.display = 'block';
+                modelGroup.style.display = 'block';
+                baseUrlGroup.style.display = 'block';
+
+                modelSelect.innerHTML = '';
+                if (config.models && config.models.length > 0) {
+                    config.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                }
+
+                baseUrlInput.value = config.defaultBaseUrl || '';
+                baseUrlInput.placeholder = config.defaultBaseUrl || 'Enter base URL';
+            }
+        }
+
+        function backToEpisodes() {
+            document.getElementById('translationOptionsContainer').style.display = 'none';
+
+            if (currentSelectedSeries.type === 'movie') {
+                backToSearch();
+            } else {
+                document.getElementById('episodesSelectionContainer').style.display = 'block';
+            }
+        }
+
+        async function startTranslation() {
+            const provider = document.getElementById('downloadProvider').value;
+            const config = PROVIDER_CONFIGS[provider];
+
+            let apikey = '';
+            let base_url = '';
+            let model_name = '';
+
+            if (config.requiresApiKey) {
+                apikey = document.getElementById('downloadApiKey').value;
+                if (provider === 'Custom') {
+                    base_url = document.getElementById('downloadBaseUrl').value;
+                    model_name = document.getElementById('downloadModel').value;
+                } else {
+                    base_url = config.defaultBaseUrl;
+                    model_name = document.getElementById('downloadModel').value;
+                }
+            }
+
+            const targetLanguage = document.getElementById('downloadLanguage').value;
+
+            const episodes = currentSelectedSeries.type === 'movie'
+                ? [{ season: 1, episode: 1 }]
+                : selectedEpisodes;
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imdbid: currentSelectedSeries.imdbId,
+                        type: currentSelectedSeries.type,
+                        episodes: episodes,
+                        targetLanguage: targetLanguage,
+                        provider: provider,
+                        apikey: apikey,
+                        base_url: base_url,
+                        model_name: model_name
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Success! ${result.message}`);
+                    closeAddSubtitleModal();
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.error || 'Failed to queue translation'));
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('addSubtitleModal');
+            if (event.target === modal) {
+                closeAddSubtitleModal();
+            }
+        }
 
         function openEpisodesModal(seriesKey) {
             const series = seriesData.find(s => `${s.series_imdbid}_${s.langcode}` === seriesKey);
@@ -868,23 +1534,6 @@
         }
 
         let currentReprocessId = null;
-
-        const providerModels = {
-            'OpenAI': ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-            'Google Gemini': ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash'],
-            'OpenRouter': ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b-instruct'],
-            'Groq': ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
-            'Together AI': ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct-Turbo']
-        };
-
-        const providerBaseUrls = {
-            'OpenAI': 'https://api.openai.com/v1',
-            'Google Gemini': 'https://generativelanguage.googleapis.com/v1beta/openai/',
-            'OpenRouter': 'https://openrouter.ai/api/v1',
-            'Groq': 'https://api.groq.com/openai/v1',
-            'Together AI': 'https://api.together.xyz/v1'
-        };
-
         const availableLanguages = <%- JSON.stringify(languages) %>;
 
         function openReprocessModal(id) {
@@ -899,6 +1548,15 @@
                 languageSelect.appendChild(option);
             });
 
+            const providerSelect = document.getElementById('modalProvider');
+            providerSelect.innerHTML = '';
+            PROVIDERS.forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                providerSelect.appendChild(option);
+            });
+
             document.getElementById('reprocessModal').style.display = 'block';
             updateModalFields();
         }
@@ -910,13 +1568,14 @@
 
         function updateModalFields() {
             const provider = document.getElementById('modalProvider').value;
+            const config = PROVIDER_CONFIGS[provider];
             const modelGroup = document.getElementById('modalModelGroup');
             const apiKeyGroup = document.getElementById('modalApiKeyGroup');
             const baseUrlGroup = document.getElementById('modalBaseUrlGroup');
             const modelNameGroup = document.getElementById('modalModelNameGroup');
             const modelSelect = document.getElementById('modalModel');
 
-            if (provider === 'Google Translate') {
+            if (!config.requiresApiKey) {
                 apiKeyGroup.style.display = 'none';
                 modelGroup.style.display = 'none';
                 baseUrlGroup.style.display = 'none';
@@ -933,7 +1592,7 @@
                 modelNameGroup.style.display = 'none';
 
                 modelSelect.innerHTML = '';
-                providerModels[provider].forEach(model => {
+                config.models.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
@@ -951,14 +1610,15 @@
             const provider = document.getElementById('modalProvider').value;
             let apikey = '', base_url = '', model_name = '';
 
-            if (provider !== 'Google Translate') {
+            const config = PROVIDER_CONFIGS[provider];
+            if (config.requiresApiKey) {
                 if (provider === 'Custom') {
                     apikey = document.getElementById('modalApiKey').value;
                     base_url = document.getElementById('modalBaseUrl').value;
                     model_name = document.getElementById('modalModelName').value;
                 } else {
                     apikey = document.getElementById('modalApiKey').value;
-                    base_url = providerBaseUrls[provider];
+                    base_url = config.defaultBaseUrl;
                     model_name = document.getElementById('modalModel').value;
                 }
             }

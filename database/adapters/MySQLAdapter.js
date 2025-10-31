@@ -181,18 +181,23 @@ class MySQLAdapter extends BaseAdapter {
       let query, params;
 
       if (password_hash) {
-        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash = ?";
+        query = "SELECT status, password_hash as db_password_hash FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash = ?";
         params = [imdbid, season, episode, langcode, password_hash];
       } else {
-        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash IS NULL";
+        query = "SELECT status, password_hash as db_password_hash FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND (password_hash IS NULL OR password_hash = '')";
         params = [imdbid, season, episode, langcode];
       }
+
+      console.log(`[DEBUG checkForTranslation] Searching for: IMDB=${imdbid}, S${season}E${episode}, Lang=${langcode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
 
       const result = await this.query(query, params);
 
       if (result.length > 0) {
+        console.log(`[DEBUG checkForTranslation] FOUND: Status=${result[0].status}, DB_Password=${result[0].db_password_hash ? result[0].db_password_hash.substring(0, 8) + '...' : 'NULL'}`);
         return result[0].status;
       }
+
+      console.log(`[DEBUG checkForTranslation] NOT FOUND`);
       return null;
     } catch (error) {
       console.error("Translation check error:", error.message);

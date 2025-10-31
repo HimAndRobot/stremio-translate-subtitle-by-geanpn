@@ -156,13 +156,6 @@
             <div class="form-group">
                 <label for="provider">Translation Provider</label>
                 <select id="provider" name="provider" required>
-                    <option value="Google Translate">Google Translate</option>
-                    <option value="OpenAI">OpenAI</option>
-                    <option value="Google Gemini">Google Gemini</option>
-                    <option value="OpenRouter">OpenRouter</option>
-                    <option value="Groq">Groq</option>
-                    <option value="Together AI">Together AI</option>
-                    <option value="Custom">Custom (OpenAI Compatible)</option>
                 </select>
             </div>
 
@@ -221,6 +214,7 @@
         </div>
     </div>
 
+    <script src="/public/translation-config.js"></script>
     <script>
         const languages = <%= languages %>;
         const baseUrl = '<%= baseUrl %>';
@@ -242,57 +236,36 @@
         const baseUrlGroup = document.getElementById('baseUrlGroup');
         const modelNameGroup = document.getElementById('modelNameGroup');
 
-        const providerConfig = {
-            'Google Translate': {
-                showFields: false
-            },
-            'OpenAI': {
-                showFields: true,
-                title: 'OpenAI Configuration',
-                baseUrl: 'https://api.openai.com/v1',
-                models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Google Gemini': {
-                showFields: true,
-                title: 'Google Gemini Configuration',
-                baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-                models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'OpenRouter': {
-                showFields: true,
-                title: 'OpenRouter Configuration',
-                baseUrl: 'https://openrouter.ai/api/v1',
-                models: ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b-instruct'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Groq': {
-                showFields: true,
-                title: 'Groq Configuration',
-                baseUrl: 'https://api.groq.com/openai/v1',
-                models: ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Together AI': {
-                showFields: true,
-                title: 'Together AI Configuration',
-                baseUrl: 'https://api.together.xyz/v1',
-                models: ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Custom': {
-                showFields: true,
-                title: 'Custom Provider Configuration',
-                showModelSelect: false,
-                showCustomFields: true
+        PROVIDERS.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider;
+            option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+            providerSelect.appendChild(option);
+        });
+
+        const providerConfig = {};
+        PROVIDERS.forEach(provider => {
+            const config = PROVIDER_CONFIGS[provider];
+            if (!config.requiresApiKey) {
+                providerConfig[provider] = { showFields: false };
+            } else if (provider === 'Custom') {
+                providerConfig[provider] = {
+                    showFields: true,
+                    title: 'Custom Provider Configuration',
+                    showModelSelect: false,
+                    showCustomFields: true
+                };
+            } else {
+                providerConfig[provider] = {
+                    showFields: true,
+                    title: `${provider} Configuration`,
+                    baseUrl: config.defaultBaseUrl,
+                    models: config.models,
+                    showModelSelect: true,
+                    showCustomFields: false
+                };
             }
-        };
+        });
 
         function updateProviderFields() {
             const provider = providerSelect.value;

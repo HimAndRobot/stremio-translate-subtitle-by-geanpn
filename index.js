@@ -488,11 +488,18 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
           poster: translation.poster,
           langcode: translation.langcode,
           episodes: [],
-          isMovie: !translation.series_seasonno && !translation.series_episodeno
+          isMovie: !translation.series_seasonno && !translation.series_episodeno,
+          total_tokens: 0
         });
       }
 
       groupedSeries.get(key).episodes.push(translation);
+    }
+
+    for (const seriesGroup of groupedSeries.values()) {
+      seriesGroup.total_tokens = seriesGroup.episodes.reduce((sum, ep) =>
+        sum + (ep.token_usage_total || 0), 0
+      );
     }
 
     const corsProxy = process.env.CORS_URL || '';
@@ -719,6 +726,7 @@ app.get("/configure", (_req, res) => {
 });
 
 const batchQueue = require("./queues/batchQueue");
+const downloadQueue = require("./queues/downloadQueue");
 
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
@@ -726,7 +734,8 @@ serverAdapter.setBasePath("/admin/queues");
 createBullBoard({
   queues: [
     new BullMQAdapter(translationQueue),
-    new BullMQAdapter(batchQueue)
+    new BullMQAdapter(batchQueue),
+    new BullMQAdapter(downloadQueue)
   ],
   serverAdapter,
 });
@@ -826,7 +835,66 @@ app.use("/subtitles", async (req, _res, next) => {
   next();
 });
 
+app.get("/api/search", requireAuth, async (req, res) => {
+  try {
+    const { q } = req.query;
+    const { searchContent } = require("./utils/search");
+    const result = await searchContent(q);
+    res.json(result);
+  } catch (error) {
+    console.error("Search API error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/episodes/:imdbid", requireAuth, async (req, res) => {
+  try {
+    const { imdbid } = req.params;
+    const { getEpisodes } = require("./utils/search");
+    const result = await getEpisodes(imdbid);
+    res.json(result);
+  } catch (error) {
+    console.error("Episodes API error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/download", requireAuth, async (req, res) => {
+  try {
+    const { imdbid, type, episodes, targetLanguage, provider, apikey, base_url, model_name } = req.body;
+
+    if (!imdbid || !type || !episodes || episodes.length === 0 || !targetLanguage || !provider) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const targetLangKey = languages.getKeyFromValue(targetLanguage, provider);
+    if (!targetLangKey) {
+      return res.status(400).json({ error: `Invalid language: ${targetLanguage} for provider ${provider}` });
+    }
+
+    const downloadQueue = require("./queues/downloadQueue");
+
+    await downloadQueue.add('download-request', {
+      imdbid,
+      type,
+      episodes,
+      targetLanguage: targetLangKey,
+      provider,
+      apikey,
+      base_url,
+      model_name,
+      password_hash: req.session.userPasswordHash
+    });
+
+    res.json({ success: true, message: `Queued ${episodes.length} episode(s) for translation` });
+  } catch (error) {
+    console.error("Download API error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use("/subtitles", express.static("subtitles"));
+app.use("/public", express.static("public"));
 
 app.use(getRouter(builder.getInterface()));
 
