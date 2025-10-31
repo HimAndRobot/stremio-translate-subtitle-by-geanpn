@@ -1,11 +1,42 @@
 version: '3.8'
 
 services:
-  redis:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - stremio-net
+    depends_on:
+      - app
+
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - stremio-net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
     image: redis:7-alpine
     restart: unless-stopped
+    expose:
+      - "6379"
     volumes:
       - redis-data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -19,6 +50,8 @@ services:
 
 volumes:
   redis-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   stremio-net:

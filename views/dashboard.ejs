@@ -1045,27 +1045,22 @@
             );
         }
 
-        async function decryptData(encryptedData, password) {
-            const data = JSON.parse(atob(encryptedData));
-            const salt = new Uint8Array(data.salt);
-            const iv = new Uint8Array(data.iv);
-            const ciphertext = new Uint8Array(data.ciphertext);
-
-            const key = await deriveKey(password, salt);
+        async function decryptData(encryptedData, salt, iv, password) {
+            const key = await deriveKey(password, new Uint8Array(salt));
 
             const decrypted = await window.crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: iv },
+                { name: 'AES-GCM', iv: new Uint8Array(iv) },
                 key,
-                ciphertext
+                new Uint8Array(encryptedData)
             );
 
             const decoder = new TextDecoder();
-            return decoder.decode(decrypted);
+            return JSON.parse(decoder.decode(decrypted));
         }
 
         function loadSavedCredentials() {
             try {
-                const saved = localStorage.getItem('translationCredentials');
+                const saved = localStorage.getItem('user_credentials');
                 if (saved) {
                     return JSON.parse(saved);
                 }
@@ -1117,19 +1112,21 @@
             document.getElementById('masterPasswordModal').style.display = 'block';
         }
 
-        function closeMasterPasswordModal() {
+        function closeMasterPasswordModal(resetSelect = true) {
             const context = currentCredentialContext ? currentCredentialContext.context : null;
 
             document.getElementById('masterPasswordModal').style.display = 'none';
             currentCredentialContext = null;
             pendingDecryptedCredential = null;
 
-            if (context === 'download') {
-                document.getElementById('downloadProvider').selectedIndex = 0;
-                updateProviderFields('download');
-            } else if (context === 'modal') {
-                document.getElementById('modalProvider').selectedIndex = 0;
-                updateModalFields();
+            if (resetSelect && context) {
+                if (context === 'download') {
+                    document.getElementById('downloadProvider').selectedIndex = 0;
+                    updateProviderFields('download');
+                } else if (context === 'modal') {
+                    document.getElementById('modalProvider').selectedIndex = 0;
+                    updateModalFields();
+                }
             }
         }
 
@@ -1159,24 +1156,27 @@
                     return;
                 }
 
-                const decryptedApiKey = await decryptData(credential.apikey_encrypted, password);
-                const decryptedBaseUrl = credential.base_url_encrypted
-                    ? await decryptData(credential.base_url_encrypted, password)
-                    : '';
-                const decryptedModelName = credential.model_name_encrypted
-                    ? await decryptData(credential.model_name_encrypted, password)
-                    : '';
+                const decryptedData = await decryptData(
+                    credential.encrypted_data,
+                    credential.salt,
+                    credential.iv,
+                    password
+                );
+
+                const context = currentCredentialContext.context;
 
                 pendingDecryptedCredential = {
                     provider: credential.provider,
-                    apikey: decryptedApiKey,
-                    base_url: decryptedBaseUrl,
-                    model_name: decryptedModelName,
+                    apikey: decryptedData.apikey || '',
+                    base_url: decryptedData.baseurl || '',
+                    model_name: decryptedData.model || '',
                     name: credential.name
                 };
 
-                closeMasterPasswordModal();
-                applyDecryptedCredential(currentCredentialContext.context);
+                document.getElementById('masterPasswordModal').style.display = 'none';
+                currentCredentialContext = null;
+
+                applyDecryptedCredential(context);
 
             } catch (error) {
                 console.error('Decryption error:', error);
@@ -1191,12 +1191,19 @@
             const cred = pendingDecryptedCredential;
 
             if (context === 'download') {
-                document.getElementById('downloadApiKey').value = cred.apikey;
-                document.getElementById('downloadBaseUrl').value = cred.base_url;
-
                 const providerSelect = document.getElementById('downloadProvider');
+                providerSelect.innerHTML = '';
+                PROVIDERS.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                    providerSelect.appendChild(option);
+                });
                 providerSelect.value = cred.provider;
                 updateProviderFields('download');
+
+                document.getElementById('downloadApiKey').value = cred.apikey;
+                document.getElementById('downloadBaseUrl').value = cred.base_url;
 
                 const modelSelect = document.getElementById('downloadModel');
                 if (modelSelect && cred.model_name) {
@@ -1215,13 +1222,20 @@
                 alert(`✓ Loaded credentials: ${cred.name}`);
 
             } else if (context === 'modal') {
+                const providerSelect = document.getElementById('modalProvider');
+                providerSelect.innerHTML = '';
+                PROVIDERS.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                    providerSelect.appendChild(option);
+                });
+                providerSelect.value = cred.provider;
+                updateModalFields();
+
                 document.getElementById('modalApiKey').value = cred.apikey;
                 document.getElementById('modalBaseUrl').value = cred.base_url;
                 document.getElementById('modalModelName').value = cred.model_name;
-
-                const providerSelect = document.getElementById('modalProvider');
-                providerSelect.value = cred.provider;
-                updateModalFields();
 
                 const modelSelect = document.getElementById('modalModel');
                 if (modelSelect && cred.model_name) {
