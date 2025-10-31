@@ -51,14 +51,75 @@ const worker = new Worker(
     await job.updateProgress(30);
     await job.log('[STEP] Translating batch...');
 
-    const result = await translateText(
-      textsToTranslate,
-      targetLanguage,
-      provider,
-      apikey,
-      base_url,
-      model_name
-    );
+    let result;
+    try {
+      result = await translateText(
+        textsToTranslate,
+        targetLanguage,
+        provider,
+        apikey,
+        base_url,
+        model_name
+      );
+    } catch (error) {
+      // Extract mismatch info from error message if present
+      const mismatchMatch = error.message.match(/Pedidos (\d+), veio (\d+)/);
+      if (mismatchMatch) {
+        const pedidos = mismatchMatch[1];
+        const veio = mismatchMatch[2];
+        await job.log(`[MISMATCH] Pedidos ${pedidos} textos, veio ${veio} textos`);
+        await job.log(`[EXEMPLO] Primeiros textos pedidos: ${JSON.stringify(textsToTranslate.slice(0, 3))}`);
+      }
+
+      await job.log(`[FAILED] Translation failed after all retries: ${error.message}`);
+      await connection.updateBatchStatus(batchId, 'failed');
+
+      const translationQueueId = await connection.getTranslationQueueIdFromBatch(batchId);
+      if (translationQueueId) {
+        await job.log(`[ACTION] Canceling all remaining batches for translation ${translationQueueId}`);
+
+        const adapter = await connection.getAdapter();
+
+        // Cancel all pending/processing batches
+        await adapter.query(
+          `UPDATE subtitle_batches SET status = 'failed' WHERE translation_queue_id = ? AND status IN ('pending', 'processing')`,
+          [translationQueueId]
+        );
+
+        // Update translation_queue status to failed
+        await adapter.query(
+          `UPDATE translation_queue SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [translationQueueId]
+        );
+        await job.log(`[ACTION] Translation queue ${translationQueueId} marked as FAILED`);
+
+        const queueInfo = await adapter.query(
+          `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
+          [translationQueueId]
+        );
+
+        if (queueInfo.length > 0) {
+          const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
+
+          const { createOrUpdateMessageSub } = require('../subtitles');
+          const providerPath = password_hash || `translated-${langcode}`;
+
+          await createOrUpdateMessageSub(
+            "An error occurred while generating your subtitle. We will try again.",
+            series_imdbid,
+            series_seasonno,
+            series_episodeno,
+            langcode,
+            providerPath
+          );
+          await job.log(`[ACTION] Created error message subtitle`);
+
+          await job.log(`[COMPLETE] Translation ${translationQueueId} marked as FAILED - error: ${error.message}`);
+        }
+      }
+
+      return { success: false, error: error.message };
+    }
 
     await job.updateProgress(80);
     await job.log(`[INFO] Translation completed. Tokens used: ${result.tokenUsage}`);

@@ -1,5 +1,4 @@
 const googleTranslate = require("google-translate-api-browser");
-const fs = require("fs").promises;
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 require("dotenv").config();
@@ -14,8 +13,11 @@ function getLimiter(provider, apikey) {
 
     if (provider === 'Google Gemini') {
       config = {
-        maxConcurrent: 8,
-        minTime: 125
+        reservoir: 280,
+        reservoirRefreshAmount: 280,
+        reservoirRefreshInterval: 60 * 1000,
+        maxConcurrent: 40,
+        minTime: 250
       };
     } else if (provider === 'OpenAI' || provider === 'ChatGPT API') {
       config = {
@@ -44,7 +46,8 @@ async function translateTextWithRetry(
   base_url,
   model_name,
   attempt = 1,
-  maxRetries = 3
+  maxRetries = 3,
+  partialResults = null
 ) {
   try {
     let result = null;
@@ -60,8 +63,6 @@ async function translateTextWithRetry(
         });
         resultArray = result.text.split("|||");
         if (texts.length !== resultArray.length && resultArray.length > 0) {
-          console.log(texts);
-          console.log(resultArray);
           const diff = texts.length - resultArray.length;
           if (diff > 0) {
             // Attempt to correct by splitting the first element if translation was merged
@@ -84,13 +85,28 @@ async function translateTextWithRetry(
           apiKey: apikey,
           baseURL: base_url,
         });
-        const jsonInput = {
-          texts: texts.map((text, index) => ({ index, text })),
-        };
 
-        const prompt = `You are a professional movie subtitle translator.\nTranslate each subtitle text in the "texts" array of the following JSON object into the specified language "${targetLanguage}".\n\nThe output must be a JSON object with the same structure as the input. The "texts" array should contain the translated texts corresponding to their original indices.\n\n**Strict Requirements:**\n- Strictly preserve line breaks and original formatting for each subtitle.\n- Do not combine or split texts during translation.\n- The number of elements in the output array must exactly match the input array.\n- Ensure the final JSON is valid and retains the complete structure.\n\nInput:\n${JSON.stringify(
-          jsonInput
-        )}\n`;
+        let prompt;
+        let jsonInput;
+
+        if (partialResults && partialResults.length > 0) {
+          // Recovery prompt: use partial results to complete the translation
+          jsonInput = {
+            originalTexts: texts.map((text, index) => ({ index, text })),
+            partialTranslations: partialResults.map((text, index) => ({ index, text }))
+          };
+
+          prompt = `You are a professional movie subtitle translator.\n\nI asked you to translate ${texts.length} subtitle texts to "${targetLanguage}", but you returned only ${partialResults.length} translations.\n\nPlease return a COMPLETE array with exactly ${texts.length} translations:\n- Keep the translations that are correct from the partial results\n- Complete the missing translations\n- Fix any incorrect translations\n\n**Strict Requirements:**\n- Output must be a JSON object with a "texts" array\n- The "texts" array must contain EXACTLY ${texts.length} elements\n- Each element must have "index" (0 to ${texts.length - 1}) and "text" (translated)\n- Preserve line breaks and formatting\n- Do not combine or split texts\n\nOriginal texts:\n${JSON.stringify(jsonInput.originalTexts)}\n\nPartial translations received:\n${JSON.stringify(jsonInput.partialTranslations)}\n`;
+        } else {
+          // Normal prompt
+          jsonInput = {
+            texts: texts.map((text, index) => ({ index, text })),
+          };
+
+          prompt = `You are a professional movie subtitle translator.\nTranslate each subtitle text in the "texts" array of the following JSON object into the specified language "${targetLanguage}".\n\nThe output must be a JSON object with the same structure as the input. The "texts" array should contain the translated texts corresponding to their original indices.\n\n**Strict Requirements:**\n- Strictly preserve line breaks and original formatting for each subtitle.\n- Do not combine or split texts during translation.\n- The number of elements in the output array must exactly match the input array.\n- Ensure the final JSON is valid and retains the complete structure.\n\nInput:\n${JSON.stringify(
+            jsonInput
+          )}\n`;
+        }
 
         const completion = await openai.chat.completions.create({
           messages: [{ role: "user", content: prompt }],
@@ -122,31 +138,28 @@ async function translateTextWithRetry(
     }
 
     if (texts.length != resultArray.length) {
-      console.log(
-        `Attempt ${attempt}/${maxRetries} failed. Text count mismatch:`,
-        texts.length,
-        resultArray.length
-      );
-      await fs.writeFile(
-        `debug/errorTranslate${count}.json`,
-        JSON.stringify(
-          {
-            attempt,
-            texts,
-            translatedText: resultArray,
-          },
-          null,
-          2
-        )
-      );
-
       if (attempt >= maxRetries) {
         throw new Error(
-          `Max retries (${maxRetries}) reached. Text count mismatch.`
+          `Max retries (${maxRetries}) reached. Text count mismatch: Pedidos ${texts.length}, veio ${resultArray.length}`
         );
       }
 
-      // Wait and retry
+      // Second attempt: try recovery prompt with partial results
+      if (attempt === 2) {
+        return translateTextWithRetry(
+          texts,
+          targetLanguage,
+          provider,
+          apikey,
+          base_url,
+          model_name,
+          attempt + 1,
+          maxRetries,
+          resultArray // Pass partial results for recovery
+        );
+      }
+
+      // First attempt: regular retry
       await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       return translateTextWithRetry(
         texts,
