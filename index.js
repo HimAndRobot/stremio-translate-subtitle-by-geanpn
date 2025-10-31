@@ -231,29 +231,7 @@ builder.defineSubtitlesHandler(async function (args) {
     }
 
     if (queueStatus === 'failed') {
-      console.log("Previous translation failed, retrying and returning error subtitle");
-
-      await connection.updateTranslationStatus(
-        imdbid,
-        season,
-        episode,
-        targetLanguage,
-        'processing'
-      );
-
-      translationQueue.push({
-        subs: [foundSubtitle],
-        imdbid: imdbid,
-        season: season,
-        episode: episode,
-        oldisocode: targetLanguage,
-        provider: config.provider,
-        apikey: config.apikey ?? null,
-        base_url: config.base_url ?? "https://api.openai.com/v1/responses",
-        model_name: config.model_name ?? "gpt-4o-mini",
-        password: config.password ?? null,
-        saveCredentials: config.saveCredentials ?? true,
-      });
+      console.log("Previous translation failed, returning error subtitle");
 
       return Promise.resolve({
         subtitles: [
