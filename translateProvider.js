@@ -1,7 +1,39 @@
 const googleTranslate = require("google-translate-api-browser");
 const fs = require("fs").promises;
 const OpenAI = require("openai");
+const Bottleneck = require("bottleneck");
 require("dotenv").config();
+
+const limiters = new Map();
+
+function getLimiter(provider, apikey) {
+  const key = `${provider}:${apikey || 'no-key'}`;
+
+  if (!limiters.has(key)) {
+    let config;
+
+    if (provider === 'Google Gemini') {
+      config = {
+        maxConcurrent: 8,
+        minTime: 125
+      };
+    } else if (provider === 'OpenAI' || provider === 'ChatGPT API') {
+      config = {
+        maxConcurrent: 20,
+        minTime: 50
+      };
+    } else {
+      config = {
+        maxConcurrent: 15,
+        minTime: 75
+      };
+    }
+
+    limiters.set(key, new Bottleneck(config));
+  }
+
+  return limiters.get(key);
+}
 
 var count = 0;
 async function translateTextWithRetry(
@@ -162,13 +194,17 @@ async function translateText(
   base_url,
   model_name
 ) {
-  return translateTextWithRetry(
-    texts,
-    targetLanguage,
-    provider,
-    apikey,
-    base_url,
-    model_name
+  const limiter = getLimiter(provider, apikey);
+
+  return limiter.schedule(() =>
+    translateTextWithRetry(
+      texts,
+      targetLanguage,
+      provider,
+      apikey,
+      base_url,
+      model_name
+    )
   );
 }
 
