@@ -46,6 +46,7 @@ const worker = new Worker(
       model_name,
       password,
       saveCredentials,
+      existingTranslationQueueId,
     } = job.data;
 
     await job.log(`[START] Processing translation for ${imdbid}`);
@@ -76,45 +77,51 @@ const worker = new Worker(
         }
       }
 
-      const existingStatus = await dbConnection.checkForTranslation(imdbid, season, episode, oldisocode);
+      let translationQueueId = existingTranslationQueueId;
 
-      let series_name = null;
-      let poster = null;
-      if (!existingStatus) {
-        try {
-          const type = season && episode ? "series" : "movie";
-          const metadata = await getMetadata(imdbid, type);
-          series_name = metadata.name;
-          poster = metadata.poster;
-        } catch (metaError) {
-          console.error("Failed to fetch metadata:", metaError.message);
-          series_name = imdbid;
+      if (!translationQueueId) {
+        const existingStatus = await dbConnection.checkForTranslation(imdbid, season, episode, oldisocode);
+
+        let series_name = null;
+        let poster = null;
+        if (!existingStatus) {
+          try {
+            const type = season && episode ? "series" : "movie";
+            const metadata = await getMetadata(imdbid, type);
+            series_name = metadata.name;
+            poster = metadata.poster;
+          } catch (metaError) {
+            console.error("Failed to fetch metadata:", metaError.message);
+            series_name = imdbid;
+          }
+
+          await dbConnection.addToTranslationQueue(
+            imdbid,
+            season,
+            episode,
+            0,
+            oldisocode,
+            password_hash,
+            apikey_encrypted,
+            base_url_encrypted,
+            model_name_encrypted,
+            series_name,
+            poster
+          );
+        } else if (password_hash) {
+          await dbConnection.updateTranslationCredentials(
+            imdbid,
+            season,
+            episode,
+            oldisocode,
+            password_hash,
+            apikey_encrypted,
+            base_url_encrypted,
+            model_name_encrypted
+          );
         }
-
-        await dbConnection.addToTranslationQueue(
-          imdbid,
-          season,
-          episode,
-          0,
-          oldisocode,
-          password_hash,
-          apikey_encrypted,
-          base_url_encrypted,
-          model_name_encrypted,
-          series_name,
-          poster
-        );
-      } else if (password_hash) {
-        await dbConnection.updateTranslationCredentials(
-          imdbid,
-          season,
-          episode,
-          oldisocode,
-          password_hash,
-          apikey_encrypted,
-          base_url_encrypted,
-          model_name_encrypted
-        );
+      } else {
+        await job.log(`[REPROCESS] Using existing translation_queue ID: ${translationQueueId}`);
       }
 
       await job.updateProgress(10);
@@ -190,16 +197,19 @@ const worker = new Worker(
       await job.log(`[INFO] Parsed ${subcounts.length} subtitle entries`);
 
       const adapter = await dbConnection.getAdapter();
-      const queueResult = await adapter.query(
-        `SELECT id FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?`,
-        [imdbid, season, episode, oldisocode]
-      );
 
-      if (queueResult.length === 0) {
-        throw new Error('Translation queue entry not found');
+      if (!translationQueueId) {
+        const queueResult = await adapter.query(
+          `SELECT id FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?`,
+          [imdbid, season, episode, oldisocode]
+        );
+
+        if (queueResult.length === 0) {
+          throw new Error('Translation queue entry not found');
+        }
+
+        translationQueueId = queueResult[0].id;
       }
-
-      const translationQueueId = queueResult[0].id;
 
       await job.updateProgress(30);
       await job.log('[STEP 3/4] Creating batch records...');

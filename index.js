@@ -644,9 +644,10 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
         base_url: base_url || null,
         model_name: model_name || null,
         saveCredentials: false,
+        existingTranslationQueueId: translation.id,
       });
 
-      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider} to language ${targetLanguage} (credentials from modal)`);
+      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider} to language ${targetLanguage} (reusing translation_queue ${translation.id})`);
     }
 
     res.json({ success: true });
