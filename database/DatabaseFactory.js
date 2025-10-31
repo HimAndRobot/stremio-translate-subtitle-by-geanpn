@@ -8,13 +8,15 @@ class DatabaseFactory {
 
     switch (dbType.toLowerCase()) {
       case "mysql":
-        return new MySQLAdapter({
+        const config = {
           host: process.env.MYSQL_HOST || process.env.DATABASEHOST || 'localhost',
-          port: process.env.MYSQL_PORT || 3306,
+          port: parseInt(process.env.MYSQL_PORT || '3306', 10),
           user: process.env.MYSQL_USER || process.env.DATABASEUSER,
           password: process.env.MYSQL_PASSWORD || process.env.DATABASEPASSWORD,
           database: process.env.MYSQL_DATABASE || process.env.DATABASE,
-        });
+        };
+        console.log('MySQL config:', { ...config, password: '***' });
+        return new MySQLAdapter(config);
 
       case "sqlite":
         return new SQLiteAdapter({

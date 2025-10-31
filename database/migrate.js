@@ -10,6 +10,14 @@ async function runAllMigrations() {
   try {
     adapter = await connection.getAdapter();
 
+    await adapter.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const migrationsDir = path.join(__dirname, 'migrations');
     const files = await fs.readdir(migrationsDir);
 

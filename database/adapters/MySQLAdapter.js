@@ -14,6 +14,7 @@ class MySQLAdapter extends BaseAdapter {
     try {
       this.connection = mysql.createConnection({
         host: this.config.host,
+        port: this.config.port,
         user: this.config.user,
         password: this.config.password,
         database: this.config.database,
@@ -343,8 +344,10 @@ class MySQLAdapter extends BaseAdapter {
       );
       if (result.length > 0) {
         const batch = result[0];
-        batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
-        if (batch.translated_entries) {
+        if (typeof batch.subtitle_entries === 'string') {
+          batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
+        }
+        if (batch.translated_entries && typeof batch.translated_entries === 'string') {
           batch.translated_entries = JSON.parse(batch.translated_entries);
         }
         return batch;
@@ -387,8 +390,10 @@ class MySQLAdapter extends BaseAdapter {
         [translationQueueId]
       );
       return result.map(batch => {
-        batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
-        if (batch.translated_entries) {
+        if (typeof batch.subtitle_entries === 'string') {
+          batch.subtitle_entries = JSON.parse(batch.subtitle_entries);
+        }
+        if (batch.translated_entries && typeof batch.translated_entries === 'string') {
           batch.translated_entries = JSON.parse(batch.translated_entries);
         }
         return batch;
