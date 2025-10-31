@@ -490,7 +490,7 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
 
     const corsProxy = process.env.CORS_URL || '';
 
-    res.render('dashboard', { translations, corsProxy });
+    res.render('dashboard', { translations, corsProxy, languages: baseLanguages });
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).send('Error loading dashboard');
@@ -592,7 +592,7 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
 });
 
 app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
-  const { id, provider, apikey, base_url, model_name } = req.body;
+  const { id, language, provider, apikey, base_url, model_name } = req.body;
 
   try {
     const adapter = await connection.getAdapter();
@@ -606,6 +606,9 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
     }
 
     const translation = result[0];
+    const targetLanguage = language || translation.langcode;
+
+    const targetLangKey = languages.getKeyFromValue(targetLanguage, provider);
 
     await connection.updateTranslationStatus(
       translation.series_imdbid,
@@ -626,7 +629,7 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
       translation.series_imdbid,
       translation.series_seasonno,
       translation.series_episodeno,
-      translation.langcode
+      targetLangKey
     );
 
     if (subs && subs.length > 0) {
@@ -635,7 +638,7 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
         imdbid: translation.series_imdbid,
         season: translation.series_seasonno,
         episode: translation.series_episodeno,
-        oldisocode: translation.langcode,
+        oldisocode: targetLangKey,
         provider: provider,
         apikey: apikey || null,
         base_url: base_url || null,
@@ -643,7 +646,7 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
         saveCredentials: false,
       });
 
-      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider} (credentials from modal)`);
+      console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider} to language ${targetLanguage} (credentials from modal)`);
     }
 
     res.json({ success: true });

@@ -204,6 +204,12 @@ const worker = new Worker(
       await job.updateProgress(30);
       await job.log('[STEP 3/4] Creating batch records...');
 
+      await adapter.query(
+        `DELETE FROM subtitle_batches WHERE translation_queue_id = ?`,
+        [translationQueueId]
+      );
+      await job.log('[INFO] Cleared existing batch records');
+
       const batchSize = provider === "ChatGPT API" ? 50 : 60;
       const totalEntries = subcounts.length;
       const totalBatches = Math.ceil(totalEntries / batchSize);
