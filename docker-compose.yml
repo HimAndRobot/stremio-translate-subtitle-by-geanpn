@@ -2,6 +2,8 @@ version: '3.8'
 
 services:
   redis:
+    ports:
+      - "6379:6379"
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
@@ -12,30 +14,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-    networks:
-      - stremio-net
-
-  stremio-translate:
-    build: .
-    ports:
-      - "${PORT:-3000}:3000"
-    environment:
-      - PORT=3000
-      - ADDRESS=0.0.0.0
-      - BASE_URL=${BASE_URL:-http://localhost:3000}
-      - DB_TYPE=${DB_TYPE:-sqlite}
-      - SQLITE_PATH=/app/data/database.db
-      - PUBLISH_IN_STREMIO_STORE=${PUBLISH_IN_STREMIO_STORE:-FALSE}
-      - REDIS_URL=redis://redis:6379
-      - QUEUE_CONCURRENCY=${QUEUE_CONCURRENCY:-3}
-    volumes:
-      - ./data:/app/data
-      - ./subtitles:/app/subtitles
-      - ./debug:/app/debug
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       - stremio-net
 

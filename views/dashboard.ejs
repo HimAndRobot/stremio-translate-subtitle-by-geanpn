@@ -16,6 +16,10 @@
             min-height: 100vh;
             padding: 20px;
         }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
         .header {
             background: white;
             padding: 20px 30px;
@@ -86,7 +90,7 @@
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            overflow: hidden;
+            overflow: visible;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
@@ -298,87 +302,333 @@
         .hidden {
             display: none !important;
         }
+        .episodes-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .episodes-modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: visible;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .episodes-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .episodes-modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+        .episodes-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .episodes-modal-close:hover {
+            color: #333;
+        }
+        .episodes-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .episode-item {
+            padding: 10px 12px;
+            background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 10px;
+            border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .episode-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .episode-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .episode-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: #667eea;
+            min-width: 60px;
+        }
+        .episode-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #888;
+        }
+        .episode-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .episode-actions {
+            position: relative;
+        }
+        .episode-menu-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .episode-menu-btn:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+        .episode-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 5px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            min-width: 150px;
+        }
+        .episode-dropdown.show {
+            display: block;
+        }
+        .episode-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+            border-radius: 0;
+        }
+        .episode-dropdown button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        .episode-dropdown button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        .episode-dropdown button:hover {
+            background: #f5f5f5;
+        }
+        .episode-dropdown button.danger {
+            color: #f44336;
+        }
+        .episode-dropdown button.danger:hover {
+            background: #ffebee;
+        }
+        .episode-dropdown button.warning {
+            color: #ff9800;
+        }
+        .episode-dropdown button.warning:hover {
+            background: #fff3e0;
+        }
+        .view-more-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        .view-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .search-container {
+            margin: 20px auto 30px auto;
+            max-width: 100%;
+        }
+        .search-box {
+            width: 100%;
+            padding: 14px 20px;
+            padding-left: 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 15px center;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-box::placeholder {
+            color: #999;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>My Translations</h1>
-        <div class="header-actions">
-            <a href="/configure" class="btn btn-secondary">Configure</a>
-            <button onclick="logout()" class="btn btn-secondary">Logout</button>
+    <div class="container">
+        <div class="header">
+            <h1>My Translations</h1>
+            <div class="header-actions">
+                <a href="/configure" class="btn btn-secondary">Configure</a>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
         </div>
-    </div>
 
-    <% if (translations.length === 0) { %>
+        <% if (translations.length === 0) { %>
         <div class="empty-state">
             <h2>No Translations Yet</h2>
             <p>Your translations will appear here once you start using the addon</p>
         </div>
     <% } else { %>
-        <div class="grid-container">
-            <% translations.forEach(translation => { %>
-                <div class="card">
-                    <span class="status status-<%= translation.status %> status-badge"><%= translation.status %></span>
-
-                    <% if (translation.poster && translation.poster !== null && translation.poster !== '') { %>
-                        <img src="<%= translation.poster %>" alt="<%= translation.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="search-container">
+            <input type="text" id="searchBox" class="search-box" placeholder="Search by title, IMDB ID, season, episode..." onkeyup="filterSeries()">
+        </div>
+        <div class="grid-container" id="seriesGrid">
+            <% groupedSeries.forEach(series => { %>
+                <div class="card series-card">
+                    <% if (series.poster && series.poster !== null && series.poster !== '') { %>
+                        <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <div class="card-poster-placeholder" style="display:none;">
-                            <%= (translation.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
                         </div>
                     <% } else { %>
                         <div class="card-poster-placeholder">
-                            <%= (translation.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
                         </div>
                     <% } %>
 
                     <div class="card-content">
-                        <div class="card-title"><%= translation.series_name || translation.series_imdbid %></div>
+                        <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
                         <div class="card-subtitle">
-                            <% if (translation.series_seasonno && translation.series_episodeno) { %>
-                                S<%= String(translation.series_seasonno).padStart(2, '0') %>E<%= String(translation.series_episodeno).padStart(2, '0') %>
+                            <% if (series.isMovie) { %>
+                                Movie • <%= series.langcode %>
                             <% } else { %>
-                                Movie
+                                <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.langcode %>
                             <% } %>
-                            • <%= translation.langcode %>
                         </div>
 
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <div class="stat-label">Tokens</div>
-                                <div class="stat-value tokens"><%= (translation.token_usage_total || 0).toLocaleString() %></div>
+                        <% if (!series.isMovie && series.episodes.length > 1) { %>
+                            <div class="episodes-list">
+                                <% const firstThree = series.episodes.slice(0, 3); %>
+                                <% firstThree.forEach(episode => { %>
+                                    <div class="episode-item">
+                                        <div class="episode-info">
+                                            <span class="episode-label">S<%= String(episode.series_seasonno).padStart(2, '0') %>E<%= String(episode.series_episodeno).padStart(2, '0') %></span>
+                                            <span class="status status-<%= episode.status %>"><%= episode.status %></span>
+                                            <div class="episode-stats">
+                                                <span>🪙 <%= (episode.token_usage_total || 0).toLocaleString() %></span>
+                                                <% if (episode.batches_total > 0) { %>
+                                                    <span>📦 <%= episode.batches_completed %>/<%= episode.batches_total %></span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                        <%
+                                            const isProcessingTooLong = episode.status === 'processing' && (new Date() - new Date(episode.created_at) > 10 * 60 * 1000);
+                                            const showReprocess = episode.status === 'failed' || isProcessingTooLong;
+                                        %>
+                                        <div class="episode-actions">
+                                            <button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, <%= episode.id %>)">⋮</button>
+                                            <div id="menu-<%= episode.id %>" class="episode-dropdown">
+                                                <% if (showReprocess) { %>
+                                                    <% if (episode.apikey_encrypted) { %>
+                                                        <button class="warning" onclick="reprocess(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } else { %>
+                                                        <button class="warning" onclick="openReprocessModal(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } %>
+                                                <% } %>
+                                                <button class="danger" onclick="deleteTranslation(<%= episode.id %>)">🗑️ Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
                             </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Retries</div>
-                                <div class="stat-value retries"><%= translation.retry_attempts || 0 %></div>
-                            </div>
-                            <% if (translation.batches_total > 0) { %>
+
+                            <% if (series.episodes.length > 3) { %>
+                                <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>_<%= series.langcode %>')">
+                                    + <%= series.episodes.length - 3 %> more episodes
+                                </button>
+                            <% } %>
+                        <% } else { %>
+                            <% const item = series.episodes[0]; %>
+                            <div class="stats-grid">
                                 <div class="stat-box">
-                                    <div class="stat-label">Batches</div>
-                                    <div class="stat-value batches"><%= translation.batches_completed %>/<%= translation.batches_total %></div>
+                                    <div class="stat-label">Status</div>
+                                    <div class="stat-value"><span class="status status-<%= item.status %>"><%= item.status %></span></div>
                                 </div>
-                            <% } %>
-                        </div>
-
-                        <div class="card-actions">
-                            <%
-                                const showReprocess = translation.status === 'failed' ||
-                                    (translation.status === 'processing' &&
-                                     new Date() - new Date(translation.created_at) > 10 * 60 * 1000);
-                            %>
-                            <% if (showReprocess) { %>
-                                <% if (translation.apikey_encrypted) { %>
-                                    <button onclick="reprocess(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
-                                <% } else { %>
-                                    <button onclick="openReprocessModal(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                <div class="stat-box">
+                                    <div class="stat-label">Tokens</div>
+                                    <div class="stat-value tokens"><%= (item.token_usage_total || 0).toLocaleString() %></div>
+                                </div>
+                                <% if (item.batches_total > 0) { %>
+                                    <div class="stat-box">
+                                        <div class="stat-label">Batches</div>
+                                        <div class="stat-value batches"><%= item.batches_completed %>/<%= item.batches_total %></div>
+                                    </div>
                                 <% } %>
-                            <% } %>
-                            <button onclick="deleteTranslation(<%= translation.id %>)" class="btn btn-danger btn-sm">Delete</button>
-                        </div>
+                            </div>
+
+                            <div class="card-actions">
+                                <%
+                                    const showReprocess = item.status === 'failed' ||
+                                        (item.status === 'processing' &&
+                                         new Date() - new Date(item.created_at) > 10 * 60 * 1000);
+                                %>
+                                <% if (showReprocess) { %>
+                                    <% if (item.apikey_encrypted) { %>
+                                        <button onclick="reprocess(<%= item.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                    <% } else { %>
+                                        <button onclick="openReprocessModal(<%= item.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                    <% } %>
+                                <% } %>
+                                <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
             <% }); %>
         </div>
     <% } %>
+
+    <div id="episodesModal" class="episodes-modal">
+        <div class="episodes-modal-content">
+            <div class="episodes-modal-header">
+                <h2 id="episodesModalTitle">All Episodes</h2>
+                <button class="episodes-modal-close" onclick="closeEpisodesModal()">&times;</button>
+            </div>
+            <div id="episodesModalBody"></div>
+        </div>
+    </div>
 
     <div id="reprocessModal" class="modal">
         <div class="modal-content">
@@ -435,6 +685,123 @@
     </div>
 
     <script>
+        const seriesData = <%- JSON.stringify(groupedSeries) %>;
+
+        function openEpisodesModal(seriesKey) {
+            const series = seriesData.find(s => `${s.series_imdbid}_${s.langcode}` === seriesKey);
+            if (!series) return;
+
+            const modal = document.getElementById('episodesModal');
+            const modalTitle = document.getElementById('episodesModalTitle');
+            const modalBody = document.getElementById('episodesModalBody');
+
+            modalTitle.textContent = `${series.series_name || series.series_imdbid} - All Episodes`;
+
+            let html = '<div class="episodes-list">';
+            series.episodes.forEach(episode => {
+                const now = new Date();
+                const created = new Date(episode.created_at);
+                const timeDiff = now - created;
+                const isProcessingTooLong = (episode.status === 'processing') ? (timeDiff > 600000) : false;
+                const showReprocess = (episode.status === 'failed') ? true : isProcessingTooLong;
+
+                let reprocessBtn = '';
+                if (showReprocess) {
+                    if (episode.apikey_encrypted) {
+                        reprocessBtn = '<button class="warning" onclick="reprocess(' + episode.id + ')">🔄 Reprocess</button>';
+                    } else {
+                        reprocessBtn = '<button class="warning" onclick="openReprocessModal(' + episode.id + ')">🔄 Reprocess</button>';
+                    }
+                }
+
+                html += '<div class="episode-item">' +
+                    '<div class="episode-info">' +
+                        '<span class="episode-label">S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0') + '</span>' +
+                        '<span class="status status-' + episode.status + '">' + episode.status + '</span>' +
+                        '<div class="episode-stats">' +
+                            '<span>🪙 ' + (episode.token_usage_total || 0).toLocaleString() + '</span>' +
+                            (episode.batches_total > 0 ? '<span>📦 ' + episode.batches_completed + '/' + episode.batches_total + '</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="episode-actions">' +
+                        '<button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, ' + episode.id + ')">⋮</button>' +
+                        '<div id="menu-' + episode.id + '" class="episode-dropdown">' +
+                            reprocessBtn +
+                            '<button class="danger" onclick="deleteTranslation(' + episode.id + ')">🗑️ Delete</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            html += '</div>';
+
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function closeEpisodesModal() {
+            document.getElementById('episodesModal').style.display = 'none';
+        }
+
+        function toggleEpisodeMenu(event, episodeId) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const menu = document.getElementById(`menu-${episodeId}`);
+            if (!menu) {
+                console.error('Menu not found for episode:', episodeId);
+                return;
+            }
+
+            const allMenus = document.querySelectorAll('.episode-dropdown');
+
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+
+            // Toggle current menu
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.episode-menu-btn')) {
+                document.querySelectorAll('.episode-dropdown').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+
+        function filterSeries() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const cards = document.querySelectorAll('.series-card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const subtitle = card.querySelector('.card-subtitle').textContent.toLowerCase();
+                const episodes = card.querySelectorAll('.episode-label');
+
+                let matchFound = title.includes(searchTerm) || subtitle.includes(searchTerm);
+
+                if (!matchFound) {
+                    episodes.forEach(ep => {
+                        if (ep.textContent.toLowerCase().includes(searchTerm)) {
+                            matchFound = true;
+                        }
+                    });
+                }
+
+                card.style.display = matchFound ? '' : 'none';
+            });
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('episodesModal');
+            if (event.target === modal) {
+                closeEpisodesModal();
+            }
+        }
+
         async function logout() {
             try {
                 const response = await fetch('/admin/logout', {
@@ -451,6 +818,9 @@
         }
 
         async function reprocess(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
             if (!confirm('Reprocess this failed translation?')) return;
 
             try {
@@ -473,6 +843,9 @@
         }
 
         async function deleteTranslation(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
             if (!confirm('Delete this translation? This cannot be undone.')) return;
 
             try {
@@ -624,5 +997,6 @@
             }
         }
     </script>
+    </div>
 </body>
 </html>

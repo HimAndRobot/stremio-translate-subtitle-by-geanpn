@@ -475,9 +475,34 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
       translation.batches_failed = Number(batchStats[0]?.failed) || 0;
     }
 
+    // Group translations by series
+    const groupedSeries = new Map();
+
+    for (const translation of translations) {
+      const key = `${translation.series_imdbid}_${translation.langcode}`;
+
+      if (!groupedSeries.has(key)) {
+        groupedSeries.set(key, {
+          series_imdbid: translation.series_imdbid,
+          series_name: translation.series_name,
+          poster: translation.poster,
+          langcode: translation.langcode,
+          episodes: [],
+          isMovie: !translation.series_seasonno && !translation.series_episodeno
+        });
+      }
+
+      groupedSeries.get(key).episodes.push(translation);
+    }
+
     const corsProxy = process.env.CORS_URL || '';
 
-    res.render('dashboard', { translations, corsProxy, languages: baseLanguages });
+    res.render('dashboard', {
+      translations,
+      groupedSeries: Array.from(groupedSeries.values()),
+      corsProxy,
+      languages: baseLanguages
+    });
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).send('Error loading dashboard');
