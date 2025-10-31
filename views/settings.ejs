@@ -585,7 +585,7 @@
         }
 
         function loadCredentials() {
-            const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
+            const credentials = JSON.parse(localStorage.getItem('translationCredentials') || '[]');
             const container = document.getElementById('credentials-container');
 
             if (credentials.length === 0) {
@@ -621,9 +621,9 @@
                 return;
             }
 
-            const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
+            const credentials = JSON.parse(localStorage.getItem('translationCredentials') || '[]');
             credentials.splice(index, 1);
-            localStorage.setItem('user_credentials', JSON.stringify(credentials));
+            localStorage.setItem('translationCredentials', JSON.stringify(credentials));
             loadCredentials();
         }
 
