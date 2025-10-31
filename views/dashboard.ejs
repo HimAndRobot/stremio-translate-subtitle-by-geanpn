@@ -360,7 +360,12 @@
                         </div>
 
                         <div class="card-actions">
-                            <% if (translation.status === 'failed') { %>
+                            <%
+                                const showReprocess = translation.status === 'failed' ||
+                                    (translation.status === 'processing' &&
+                                     new Date() - new Date(translation.created_at) > 10 * 60 * 1000);
+                            %>
+                            <% if (showReprocess) { %>
                                 <% if (translation.apikey_encrypted) { %>
                                     <button onclick="reprocess(<%= translation.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
                                 <% } else { %>

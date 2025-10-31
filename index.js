@@ -476,16 +476,16 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
     for (const translation of translations) {
       const batchStats = await adapter.query(
         `SELECT COUNT(*) as total,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
+                COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0) as failed
          FROM subtitle_batches
          WHERE translation_queue_id = ?`,
         [translation.id]
       );
 
-      translation.batches_total = batchStats[0]?.total || 0;
-      translation.batches_completed = batchStats[0]?.completed || 0;
-      translation.batches_failed = batchStats[0]?.failed || 0;
+      translation.batches_total = Number(batchStats[0]?.total) || 0;
+      translation.batches_completed = Number(batchStats[0]?.completed) || 0;
+      translation.batches_failed = Number(batchStats[0]?.failed) || 0;
     }
 
     const corsProxy = process.env.CORS_URL || '';

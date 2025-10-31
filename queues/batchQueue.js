@@ -184,50 +184,84 @@ worker.on("completed", (job) => {
 });
 
 worker.on("failed", async (job, err) => {
-  console.error(`Batch job ${job.id} failed:`, err.message);
+  console.error(`❌ Batch job ${job.id} failed:`, err.message);
+  console.error(`   Attempts made: ${job.attemptsMade}, Max attempts: 3`);
 
-  if (job.data.batchId && job.attemptsMade >= 3) {
-    console.log(`Batch ${job.data.batchId} failed all attempts - marking translation as failed`);
-
-    await connection.updateBatchStatus(job.data.batchId, 'failed');
-
-    const translationQueueId = await connection.getTranslationQueueIdFromBatch(job.data.batchId);
-
-    if (translationQueueId) {
-      const adapter = await connection.getAdapter();
-      const queueInfo = await adapter.query(
-        `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
-        [translationQueueId]
-      );
-
-      if (queueInfo.length > 0) {
-        const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
-
-        const { createOrUpdateMessageSub } = require('../subtitles');
-        const providerPath = password_hash || `translated-${langcode}`;
-
-        await createOrUpdateMessageSub(
-          "An error occurred while generating your subtitle. We will try again.",
-          series_imdbid,
-          series_seasonno,
-          series_episodeno,
-          langcode,
-          providerPath
-        );
-
-        await connection.updateTranslationStatus(
-          series_imdbid,
-          series_seasonno,
-          series_episodeno,
-          langcode,
-          'failed'
-        );
-
-        console.log(`Translation ${translationQueueId} marked as failed`);
-      }
+  try {
+    if (job?.log) {
+      await job.log(`[FAILED] Batch failed after attempt ${job.attemptsMade}: ${err.message}`);
     }
-  } else if (job.data.batchId) {
-    await connection.updateBatchStatus(job.data.batchId, 'failed');
+
+    if (job.data.batchId && job.attemptsMade >= 3) {
+      console.log(`🚨 Batch ${job.data.batchId} failed all attempts - CANCELING ALL BATCHES AND MARKING AS FAILED`);
+      if (job?.log) await job.log(`[CRITICAL] Batch ${job.data.batchId} failed all 3 attempts - Canceling remaining batches`);
+
+      await connection.updateBatchStatus(job.data.batchId, 'failed');
+      console.log(`   ✓ Batch ${job.data.batchId} marked as failed`);
+
+      const translationQueueId = await connection.getTranslationQueueIdFromBatch(job.data.batchId);
+      console.log(`   Translation Queue ID: ${translationQueueId}`);
+      if (job?.log) await job.log(`[INFO] Translation Queue ID: ${translationQueueId}`);
+
+      if (translationQueueId) {
+        const adapter = await connection.getAdapter();
+
+        const cancelResult = await adapter.query(
+          `UPDATE subtitle_batches SET status = 'failed' WHERE translation_queue_id = ? AND status IN ('pending', 'processing')`,
+          [translationQueueId]
+        );
+        console.log(`   ✓ Canceled all pending/processing batches for translation ${translationQueueId}`);
+        if (job?.log) await job.log(`[ACTION] Canceled all remaining batches for this translation`);
+
+        const queueInfo = await adapter.query(
+          `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
+          [translationQueueId]
+        );
+
+        if (queueInfo.length > 0) {
+          const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
+          console.log(`   Found translation: ${series_imdbid} S${series_seasonno}E${series_episodeno} -> ${langcode}`);
+
+          const { createOrUpdateMessageSub } = require('../subtitles');
+          const providerPath = password_hash || `translated-${langcode}`;
+
+          await createOrUpdateMessageSub(
+            "An error occurred while generating your subtitle. We will try again.",
+            series_imdbid,
+            series_seasonno,
+            series_episodeno,
+            langcode,
+            providerPath
+          );
+          console.log(`   ✓ Created error message subtitle`);
+          if (job?.log) await job.log(`[ACTION] Created error message subtitle file`);
+
+          await connection.updateTranslationStatus(
+            series_imdbid,
+            series_seasonno,
+            series_episodeno,
+            langcode,
+            'failed'
+          );
+
+          console.log(`   ✅ Translation ${translationQueueId} marked as FAILED successfully`);
+          if (job?.log) await job.log(`[COMPLETE] Translation marked as FAILED in database`);
+        } else {
+          console.error(`   ❌ Queue info not found for translation ${translationQueueId}`);
+          if (job?.log) await job.log(`[ERROR] Queue info not found for translation ${translationQueueId}`);
+        }
+      } else {
+        console.error(`   ❌ Could not get translation queue ID for batch ${job.data.batchId}`);
+        if (job?.log) await job.log(`[ERROR] Could not get translation queue ID`);
+      }
+    } else if (job.data.batchId) {
+      console.log(`   ⚠️  Batch ${job.data.batchId} failed (attempt ${job.attemptsMade}/3) - will retry`);
+      if (job?.log) await job.log(`[RETRY] Batch failed (attempt ${job.attemptsMade}/3) - will retry`);
+      await connection.updateBatchStatus(job.data.batchId, 'failed');
+    }
+  } catch (error) {
+    console.error(`   ❌ Error handling batch failure:`, error);
+    if (job?.log) await job.log(`[ERROR] Exception while handling failure: ${error.message}`);
   }
 });
 
