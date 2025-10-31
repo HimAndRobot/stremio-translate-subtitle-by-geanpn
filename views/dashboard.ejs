@@ -988,12 +988,260 @@
         </div>
     </div>
 
+    <div id="masterPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Enter Master Password</h2>
+                <p>Enter your master password to decrypt the saved credential</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="masterPasswordInput">Master Password</label>
+                <input type="password" id="masterPasswordInput" placeholder="Enter master password" onkeypress="if(event.key === 'Enter') submitMasterPassword()">
+            </div>
+
+            <div id="masterPasswordError" style="color: #f44336; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none;"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitMasterPassword()">Decrypt</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const seriesData = <%- JSON.stringify(groupedSeries) %>;
 
         let searchTimeout;
         let selectedEpisodes = [];
         let currentSelectedSeries = null;
+        let currentCredentialContext = null;
+        let pendingDecryptedCredential = null;
+
+        async function deriveKey(password, salt) {
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available');
+            }
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+            const importedKey = await window.crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            return window.crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                importedKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function decryptData(encryptedData, password) {
+            const data = JSON.parse(atob(encryptedData));
+            const salt = new Uint8Array(data.salt);
+            const iv = new Uint8Array(data.iv);
+            const ciphertext = new Uint8Array(data.ciphertext);
+
+            const key = await deriveKey(password, salt);
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: iv },
+                key,
+                ciphertext
+            );
+
+            const decoder = new TextDecoder();
+            return decoder.decode(decrypted);
+        }
+
+        function loadSavedCredentials() {
+            try {
+                const saved = localStorage.getItem('translationCredentials');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('Error loading credentials:', error);
+            }
+            return [];
+        }
+
+        function populateProviderDropdownWithCredentials(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = '';
+
+            PROVIDERS.forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                select.appendChild(option);
+            });
+
+            const credentials = loadSavedCredentials();
+            if (credentials.length > 0) {
+                const separator = document.createElement('optgroup');
+                separator.label = '--- Saved Credentials ---';
+                select.appendChild(separator);
+
+                credentials.forEach((cred, index) => {
+                    const option = document.createElement('option');
+                    option.value = `saved_${index}`;
+                    option.textContent = `🔑 ${cred.name} (${cred.provider})`;
+                    option.dataset.isSaved = 'true';
+                    option.dataset.credentialIndex = index;
+                    separator.appendChild(option);
+                });
+            }
+
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        function openMasterPasswordModal(context, credentialIndex) {
+            currentCredentialContext = { context, credentialIndex };
+            document.getElementById('masterPasswordInput').value = '';
+            document.getElementById('masterPasswordError').style.display = 'none';
+            document.getElementById('masterPasswordModal').style.display = 'block';
+        }
+
+        function closeMasterPasswordModal() {
+            const context = currentCredentialContext ? currentCredentialContext.context : null;
+
+            document.getElementById('masterPasswordModal').style.display = 'none';
+            currentCredentialContext = null;
+            pendingDecryptedCredential = null;
+
+            if (context === 'download') {
+                document.getElementById('downloadProvider').selectedIndex = 0;
+                updateProviderFields('download');
+            } else if (context === 'modal') {
+                document.getElementById('modalProvider').selectedIndex = 0;
+                updateModalFields();
+            }
+        }
+
+        async function submitMasterPassword() {
+            const password = document.getElementById('masterPasswordInput').value;
+            const errorDiv = document.getElementById('masterPasswordError');
+
+            if (!password) {
+                errorDiv.textContent = 'Please enter your master password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!currentCredentialContext) {
+                errorDiv.textContent = 'Invalid context';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const credentials = loadSavedCredentials();
+                const credential = credentials[currentCredentialContext.credentialIndex];
+
+                if (!credential) {
+                    errorDiv.textContent = 'Credential not found';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const decryptedApiKey = await decryptData(credential.apikey_encrypted, password);
+                const decryptedBaseUrl = credential.base_url_encrypted
+                    ? await decryptData(credential.base_url_encrypted, password)
+                    : '';
+                const decryptedModelName = credential.model_name_encrypted
+                    ? await decryptData(credential.model_name_encrypted, password)
+                    : '';
+
+                pendingDecryptedCredential = {
+                    provider: credential.provider,
+                    apikey: decryptedApiKey,
+                    base_url: decryptedBaseUrl,
+                    model_name: decryptedModelName,
+                    name: credential.name
+                };
+
+                closeMasterPasswordModal();
+                applyDecryptedCredential(currentCredentialContext.context);
+
+            } catch (error) {
+                console.error('Decryption error:', error);
+                errorDiv.textContent = 'Incorrect password or corrupted data';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function applyDecryptedCredential(context) {
+            if (!pendingDecryptedCredential) return;
+
+            const cred = pendingDecryptedCredential;
+
+            if (context === 'download') {
+                document.getElementById('downloadApiKey').value = cred.apikey;
+                document.getElementById('downloadBaseUrl').value = cred.base_url;
+
+                const providerSelect = document.getElementById('downloadProvider');
+                providerSelect.value = cred.provider;
+                updateProviderFields('download');
+
+                const modelSelect = document.getElementById('downloadModel');
+                if (modelSelect && cred.model_name) {
+                    const existingOption = Array.from(modelSelect.options).find(opt => opt.value === cred.model_name);
+                    if (existingOption) {
+                        modelSelect.value = cred.model_name;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = cred.model_name;
+                        option.textContent = cred.model_name;
+                        modelSelect.appendChild(option);
+                        modelSelect.value = cred.model_name;
+                    }
+                }
+
+                alert(`✓ Loaded credentials: ${cred.name}`);
+
+            } else if (context === 'modal') {
+                document.getElementById('modalApiKey').value = cred.apikey;
+                document.getElementById('modalBaseUrl').value = cred.base_url;
+                document.getElementById('modalModelName').value = cred.model_name;
+
+                const providerSelect = document.getElementById('modalProvider');
+                providerSelect.value = cred.provider;
+                updateModalFields();
+
+                const modelSelect = document.getElementById('modalModel');
+                if (modelSelect && cred.model_name) {
+                    const existingOption = Array.from(modelSelect.options).find(opt => opt.value === cred.model_name);
+                    if (existingOption) {
+                        modelSelect.value = cred.model_name;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = cred.model_name;
+                        option.textContent = cred.model_name;
+                        modelSelect.appendChild(option);
+                        modelSelect.value = cred.model_name;
+                    }
+                }
+
+                alert(`✓ Loaded credentials: ${cred.name}`);
+            }
+
+            pendingDecryptedCredential = null;
+        }
 
         function openAddSubtitleModal() {
             document.getElementById('addSubtitleModal').style.display = 'block';
@@ -1230,20 +1478,32 @@
                 langSelect.appendChild(option);
             });
 
-            const providerSelect = document.getElementById('downloadProvider');
-            providerSelect.innerHTML = '';
-            PROVIDERS.forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider;
-                option.textContent = provider;
-                providerSelect.appendChild(option);
-            });
+            populateProviderDropdownWithCredentials('downloadProvider');
 
-            providerSelect.addEventListener('change', function() {
-                updateProviderFields('download');
-            });
+            const providerSelect = document.getElementById('downloadProvider');
+            const existingListener = providerSelect.onchange;
+            providerSelect.onchange = function() {
+                handleProviderChange('download');
+            };
 
             updateProviderFields('download');
+        }
+
+        function handleProviderChange(context) {
+            const selectId = context === 'download' ? 'downloadProvider' : 'modalProvider';
+            const select = document.getElementById(selectId);
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (selectedOption.dataset.isSaved === 'true') {
+                const credentialIndex = parseInt(selectedOption.dataset.credentialIndex);
+                openMasterPasswordModal(context, credentialIndex);
+            } else {
+                if (context === 'download') {
+                    updateProviderFields('download');
+                } else {
+                    updateModalFields();
+                }
+            }
         }
 
         function updateProviderFields(prefix) {
@@ -1548,14 +1808,7 @@
                 languageSelect.appendChild(option);
             });
 
-            const providerSelect = document.getElementById('modalProvider');
-            providerSelect.innerHTML = '';
-            PROVIDERS.forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider;
-                option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
-                providerSelect.appendChild(option);
-            });
+            populateProviderDropdownWithCredentials('modalProvider');
 
             document.getElementById('reprocessModal').style.display = 'block';
             updateModalFields();
@@ -1601,7 +1854,9 @@
             }
         }
 
-        document.getElementById('modalProvider').addEventListener('change', updateModalFields);
+        document.getElementById('modalProvider').addEventListener('change', function() {
+            handleProviderChange('modal');
+        });
 
         async function submitReprocess() {
             if (!currentReprocessId) return;
