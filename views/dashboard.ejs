@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Translations - Auto Subtitle Translate</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="/public/translation-config.js"></script>
     <style>
         * {
@@ -1018,6 +1020,29 @@
         let currentCredentialContext = null;
         let pendingDecryptedCredential = null;
 
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                error: 'linear-gradient(to right, #f44336, #e91e63)',
+                warning: 'linear-gradient(to right, #ff9800, #ff5722)',
+                info: 'linear-gradient(to right, #2196F3, #00BCD4)'
+            };
+
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                stopOnFocus: true,
+                style: {
+                    background: colors[type] || colors.info,
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }
+            }).showToast();
+        }
+
         async function deriveKey(password, salt) {
             if (!window.crypto || !window.crypto.subtle) {
                 throw new Error('Web Crypto API not available');
@@ -1219,7 +1244,7 @@
                     }
                 }
 
-                alert(`✓ Loaded credentials: ${cred.name}`);
+                showToast(`✓ Loaded credentials: ${cred.name}`, 'success');
 
             } else if (context === 'modal') {
                 const providerSelect = document.getElementById('modalProvider');
@@ -1251,7 +1276,7 @@
                     }
                 }
 
-                alert(`✓ Loaded credentials: ${cred.name}`);
+                showToast(`✓ Loaded credentials: ${cred.name}`, 'success');
             }
 
             pendingDecryptedCredential = null;
@@ -1470,7 +1495,7 @@
 
         function confirmSelection() {
             if (selectedEpisodes.length === 0) {
-                alert('Please select at least one episode');
+                showToast('Please select at least one episode', 'warning');
                 return;
             }
 
@@ -1615,16 +1640,16 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert(`Success! ${result.message}`);
+                    showToast(`Success! ${result.message}`, 'success');
                     closeAddSubtitleModal();
                     location.reload();
                 } else {
                     const error = await response.json();
-                    alert('Error: ' + (error.error || 'Failed to queue translation'));
+                    showToast('Error: ' + (error.error || 'Failed to queue translation'), 'error');
                 }
             } catch (error) {
                 console.error('Translation error:', error);
-                alert('Connection error. Please try again.');
+                showToast('Connection error. Please try again.', 'error');
             }
         }
 
@@ -1779,14 +1804,14 @@
                 });
 
                 if (response.ok) {
-                    alert('Translation queued for reprocessing!');
+                    showToast('Translation queued for reprocessing!', 'success');
                     location.reload();
                 } else {
                     const data = await response.json();
-                    alert('Error: ' + (data.error || 'Failed to reprocess'));
+                    showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
                 }
             } catch (error) {
-                alert('Connection error. Please try again.');
+                showToast('Connection error. Please try again.', 'error');
             }
         }
 
@@ -1804,14 +1829,14 @@
                 });
 
                 if (response.ok) {
-                    alert('Translation deleted successfully!');
+                    showToast('Translation deleted successfully!', 'success');
                     location.reload();
                 } else {
                     const data = await response.json();
-                    alert('Error: ' + (data.error || 'Failed to delete'));
+                    showToast('Error: ' + (data.error || 'Failed to delete'), 'error');
                 }
             } catch (error) {
-                alert('Connection error. Please try again.');
+                showToast('Connection error. Please try again.', 'error');
             }
         }
 
@@ -1925,15 +1950,15 @@
                 });
 
                 if (response.ok) {
-                    alert('Translation queued for reprocessing!');
+                    showToast('Translation queued for reprocessing!', 'success');
                     closeReprocessModal();
                     location.reload();
                 } else {
                     const data = await response.json();
-                    alert('Error: ' + (data.error || 'Failed to reprocess'));
+                    showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
                 }
             } catch (error) {
-                alert('Connection error. Please try again.');
+                showToast('Connection error. Please try again.', 'error');
             }
         }
 
