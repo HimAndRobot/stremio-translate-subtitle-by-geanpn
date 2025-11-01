@@ -497,6 +497,12 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
     }
 
     for (const seriesGroup of groupedSeries.values()) {
+      seriesGroup.episodes.sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateB - dateA;
+      });
+
       seriesGroup.total_tokens = seriesGroup.episodes.reduce((sum, ep) =>
         sum + (ep.token_usage_total || 0), 0
       );

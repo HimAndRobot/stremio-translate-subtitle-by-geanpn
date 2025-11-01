@@ -350,7 +350,7 @@
             border-radius: 16px;
             max-width: 800px;
             max-height: 80vh;
-            overflow: visible;
+            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         .episodes-modal-header {
@@ -1670,8 +1670,14 @@
 
             modalTitle.textContent = `${series.series_name || series.series_imdbid} - All Episodes`;
 
+            const sortedEpisodes = [...series.episodes].sort((a, b) => {
+                const dateA = new Date(a.created_at);
+                const dateB = new Date(b.created_at);
+                return dateB - dateA;
+            });
+
             let html = '<div class="episodes-list">';
-            series.episodes.forEach(episode => {
+            sortedEpisodes.forEach(episode => {
                 const now = new Date();
                 const created = new Date(episode.created_at);
                 const timeDiff = now - created;
