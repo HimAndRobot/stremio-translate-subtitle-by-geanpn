@@ -261,7 +261,7 @@
                     title: `${provider} Configuration`,
                     baseUrl: config.defaultBaseUrl,
                     models: config.models,
-                    showModelSelect: true,
+                    showModelSelect: config.requiresModel,
                     showCustomFields: false
                 };
             }
@@ -295,6 +295,10 @@
                 modelSelectGroup.classList.add('hidden');
                 baseUrlGroup.classList.remove('hidden');
                 modelNameGroup.classList.remove('hidden');
+            } else {
+                modelSelectGroup.classList.add('hidden');
+                baseUrlGroup.classList.add('hidden');
+                modelNameGroup.classList.add('hidden');
             }
         }
 

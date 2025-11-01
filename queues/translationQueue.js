@@ -3,10 +3,15 @@ const IORedis = require("ioredis");
 const opensubtitles = require("../opensubtitles");
 const dbConnection = require("../connection");
 const fs = require("fs").promises;
+const path = require("path");
 const batchQueue = require("./batchQueue");
 const { encryptCredential } = require("../utils/crypto");
 const { getMetadata } = require("../utils/metadata");
 const crypto = require("crypto");
+const {
+  translateSRTDocument,
+  supportsDocumentTranslation
+} = require("../translateProvider");
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -16,11 +21,7 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
 const translationQueue = new Queue("subtitle-translation", {
   connection,
   defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: "exponential",
-      delay: 2000,
-    },
+    attempts: 1,
     removeOnComplete: {
       age: 3600,
       count: 1000,
@@ -209,6 +210,43 @@ const worker = new Worker(
         }
 
         translationQueueId = queueResult[0].id;
+      }
+
+      const useDocumentTranslation = supportsDocumentTranslation(provider, oldisocode);
+
+      if (useDocumentTranslation) {
+        await job.updateProgress(30);
+        await job.log(`[${provider}] Using Document API for fast translation...`);
+        await job.log(`[${provider}] Target language: ${oldisocode}`);
+
+        const translatedSRT = await translateSRTDocument(
+          originalSubtitleContent,
+          oldisocode,
+          provider,
+          apikey
+        );
+
+        const translatedFilePath = originalSubtitleFilePath.replace('.srt', '-translated.srt');
+        await fs.writeFile(translatedFilePath, translatedSRT, 'utf-8');
+
+        await job.updateProgress(90);
+        await job.log(`[${provider}] Translation completed successfully!`);
+        await job.log(`[${provider}] Saved to: ${path.basename(translatedFilePath)}`);
+
+        const charCount = originalSubtitleContent.length;
+        await adapter.query(
+          `UPDATE translation_queue SET status = ?, token_usage_total = ? WHERE id = ?`,
+          ['completed', charCount, translationQueueId]
+        );
+
+        await job.updateProgress(100);
+        return {
+          success: true,
+          message: `Translation completed using ${provider} Document API`,
+          translatedFile: translatedFilePath,
+          method: 'document-api',
+          characterCount: charCount
+        };
       }
 
       await job.updateProgress(30);

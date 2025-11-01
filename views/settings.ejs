@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Auto Subtitle Translate</title>
-    <script src="/public/translation-config.js"></script>
+    <script src="/public/translation-config.js?v=<%= Date.now() %>"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -401,6 +401,7 @@
             }
 
             const config = PROVIDER_CONFIGS[provider];
+            console.log('Provider:', provider, 'Config:', config);
 
             document.getElementById('apikey-group').style.display = config.requiresApiKey ? 'block' : 'none';
             document.getElementById('baseurl-group').style.display = config.requiresBaseUrl ? 'block' : 'none';

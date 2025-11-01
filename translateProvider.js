@@ -1,9 +1,189 @@
 const googleTranslate = require("google-translate-api-browser");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
+const FormData = require("form-data");
 require("dotenv").config();
 
 const limiters = new Map();
+
+const DEEPL_TEXT_ONLY_LANGUAGES = ['HE', 'TH', 'VI'];
+const DOCUMENT_TRANSLATION_PROVIDERS = ['DeepL'];
+const TEXT_ONLY_EXCEPTIONS = {
+  'DeepL': ['HE', 'TH', 'VI']
+};
+
+async function translateWithDeepLText(texts, targetLang, apiKey) {
+  const translatedTexts = [];
+
+  for (const text of texts) {
+    const response = await fetch('https://api.deepl.com/v2/translate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: [text],
+        target_lang: targetLang
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`DeepL API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    translatedTexts.push(data.translations[0].text);
+  }
+
+  return translatedTexts;
+}
+
+function buildSRTFromTexts(texts, originalSRT) {
+  const lines = originalSRT.split('\n');
+  let srtOutput = '';
+  let textIndex = 0;
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (/^\d+$/.test(line)) {
+      srtOutput += line + '\n';
+      i++;
+
+      if (i < lines.length && /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/.test(lines[i].trim())) {
+        srtOutput += lines[i] + '\n';
+        i++;
+
+        let subtitleText = '';
+        while (i < lines.length && lines[i].trim() !== '') {
+          subtitleText += lines[i] + '\n';
+          i++;
+        }
+
+        if (textIndex < texts.length) {
+          srtOutput += texts[textIndex] + '\n';
+          textIndex++;
+        }
+
+        srtOutput += '\n';
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return srtOutput.trim();
+}
+
+function supportsDocumentTranslation(provider, targetLanguage) {
+  if (!DOCUMENT_TRANSLATION_PROVIDERS.includes(provider)) return false;
+  const exceptions = TEXT_ONLY_EXCEPTIONS[provider] || [];
+  return !exceptions.includes(targetLanguage);
+}
+
+async function translateSRTDocument(srtContent, targetLanguage, provider, apikey) {
+  switch(provider) {
+    case 'DeepL':
+      return await translateWithDeepLDocument(srtContent, targetLanguage, apikey);
+    default:
+      throw new Error(`Document translation not supported for ${provider}`);
+  }
+}
+
+async function translateWithDeepLDocument(srtContent, targetLang, apiKey) {
+  const FormData = require('form-data');
+  const https = require('https');
+
+  const form = new FormData();
+  form.append('file', Buffer.from(srtContent), 'subtitle.srt');
+  form.append('target_lang', targetLang);
+
+  const uploadResponse = await new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.deepl.com',
+      path: '/v2/document',
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${apiKey}`,
+        ...form.getHeaders()
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`DeepL document upload error: ${res.statusCode} - ${data}`));
+        } else {
+          resolve(JSON.parse(data));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    form.pipe(req);
+  });
+
+  const { document_id, document_key } = uploadResponse;
+
+  let status = 'queued';
+  let attempts = 0;
+  const maxAttempts = 60;
+
+  while (status !== 'done' && status !== 'error' && attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    attempts++;
+
+    const statusResponse = await fetch(
+      `https://api.deepl.com/v2/document/${document_id}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `DeepL-Auth-Key ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ document_key })
+      }
+    );
+
+    if (!statusResponse.ok) {
+      throw new Error(`DeepL status check error: ${statusResponse.status}`);
+    }
+
+    const statusData = await statusResponse.json();
+    status = statusData.status;
+  }
+
+  if (status === 'error') {
+    throw new Error('DeepL document translation failed');
+  }
+
+  if (status !== 'done') {
+    throw new Error('DeepL document translation timeout');
+  }
+
+  const downloadResponse = await fetch(
+    `https://api.deepl.com/v2/document/${document_id}/result`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ document_key })
+    }
+  );
+
+  if (!downloadResponse.ok) {
+    throw new Error(`DeepL download error: ${downloadResponse.status}`);
+  }
+
+  return await downloadResponse.text();
+}
 
 function getLimiter(provider, apikey) {
   const key = `${provider}:${apikey || 'no-key'}`;
@@ -23,6 +203,11 @@ function getLimiter(provider, apikey) {
       config = {
         maxConcurrent: 20,
         minTime: 50
+      };
+    } else if (provider === 'DeepL') {
+      config = {
+        maxConcurrent: 10,
+        minTime: 100
       };
     } else {
       config = {
@@ -72,6 +257,16 @@ async function translateTextWithRetry(
             }
           }
         }
+        break;
+      }
+      case "DeepL": {
+        if (DEEPL_TEXT_ONLY_LANGUAGES.includes(targetLanguage)) {
+          resultArray = await translateWithDeepLText(texts, targetLanguage, apikey);
+        } else {
+          resultArray = await translateWithDeepLText(texts, targetLanguage, apikey);
+        }
+
+        tokenUsage = texts.join('').length;
         break;
       }
       case "OpenAI":
@@ -221,4 +416,9 @@ async function translateText(
   );
 }
 
-module.exports = { translateText };
+module.exports = {
+  translateText,
+  translateSRTDocument,
+  supportsDocumentTranslation,
+  DEEPL_TEXT_ONLY_LANGUAGES
+};

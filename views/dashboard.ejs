@@ -1536,21 +1536,29 @@
                 baseUrlGroup.style.display = 'none';
             } else {
                 apiKeyGroup.style.display = 'block';
-                modelGroup.style.display = 'block';
-                baseUrlGroup.style.display = 'block';
 
-                modelSelect.innerHTML = '';
-                if (config.models && config.models.length > 0) {
-                    config.models.forEach(model => {
-                        const option = document.createElement('option');
-                        option.value = model;
-                        option.textContent = model;
-                        modelSelect.appendChild(option);
-                    });
+                if (config.requiresModel) {
+                    modelGroup.style.display = 'block';
+                    modelSelect.innerHTML = '';
+                    if (config.models && config.models.length > 0) {
+                        config.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model;
+                            option.textContent = model;
+                            modelSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    modelGroup.style.display = 'none';
                 }
 
-                baseUrlInput.value = config.defaultBaseUrl || '';
-                baseUrlInput.placeholder = config.defaultBaseUrl || 'Enter base URL';
+                if (config.requiresBaseUrl) {
+                    baseUrlGroup.style.display = 'block';
+                    baseUrlInput.value = config.defaultBaseUrl || '';
+                    baseUrlInput.placeholder = config.defaultBaseUrl || 'Enter base URL';
+                } else {
+                    baseUrlGroup.style.display = 'none';
+                }
             }
         }
 
@@ -1854,17 +1862,27 @@
                 modelNameGroup.style.display = 'block';
             } else {
                 apiKeyGroup.style.display = 'block';
-                modelGroup.style.display = 'block';
-                baseUrlGroup.style.display = 'none';
-                modelNameGroup.style.display = 'none';
 
-                modelSelect.innerHTML = '';
-                config.models.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
+                if (config.requiresModel) {
+                    modelGroup.style.display = 'block';
+                    modelSelect.innerHTML = '';
+                    config.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                } else {
+                    modelGroup.style.display = 'none';
+                }
+
+                if (config.requiresBaseUrl) {
+                    baseUrlGroup.style.display = 'block';
+                } else {
+                    baseUrlGroup.style.display = 'none';
+                }
+
+                modelNameGroup.style.display = 'none';
             }
         }
 

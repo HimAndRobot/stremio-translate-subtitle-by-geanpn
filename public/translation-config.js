@@ -1,5 +1,6 @@
 const PROVIDERS = [
   'Google Translate',
+  'DeepL',
   'OpenAI',
   'Google Gemini',
   'OpenRouter',
@@ -13,6 +14,13 @@ const PROVIDER_CONFIGS = {
     requiresApiKey: false,
     requiresBaseUrl: false,
     requiresModel: false
+  },
+  'DeepL': {
+    requiresApiKey: true,
+    requiresBaseUrl: false,
+    requiresModel: false,
+    defaultBaseUrl: 'https://api.deepl.com/v2',
+    models: []
   },
   'OpenAI': {
     requiresApiKey: true,

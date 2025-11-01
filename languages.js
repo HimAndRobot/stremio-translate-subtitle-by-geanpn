@@ -1,5 +1,6 @@
 const googleLanguages = require("./langs/translateGoogleFree.lang.json");
 const chatgptLanguages = require("./langs/translateChatGpt.lang.json");
+const deeplLanguages = require("./langs/translateDeepL.lang.json");
 
 function getValueFromKey(key) {
   return data[key];
@@ -10,6 +11,9 @@ function getKeyFromValue(value, provider) {
   switch (provider) {
     case "Google Translate":
       langMap = googleLanguages;
+      break;
+    case "DeepL":
+      langMap = deeplLanguages;
       break;
     case "ChatGPT API":
     case "OpenAI":
