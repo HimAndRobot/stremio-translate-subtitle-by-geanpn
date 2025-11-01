@@ -11,21 +11,16 @@ async function getMetadata(imdbid, type = "series") {
     const url = `https://v3-cinemeta.strem.io/meta/${type}/${imdbid}.json`;
     const response = await axios.get(url, { timeout: 5000 });
 
-    if (response.data && response.data.meta) {
+    if (response.data && response.data.meta && response.data.meta.name) {
       return {
-        name: response.data.meta.name || "Unknown",
+        name: response.data.meta.name,
         year: response.data.meta.year || null,
         poster: response.data.meta.poster || null,
         type: response.data.meta.type || type,
       };
     }
 
-    return {
-      name: "Unknown",
-      year: null,
-      poster: null,
-      type: type,
-    };
+    throw new Error(`No metadata found for ${imdbid} as ${type}`);
   } catch (error) {
     console.error(`Failed to fetch metadata for ${imdbid}:`, error.message);
 
