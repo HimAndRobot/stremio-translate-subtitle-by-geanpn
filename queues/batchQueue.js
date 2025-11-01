@@ -88,7 +88,7 @@ const worker = new Worker(
 
         // Update translation_queue status to failed
         await adapter.query(
-          `UPDATE translation_queue SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          `UPDATE translation_queue SET status = 'failed' WHERE id = ?`,
           [translationQueueId]
         );
         await job.log(`[ACTION] Translation queue ${translationQueueId} marked as FAILED`);

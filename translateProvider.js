@@ -254,12 +254,7 @@ async function translateTextWithRetry(
         break;
       }
       case "DeepL": {
-        if (DEEPL_TEXT_ONLY_LANGUAGES.includes(targetLanguage)) {
-          resultArray = await translateWithDeepLText(texts, targetLanguage, apikey);
-        } else {
-          resultArray = await translateWithDeepLText(texts, targetLanguage, apikey);
-        }
-
+        resultArray = await translateWithDeepLText(texts, targetLanguage, apikey);
         tokenUsage = texts.join('').length;
         break;
       }
