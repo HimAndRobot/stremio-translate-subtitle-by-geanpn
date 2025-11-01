@@ -212,41 +212,46 @@ const worker = new Worker(
         translationQueueId = queueResult[0].id;
       }
 
-      const useDocumentTranslation = supportsDocumentTranslation(provider, oldisocode);
+      const useDocumentTranslation = supportsDocumentTranslation(provider);
 
       if (useDocumentTranslation) {
         await job.updateProgress(30);
         await job.log(`[${provider}] Using Document API for fast translation...`);
         await job.log(`[${provider}] Target language: ${oldisocode}`);
 
-        const translatedSRT = await translateSRTDocument(
-          originalSubtitleContent,
-          oldisocode,
-          provider,
-          apikey
-        );
+        try {
+          const translatedSRT = await translateSRTDocument(
+            originalSubtitleContent,
+            oldisocode,
+            provider,
+            apikey
+          );
 
-        const translatedFilePath = originalSubtitleFilePath.replace('.srt', '-translated.srt');
-        await fs.writeFile(translatedFilePath, translatedSRT, 'utf-8');
+          const translatedFilePath = originalSubtitleFilePath.replace('.srt', '-translated.srt');
+          await fs.writeFile(translatedFilePath, translatedSRT, 'utf-8');
 
-        await job.updateProgress(90);
-        await job.log(`[${provider}] Translation completed successfully!`);
-        await job.log(`[${provider}] Saved to: ${path.basename(translatedFilePath)}`);
+          await job.updateProgress(90);
+          await job.log(`[${provider}] Translation completed successfully!`);
+          await job.log(`[${provider}] Saved to: ${path.basename(translatedFilePath)}`);
 
-        const charCount = originalSubtitleContent.length;
-        await adapter.query(
-          `UPDATE translation_queue SET status = ?, token_usage_total = ? WHERE id = ?`,
-          ['completed', charCount, translationQueueId]
-        );
+          const charCount = originalSubtitleContent.length;
+          await adapter.query(
+            `UPDATE translation_queue SET status = ?, token_usage_total = ? WHERE id = ?`,
+            ['completed', charCount, translationQueueId]
+          );
 
-        await job.updateProgress(100);
-        return {
-          success: true,
-          message: `Translation completed using ${provider} Document API`,
-          translatedFile: translatedFilePath,
-          method: 'document-api',
-          characterCount: charCount
-        };
+          await job.updateProgress(100);
+          return {
+            success: true,
+            message: `Translation completed using ${provider} Document API`,
+            translatedFile: translatedFilePath,
+            method: 'document-api',
+            characterCount: charCount
+          };
+        } catch (error) {
+          await job.log(`[${provider}] Document API failed: ${error.message}`);
+          await job.log(`[${provider}] Falling back to Text API (batch mode)...`);
+        }
       }
 
       await job.updateProgress(30);

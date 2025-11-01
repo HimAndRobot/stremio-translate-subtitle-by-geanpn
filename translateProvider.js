@@ -6,11 +6,7 @@ require("dotenv").config();
 
 const limiters = new Map();
 
-const DEEPL_TEXT_ONLY_LANGUAGES = ['HE', 'TH', 'VI'];
 const DOCUMENT_TRANSLATION_PROVIDERS = ['DeepL'];
-const TEXT_ONLY_EXCEPTIONS = {
-  'DeepL': ['HE', 'TH', 'VI']
-};
 
 async function translateWithDeepLText(texts, targetLang, apiKey) {
   const translatedTexts = [];
@@ -78,10 +74,8 @@ function buildSRTFromTexts(texts, originalSRT) {
   return srtOutput.trim();
 }
 
-function supportsDocumentTranslation(provider, targetLanguage) {
-  if (!DOCUMENT_TRANSLATION_PROVIDERS.includes(provider)) return false;
-  const exceptions = TEXT_ONLY_EXCEPTIONS[provider] || [];
-  return !exceptions.includes(targetLanguage);
+function supportsDocumentTranslation(provider) {
+  return DOCUMENT_TRANSLATION_PROVIDERS.includes(provider);
 }
 
 async function translateSRTDocument(srtContent, targetLanguage, provider, apikey) {
