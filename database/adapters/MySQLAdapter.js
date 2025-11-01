@@ -296,13 +296,13 @@ class MySQLAdapter extends BaseAdapter {
       let rows;
       if (episode && season) {
         rows = await this.query(
-          "SELECT subtitle_path FROM subtitle WHERE series_imdbid = ? AND subtitle_seasonno = ? AND subtitle_episodeno = ? AND subtitle_langcode = ?",
-          [imdbid, season, episode, langcode]
+          "SELECT subtitle_path FROM subtitle WHERE series_imdbid = ? AND subtitle_seasonno = ? AND subtitle_episodeno = ? LIMIT 1",
+          [imdbid, season, episode]
         );
       } else {
         rows = await this.query(
-          "SELECT subtitle_path FROM subtitle WHERE series_imdbid = ? AND subtitle_langcode = ?",
-          [imdbid, langcode]
+          "SELECT subtitle_path FROM subtitle WHERE series_imdbid = ? LIMIT 1",
+          [imdbid]
         );
       }
       const paths = rows.map((row) => row.subtitle_path);

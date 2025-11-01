@@ -763,9 +763,9 @@
                             <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
                             <div class="card-subtitle">
                                 <% if (series.isMovie) { %>
-                                    Movie • <%= series.langcode %>
+                                    Movie • <%= series.languages %>
                                 <% } else { %>
-                                    <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.langcode %>
+                                    <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.languages %>
                                 <% } %>
                             </div>
 
@@ -783,6 +783,7 @@
                                             <span class="episode-label">S<%= String(episode.series_seasonno).padStart(2, '0') %>E<%= String(episode.series_episodeno).padStart(2, '0') %></span>
                                             <span class="status status-<%= episode.status %>"><%= episode.status %></span>
                                             <div class="episode-stats">
+                                                <span>🌐 <%= episode.langcode %></span>
                                                 <span>🪙 <%= (episode.token_usage_total || 0).toLocaleString() %></span>
                                                 <% if (episode.batches_total > 0) { %>
                                                     <span>📦 <%= episode.batches_completed %>/<%= episode.batches_total %></span>
@@ -811,7 +812,7 @@
                             </div>
 
                                 <% if (series.episodes.length > 3) { %>
-                                    <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>_<%= series.langcode %>')">
+                                    <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>')">
                                         + <%= series.episodes.length - 3 %> more episodes
                                     </button>
                                 <% } %>
@@ -1660,8 +1661,8 @@
             }
         }
 
-        function openEpisodesModal(seriesKey) {
-            const series = seriesData.find(s => `${s.series_imdbid}_${s.langcode}` === seriesKey);
+        function openEpisodesModal(seriesImdbid) {
+            const series = seriesData.find(s => s.series_imdbid === seriesImdbid);
             if (!series) return;
 
             const modal = document.getElementById('episodesModal');
@@ -1698,6 +1699,7 @@
                         '<span class="episode-label">S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0') + '</span>' +
                         '<span class="status status-' + episode.status + '">' + episode.status + '</span>' +
                         '<div class="episode-stats">' +
+                            '<span>🌐 ' + episode.langcode + '</span>' +
                             '<span>🪙 ' + (episode.token_usage_total || 0).toLocaleString() + '</span>' +
                             (episode.batches_total > 0 ? '<span>📦 ' + episode.batches_completed + '/' + episode.batches_total + '</span>' : '') +
                         '</div>' +

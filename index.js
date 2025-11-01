@@ -475,18 +475,17 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
       translation.batches_failed = Number(batchStats[0]?.failed) || 0;
     }
 
-    // Group translations by series
+    // Group translations by series (without language - unified view)
     const groupedSeries = new Map();
 
     for (const translation of translations) {
-      const key = `${translation.series_imdbid}_${translation.langcode}`;
+      const key = translation.series_imdbid;
 
       if (!groupedSeries.has(key)) {
         groupedSeries.set(key, {
           series_imdbid: translation.series_imdbid,
           series_name: translation.series_name,
           poster: translation.poster,
-          langcode: translation.langcode,
           episodes: [],
           isMovie: !translation.series_seasonno && !translation.series_episodeno,
           total_tokens: 0
@@ -506,6 +505,9 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
       seriesGroup.total_tokens = seriesGroup.episodes.reduce((sum, ep) =>
         sum + (ep.token_usage_total || 0), 0
       );
+
+      const uniqueLangs = [...new Set(seriesGroup.episodes.map(ep => ep.langcode))];
+      seriesGroup.languages = uniqueLangs.join(', ');
     }
 
     const corsProxy = process.env.CORS_URL || '';
