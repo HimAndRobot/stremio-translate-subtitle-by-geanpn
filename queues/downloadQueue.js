@@ -37,7 +37,7 @@ const worker = new Worker(
     await job.log(`[INFO] Episodes: ${episodes.length}, Language: ${targetLanguage}, Provider: ${provider}`);
     await job.log(`[INFO] Password hash: ${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
 
-    const providerPath = password_hash || `translated-${targetLanguage}`;
+    const providerPath = password_hash || 'translated';
     const total = episodes.length;
 
     await job.log(`[STEP 1] Creating ${total} translation_queue records...`);
@@ -87,7 +87,7 @@ const worker = new Worker(
           type,
           season,
           episode,
-          `subtitles/${providerPath}/${targetLanguage}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`,
+          `subtitles/${providerPath}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`,
           targetLanguage
         );
 

@@ -201,8 +201,8 @@ class SubtitleProcessor {
       // Define directory path based on content type and provider
       const dirPath =
         season !== null && episode !== null
-          ? `subtitles/${provider}/${oldisocode}/${imdbid}/season${season}`
-          : `subtitles/${provider}/${oldisocode}/${imdbid}`;
+          ? `subtitles/${provider}/${imdbid}/season${season}`
+          : `subtitles/${provider}/${imdbid}`;
 
       // Create directory if it doesn't exist
       await fs.mkdir(dirPath, { recursive: true });

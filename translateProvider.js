@@ -413,6 +413,5 @@ async function translateText(
 module.exports = {
   translateText,
   translateSRTDocument,
-  supportsDocumentTranslation,
-  DEEPL_TEXT_ONLY_LANGUAGES
+  supportsDocumentTranslation
 };

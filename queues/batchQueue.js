@@ -102,7 +102,7 @@ const worker = new Worker(
           const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
 
           const { createOrUpdateMessageSub } = require('../subtitles');
-          const providerPath = password_hash || `translated-${langcode}`;
+          const providerPath = password_hash || 'translated';
 
           await createOrUpdateMessageSub(
             "An error occurred while generating your subtitle. We will try again.",
@@ -199,10 +199,10 @@ async function assembleFinalSubtitle(translationQueueId) {
     );
   }
 
-  const provider = password_hash || `translated-${langcode}`;
+  const provider = password_hash || 'translated';
   const dirPath = series_seasonno !== null && series_episodeno !== null
-    ? `subtitles/${provider}/${langcode}/${series_imdbid}/season${series_seasonno}`
-    : `subtitles/${provider}/${langcode}/${series_imdbid}`;
+    ? `subtitles/${provider}/${series_imdbid}/season${series_seasonno}`
+    : `subtitles/${provider}/${series_imdbid}`;
 
   await fs.mkdir(dirPath, { recursive: true });
 
@@ -284,7 +284,7 @@ worker.on("failed", async (job, err) => {
           console.log(`   Found translation: ${series_imdbid} S${series_seasonno}E${series_episodeno} -> ${langcode}`);
 
           const { createOrUpdateMessageSub } = require('../subtitles');
-          const providerPath = password_hash || `translated-${langcode}`;
+          const providerPath = password_hash || 'translated';
 
           await createOrUpdateMessageSub(
             "An error occurred while generating your subtitle. We will try again.",

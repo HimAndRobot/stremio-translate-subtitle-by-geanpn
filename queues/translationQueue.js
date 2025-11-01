@@ -46,6 +46,7 @@ const worker = new Worker(
       base_url,
       model_name,
       password,
+      password_hash: jobPasswordHash,
       saveCredentials,
       existingTranslationQueueId,
     } = job.data;
@@ -60,12 +61,12 @@ const worker = new Worker(
     let filepaths = [];
 
     try {
-      let password_hash = null;
+      let password_hash = jobPasswordHash || null;
       let apikey_encrypted = null;
       let base_url_encrypted = null;
       let model_name_encrypted = null;
 
-      if (password) {
+      if (password && !password_hash) {
         const encryptionKey = process.env.ENCRYPTION_KEY;
         if (encryptionKey && encryptionKey.length === 32) {
           password_hash = crypto.createHash('sha256').update(password).digest('hex');
@@ -227,12 +228,22 @@ const worker = new Worker(
             apikey
           );
 
-          const translatedFilePath = originalSubtitleFilePath.replace('.srt', '-translated.srt');
+          const providerPath = password_hash || 'translated';
+          const dirPath = season !== null && episode !== null
+            ? `subtitles/${providerPath}/${imdbid}/season${season}`
+            : `subtitles/${providerPath}/${imdbid}`;
+
+          await fs.mkdir(dirPath, { recursive: true });
+
+          const translatedFilePath = season !== null && episode !== null
+            ? `${dirPath}/${imdbid}-translated-${episode}-1.srt`
+            : `${dirPath}/${imdbid}-translated-1.srt`;
+
           await fs.writeFile(translatedFilePath, translatedSRT, 'utf-8');
 
           await job.updateProgress(90);
           await job.log(`[${provider}] Translation completed successfully!`);
-          await job.log(`[${provider}] Saved to: ${path.basename(translatedFilePath)}`);
+          await job.log(`[${provider}] Saved to: ${translatedFilePath}`);
 
           const charCount = originalSubtitleContent.length;
           await adapter.query(

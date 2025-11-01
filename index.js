@@ -20,7 +20,7 @@ function generateSubtitleUrl(
   provider,
   baseUrl = process.env.BASE_URL
 ) {
-  return `${baseUrl}/subtitles/${provider}/${targetLanguage}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`;
+  return `${baseUrl}/subtitles/${provider}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`;
 }
 
 const builder = new addonBuilder({
@@ -99,7 +99,7 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const providerPath = config.password
     ? crypto.createHash('sha256').update(config.password).digest('hex')
-    : `translated-${targetLanguage}`;
+    : 'translated';
 
   try {
     // 1. Check if already exists in database
@@ -606,6 +606,7 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
         apikey: apikey,
         base_url: base_url,
         model_name: model_name,
+        password_hash: req.session.userPasswordHash,
         saveCredentials: false,
       });
 
@@ -671,6 +672,7 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
         apikey: apikey || null,
         base_url: base_url || null,
         model_name: model_name || null,
+        password_hash: req.session.userPasswordHash,
         saveCredentials: false,
         existingTranslationQueueId: translation.id,
       });
@@ -779,17 +781,32 @@ app.use("/subtitles", async (req, _res, next) => {
     return next();
   }
 
-  const pathMatch = req.path.match(/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(?:season(\d+)\/)?([^\/]+)-translated/);
+  const pathMatch = req.path.match(/\/([^\/]+)\/([^\/]+)\/(?:season(\d+)\/)?([^\/]+)-translated/);
 
   if (!pathMatch) {
     return next();
   }
 
-  const [, provider, langcode, imdbid, season] = pathMatch;
+  const [, provider, imdbid, season] = pathMatch;
   const episodeMatch = req.path.match(/-translated-(\d+)-/);
   const episode = episodeMatch ? episodeMatch[1] : null;
 
+  let langcode = null;
   try {
+    const adapter = await connection.getAdapter();
+    const translationInfo = await adapter.query(
+      `SELECT langcode FROM translation_queue
+       WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ?
+       LIMIT 1`,
+      [imdbid, season ? parseInt(season) : null, episode ? parseInt(episode) : null]
+    );
+    langcode = translationInfo.length > 0 ? translationInfo[0].langcode : null;
+
+    if (!langcode) {
+      console.log(`No translation found for ${imdbid} S${season}E${episode}`);
+      return next();
+    }
+
     const queueStatus = await connection.checkForTranslation(
       imdbid,
       season ? parseInt(season) : null,
@@ -817,6 +834,8 @@ app.use("/subtitles", async (req, _res, next) => {
       );
 
       if (subs && subs.length > 0) {
+        const password_hash = (provider && provider !== 'translated') ? provider : null;
+
         translationQueue.push({
           subs: subs,
           imdbid: imdbid,
@@ -827,6 +846,7 @@ app.use("/subtitles", async (req, _res, next) => {
           apikey: process.env.DEFAULT_API_KEY || null,
           base_url: process.env.DEFAULT_BASE_URL || null,
           model_name: process.env.DEFAULT_MODEL || null,
+          password_hash: password_hash,
           saveCredentials: false,
         });
 

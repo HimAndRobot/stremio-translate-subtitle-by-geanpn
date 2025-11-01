@@ -13,9 +13,9 @@ async function createOrUpdateMessageSub(
     let newSubtitleFilePath = null;
 
     if (season && episode) {
-      newSubtitleFilePath = `subtitles/${provider}/${oldisocode}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`;
+      newSubtitleFilePath = `subtitles/${provider}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`;
     } else {
-      newSubtitleFilePath = `subtitles/${provider}/${oldisocode}/${imdbid}/${imdbid}-translated-1.srt`;
+      newSubtitleFilePath = `subtitles/${provider}/${imdbid}/${imdbid}-translated-1.srt`;
     }
 
     // Create basic structure for placeholder subtitle
