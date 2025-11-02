@@ -130,6 +130,24 @@
         .btn:active {
             background: #222;
         }
+        .btn-secondary {
+            background: #667eea;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background: #5568d3;
+        }
+        .btn-secondary:active {
+            background: #4557bb;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
         .info {
             background: #f9f9f9;
             border-left: 2px solid #ccc;
@@ -138,6 +156,19 @@
             border-radius: 4px;
             font-size: 13px;
             color: #666;
+        }
+        .success-message {
+            background: #d4edda;
+            border-left: 2px solid #28a745;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #155724;
+            display: none;
+        }
+        .success-message.show {
+            display: block;
         }
     </style>
 </head>
@@ -206,9 +237,15 @@
             </div> -->
 
             <button type="submit" class="btn">Install Addon</button>
+            <button type="button" class="btn btn-secondary" id="openWebBtn">Open in Stremio Web</button>
+            <button type="button" class="btn btn-secondary" id="copyLinkBtn">Copy Link</button>
+
+            <div id="successMessage" class="success-message">
+                Link copied to clipboard!
+            </div>
 
             <div class="info">
-                Your configuration will be saved securely and used for subtitle translation.
+                Your configuration will be saved securely and used for subtitle translation. Use "Copy Link" to install on Stremio Web.
             </div>
         </form>
         </div>
@@ -305,9 +342,7 @@
         providerSelect.addEventListener('change', updateProviderFields);
         updateProviderFields();
 
-        document.getElementById('configForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
+        function getManifestUrl() {
             const provider = document.getElementById('provider').value;
             const providerCfg = providerConfig[provider];
 
@@ -325,7 +360,6 @@
             }
 
             const password = document.getElementById('password').value;
-            // Default to Save Access Only (saveCredentials: false)
             const saveCredentials = false;
 
             const config = {
@@ -339,10 +373,44 @@
             };
 
             const configStr = encodeURIComponent(JSON.stringify(config));
-            const host = baseUrl.replace(/^https?:\/\//, '');
-            const installUrl = `stremio://${host}/${configStr}/manifest.json`;
+            return `${baseUrl}/${configStr}/manifest.json`;
+        }
 
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const manifestUrl = getManifestUrl();
+            const host = baseUrl.replace(/^https?:\/\//, '');
+            const installUrl = `stremio://${host}/${encodeURIComponent(JSON.stringify({
+                provider: document.getElementById('provider').value,
+                translateto: document.getElementById('translateto').value,
+                apikey: document.getElementById('apikey').value || '',
+                base_url: '',
+                model_name: '',
+                password: document.getElementById('password').value,
+                saveCredentials: false
+            }))}/manifest.json`;
             window.location.href = installUrl;
+        });
+
+        document.getElementById('openWebBtn').addEventListener('click', function() {
+            const manifestUrl = getManifestUrl();
+            const encodedManifestUrl = encodeURIComponent(manifestUrl);
+            const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodedManifestUrl}`;
+            window.open(stremioWebUrl, '_blank');
+        });
+
+        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+            const manifestUrl = getManifestUrl();
+
+            navigator.clipboard.writeText(manifestUrl).then(function() {
+                const successMsg = document.getElementById('successMessage');
+                successMsg.classList.add('show');
+                setTimeout(function() {
+                    successMsg.classList.remove('show');
+                }, 3000);
+            }).catch(function(err) {
+                alert('Failed to copy link: ' + err);
+            });
         });
     </script>
 </body>
