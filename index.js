@@ -65,7 +65,7 @@ const builder = new addonBuilder({
 
 builder.defineSubtitlesHandler(async function (args) {
   console.log("Subtitle request received:", args);
-  const { id, config, stream } = args;
+  const { id, config, extra } = args;
 
   const targetLanguage = languages.getKeyFromValue(
     config.translateto,
@@ -112,8 +112,31 @@ builder.defineSubtitlesHandler(async function (args) {
     episode = parsed.episode;
   }
 
+  // Fallback: se não conseguiu extrair IMDb ID e temos filename, tentar buscar no Cinemeta
+  if (imdbid === null && extra && extra.filename) {
+    console.log(`[Fallback] No IMDb ID found, trying Cinemeta with filename: ${extra.filename}`);
+    try {
+      const { searchContent } = require("./utils/search");
+      const searchResults = await searchContent(extra.filename);
+
+      if (searchResults.results && searchResults.results.length > 0) {
+        imdbid = searchResults.results[0].id;
+        type = searchResults.results[0].type;
+        console.log(`[Fallback] Found IMDb ID via Cinemeta: ${imdbid} (${searchResults.results[0].name})`);
+
+        // Para filmes, season e episode são 1
+        if (type === "movie") {
+          season = 1;
+          episode = 1;
+        }
+      }
+    } catch (error) {
+      console.error("[Fallback] Error searching Cinemeta:", error.message);
+    }
+  }
+
   if (imdbid === null) {
-    console.log("Invalid ID format.");
+    console.log("Invalid ID format and no filename fallback succeeded.");
     return Promise.resolve({ subtitles: [] });
   }
 
