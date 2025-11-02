@@ -36,6 +36,11 @@ async function resolveKissKHId(id) {
       console.log(`[KissKH] Fetching from API: ${KISSKH_API}/${kkhSeriesId}`);
       const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}?isq=false`, {
         timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+          'Referer': 'https://kisskh.co/',
+        },
       });
 
       if (!response.data || !response.data.title) {
