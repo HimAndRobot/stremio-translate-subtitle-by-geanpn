@@ -4,19 +4,16 @@ const { searchContent } = require("../utils/search");
 // Using Cloudflare Worker to bypass datacenter IP blocking
 const KISSKH_API = "https://kisskh-proxy.kisskhstremiotranslate.workers.dev/api";
 
-// In-memory cache to avoid repeated API calls
-const cache = new Map();
-
 /**
- * Resolve KissKH ID para IMDB ID
- * @param {string} id - Formato: "kkh-3163::65119"
+ * Resolve KissKH ID to IMDB ID
+ * @param {string} id - Format: "kkh-3163::65119"
  * @returns {Promise<{imdbid: string, season: number, episode: number}|null>}
  */
 async function resolveKissKHId(id) {
   try {
     console.log(`[KissKH] Resolving ID: ${id}`);
 
-    // Extrair seriesId e episodeId
+    // Extract seriesId and episodeId
     const match = id.match(/kkh-(\d+)::(\d+)/);
     if (!match) {
       console.log(`[KissKH] Invalid format: ${id}`);
@@ -28,55 +25,57 @@ async function resolveKissKHId(id) {
 
     console.log(`[KissKH] Series ID: ${kkhSeriesId}, Episode ID: ${kkhEpisodeId}`);
 
-    // Verificar cache
-    const cacheKey = `series-${kkhSeriesId}`;
-    let seriesData = cache.get(cacheKey);
+    // Fetch via Cloudflare Worker (bypass datacenter IP blocking)
+    console.log(`[KissKH] Fetching from Worker: ${KISSKH_API}/${kkhSeriesId}`);
+    const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}`, {
+      timeout: 10000,
+    });
 
-    if (!seriesData) {
-      // Fetch via Cloudflare Worker (bypass datacenter IP blocking)
-      console.log(`[KissKH] Fetching from Worker: ${KISSKH_API}/${kkhSeriesId}`);
-      const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}`, {
-        timeout: 10000,
-      });
-
-      if (!response.data || !response.data.title) {
-        console.log(`[KissKH] No data returned from API`);
-        return null;
-      }
-
-      seriesData = {
-        title: response.data.title,
-        episodes: response.data.episodes || [],
-      };
-
-      // Salvar no cache
-      cache.set(cacheKey, seriesData);
-      console.log(`[KissKH] Cached series: "${seriesData.title}"`);
-    } else {
-      console.log(`[KissKH] Using cached data for series: "${seriesData.title}"`);
+    if (!response.data || !response.data.title) {
+      console.log(`[KissKH] No data returned from API`);
+      return null;
     }
 
-    // Buscar IMDB ID usando Cinemeta
-    console.log(`[KissKH] Searching Cinemeta for: "${seriesData.title}"`);
-    const searchResults = await searchContent(seriesData.title);
+    const seriesData = {
+      title: response.data.title,
+      episodes: response.data.episodes || [],
+    };
+
+    console.log(`[KissKH] Series title: "${seriesData.title}"`);
+
+    // Remove season number from title for better search results
+    // "Single's Inferno Season 4" → "Single's Inferno"
+    const searchTitle = seriesData.title.replace(/\s+Season\s+\d+/i, '').trim();
+
+    console.log(`[KissKH] Searching Cinemeta for: "${searchTitle}"`);
+    const searchResults = await searchContent(searchTitle);
 
     if (!searchResults.results || searchResults.results.length === 0) {
       console.log(`[KissKH] No results found in Cinemeta for: "${seriesData.title}"`);
       return null;
     }
 
-    const firstResult = searchResults.results[0];
-    const imdbid = firstResult.id;
+    // Try to find best match (exact or close title match)
+    const normalizedTitle = seriesData.title.toLowerCase().replace(/[^\w\s]/g, '');
+    let bestMatch = searchResults.results[0];
 
-    console.log(`[KissKH] Found IMDB ID: ${imdbid} (${firstResult.name})`);
+    for (const result of searchResults.results) {
+      const resultTitle = (result.name || '').toLowerCase().replace(/[^\w\s]/g, '');
+      if (resultTitle === normalizedTitle || resultTitle.includes(normalizedTitle.split(' ')[0])) {
+        bestMatch = result;
+        break;
+      }
+    }
 
-    // Mapear episódio
+    const imdbid = bestMatch.id;
+    console.log(`[KissKH] Found IMDB ID: ${imdbid} (${bestMatch.name})`);
+
+    // Map episode
     const episode = seriesData.episodes.find((ep) => ep.id == kkhEpisodeId);
     const episodeNumber = episode ? episode.number : 1;
 
     console.log(`[KissKH] Episode mapping: KKH #${kkhEpisodeId} → Episode ${episodeNumber}`);
 
-    // K-dramas normalmente são season 1
     return {
       imdbid: imdbid,
       season: 1,

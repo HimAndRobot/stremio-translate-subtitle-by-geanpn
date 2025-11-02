@@ -79,15 +79,26 @@ builder.defineSubtitlesHandler(async function (args) {
 
   // Extract imdbid from id
   let imdbid = null;
+  let season = null;
+  let episode = null;
+  let type = null;
+
   if (id.startsWith("kkh-")) {
     // KissKH integration
     const integrations = require("./integrations");
     const resolved = await integrations.kisskh.resolveKissKHId(id);
     if (resolved) {
       imdbid = resolved.imdbid;
+      season = resolved.season;
+      episode = resolved.episode;
+      type = "series";
     }
   } else if (id.startsWith("dcool-")) {
     imdbid = "tt5994346";
+    const parsed = parseId(id);
+    type = parsed.type;
+    season = parsed.season;
+    episode = parsed.episode;
   } else if (id !== null && id.startsWith("tt")) {
     const parts = id.split(":");
     if (parts.length >= 1) {
@@ -95,14 +106,16 @@ builder.defineSubtitlesHandler(async function (args) {
     } else {
       console.log("Invalid ID format.");
     }
+    const parsed = parseId(id);
+    type = parsed.type;
+    season = parsed.season;
+    episode = parsed.episode;
   }
 
   if (imdbid === null) {
     console.log("Invalid ID format.");
     return Promise.resolve({ subtitles: [] });
   }
-
-  const { type, season = null, episode = null } = parseId(id);
 
   const providerPath = config.password
     ? crypto.createHash('sha256').update(config.password).digest('hex')
