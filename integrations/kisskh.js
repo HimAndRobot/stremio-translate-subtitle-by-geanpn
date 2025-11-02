@@ -1,9 +1,10 @@
 const axios = require("axios");
 const { searchContent } = require("../utils/search");
 
-const KISSKH_API = "https://kisskh.co/api/DramaList/Drama";
+// Using Cloudflare Worker to bypass datacenter IP blocking
+const KISSKH_API = "https://kisskh-proxy.kisskhstremiotranslate.workers.dev/api";
 
-// Cache em memória para evitar chamadas repetidas
+// In-memory cache to avoid repeated API calls
 const cache = new Map();
 
 /**
@@ -32,15 +33,10 @@ async function resolveKissKHId(id) {
     let seriesData = cache.get(cacheKey);
 
     if (!seriesData) {
-      // Buscar na API KissKH
-      console.log(`[KissKH] Fetching from API: ${KISSKH_API}/${kkhSeriesId}`);
-      const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}?isq=false`, {
+      // Fetch via Cloudflare Worker (bypass datacenter IP blocking)
+      console.log(`[KissKH] Fetching from Worker: ${KISSKH_API}/${kkhSeriesId}`);
+      const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}`, {
         timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-          'Referer': 'https://kisskh.co/',
-        },
       });
 
       if (!response.data || !response.data.title) {
