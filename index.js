@@ -79,7 +79,14 @@ builder.defineSubtitlesHandler(async function (args) {
 
   // Extract imdbid from id
   let imdbid = null;
-  if (id.startsWith("dcool-")) {
+  if (id.startsWith("kkh-")) {
+    // KissKH integration
+    const integrations = require("./integrations");
+    const resolved = await integrations.kisskh.resolveKissKHId(id);
+    if (resolved) {
+      imdbid = resolved.imdbid;
+    }
+  } else if (id.startsWith("dcool-")) {
     imdbid = "tt5994346";
   } else if (id !== null && id.startsWith("tt")) {
     const parts = id.split(":");
