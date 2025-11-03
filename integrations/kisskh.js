@@ -55,20 +55,72 @@ async function resolveKissKHId(id) {
       return null;
     }
 
-    // Try to find best match (exact or close title match)
-    const normalizedTitle = seriesData.title.toLowerCase().replace(/[^\w\s]/g, '');
+    function levenshteinDistance(str1, str2) {
+      const len1 = str1.length;
+      const len2 = str2.length;
+      const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+      for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+      for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+      for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+          const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j - 1] + cost
+          );
+        }
+      }
+
+      return matrix[len1][len2];
+    }
+
+    function calculateSimilarity(search, target) {
+      const s1 = search.toLowerCase().trim();
+      const s2 = target.toLowerCase().trim();
+
+      if (s1 === s2) return 1.0;
+
+      const distance = levenshteinDistance(s1, s2);
+      const maxLen = Math.max(s1.length, s2.length);
+      const exactScore = 1 - (distance / maxLen);
+
+      if (s2.includes(s1)) return Math.max(exactScore, 0.95);
+      if (s1.includes(s2)) return Math.max(exactScore, 0.90);
+
+      const searchWords = s1.split(/\s+/).filter(w => w.length > 2);
+      const targetWords = s2.split(/\s+/).filter(w => w.length > 2);
+
+      let matchedWords = 0;
+      searchWords.forEach(sw => {
+        if (targetWords.some(tw => tw === sw || tw.includes(sw) || sw.includes(tw))) {
+          matchedWords++;
+        }
+      });
+
+      const partialScore = searchWords.length > 0 ? matchedWords / searchWords.length : 0;
+      return (exactScore * 0.7) + (partialScore * 0.3);
+    }
+
     let bestMatch = searchResults.results[0];
+    let bestScore = calculateSimilarity(seriesData.title, bestMatch.name || '');
+
+    console.log(`[KissKH] Comparing "${seriesData.title}" against ${searchResults.results.length} results:`);
 
     for (const result of searchResults.results) {
-      const resultTitle = (result.name || '').toLowerCase().replace(/[^\w\s]/g, '');
-      if (resultTitle === normalizedTitle || resultTitle.includes(normalizedTitle.split(' ')[0])) {
+      const score = calculateSimilarity(seriesData.title, result.name || '');
+      console.log(`  - "${result.name}": ${(score * 100).toFixed(1)}%`);
+
+      if (score > bestScore) {
+        bestScore = score;
         bestMatch = result;
-        break;
       }
     }
 
     const imdbid = bestMatch.id;
-    console.log(`[KissKH] Found IMDB ID: ${imdbid} (${bestMatch.name})`);
+    console.log(`[KissKH] Best match: ${imdbid} (${bestMatch.name}) with ${(bestScore * 100).toFixed(1)}% similarity`);
 
     // Map episode
     const episode = seriesData.episodes.find((ep) => ep.id == kkhEpisodeId);
