@@ -9,8 +9,17 @@ const { createOrUpdateMessageSub } = require("./subtitles");
 const translationQueue = require("./queues/translationQueue");
 const baseLanguages = require("./langs/base.lang.json");
 const isoCodeMapping = require("./langs/iso_code_mapping.json");
+const languageToISO6392 = require("./langs/language_to_iso639_2.json");
 const crypto = require("crypto");
 require("dotenv").config();
+
+function getISO6392Code(languageName, shortCode) {
+  const iso6392 = languageToISO6392[languageName];
+  if (iso6392) {
+    return iso6392;
+  }
+  return `${shortCode}-translated`;
+}
 
 function generateSubtitleUrl(
   targetLanguage,
@@ -76,6 +85,8 @@ builder.defineSubtitlesHandler(async function (args) {
     console.log("Unsupported language:", config.translateto);
     return Promise.resolve({ subtitles: [] });
   }
+
+  const iso6392Lang = getISO6392Code(config.translateto, targetLanguage);
 
   // Extract imdbid from id
   let imdbid = null;
@@ -175,7 +186,7 @@ builder.defineSubtitlesHandler(async function (args) {
               episode,
               providerPath
             ),
-            lang: `${targetLanguage}-translated`,
+            lang: iso6392Lang,
           },
         ],
       });
@@ -210,7 +221,7 @@ builder.defineSubtitlesHandler(async function (args) {
               episode,
               providerPath
             ),
-            lang: `${targetLanguage}-translated`,
+            lang: iso6392Lang,
           },
         ],
       });
@@ -274,7 +285,7 @@ builder.defineSubtitlesHandler(async function (args) {
               episode,
               providerPath
             ),
-            lang: `${targetLanguage}-translated`,
+            lang: iso6392Lang,
           },
         ],
       });
@@ -294,7 +305,7 @@ builder.defineSubtitlesHandler(async function (args) {
               episode,
               providerPath
             ),
-            lang: `${targetLanguage}-translated`,
+            lang: iso6392Lang,
           },
         ],
       });
