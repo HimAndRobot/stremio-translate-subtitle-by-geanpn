@@ -1416,14 +1416,27 @@
             pendingDecryptedCredential = null;
         }
 
-        function openAddSubtitleModal() {
-            document.getElementById('addSubtitleModal').style.display = 'block';
-            document.getElementById('searchContainer').style.display = 'block';
+        function resetAddSubtitleModal() {
+            document.getElementById('searchContainer').style.display = 'none';
             document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'none';
+            document.getElementById('subtitleCustomizationContainer').style.display = 'none';
+            document.getElementById('translationOptionsContainer').style.display = 'none';
+
             document.getElementById('searchModalInput').value = '';
             document.getElementById('searchResultsGrid').innerHTML = '';
+            document.getElementById('episodesGrid').innerHTML = '';
+
             selectedEpisodes = [];
             currentSelectedSeries = null;
+            customSubtitles = {};
+            isAutomaticMode = true;
+        }
+
+        function openAddSubtitleModal() {
+            resetAddSubtitleModal();
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'block';
         }
 
         function closeAddSubtitleModal() {
@@ -1431,6 +1444,8 @@
         }
 
         async function openDownloadMoreModal(imdbId, seriesName) {
+            resetAddSubtitleModal();
+
             currentSelectedSeries = {
                 imdbId: imdbId,
                 name: seriesName,
@@ -1440,7 +1455,6 @@
             };
 
             document.getElementById('addSubtitleModal').style.display = 'block';
-            document.getElementById('searchContainer').style.display = 'none';
             document.getElementById('episodesSelectionContainer').style.display = 'block';
             document.getElementById('selectedSeriesTitle').textContent = seriesName;
             document.getElementById('selectedSeriesMeta').textContent = 'series';
@@ -1962,12 +1976,6 @@
             }
         }
 
-        window.onclick = function(event) {
-            const modal = document.getElementById('addSubtitleModal');
-            if (event.target === modal) {
-                closeAddSubtitleModal();
-            }
-        }
 
         function openEpisodesModal(seriesImdbid) {
             const series = seriesData.find(s => s.series_imdbid === seriesImdbid);
@@ -2087,12 +2095,6 @@
             });
         }
 
-        window.onclick = function(event) {
-            const modal = document.getElementById('episodesModal');
-            if (event.target === modal) {
-                closeEpisodesModal();
-            }
-        }
 
         async function logout() {
             try {
@@ -2138,12 +2140,6 @@
             document.getElementById('subtitlePreviewModal').style.display = 'none';
         }
 
-        window.onclick = function(event) {
-            const previewModal = document.getElementById('subtitlePreviewModal');
-            if (event.target === previewModal) {
-                closeSubtitlePreview();
-            }
-        }
 
         async function reprocess(id) {
             // Close all menus
@@ -2328,12 +2324,22 @@
             }
         }
 
-        window.onclick = function(event) {
-            const modal = document.getElementById('reprocessModal');
-            if (event.target == modal) {
-                closeReprocessModal();
-            }
-        }
+        window.addEventListener('click', function(event) {
+            const modals = [
+                { id: 'addSubtitleModal', closeFunc: closeAddSubtitleModal },
+                { id: 'episodesModal', closeFunc: closeEpisodesModal },
+                { id: 'subtitlePreviewModal', closeFunc: closeSubtitlePreview },
+                { id: 'reprocessModal', closeFunc: closeReprocessModal },
+                { id: 'masterPasswordModal', closeFunc: closeMasterPasswordModal }
+            ];
+
+            modals.forEach(modal => {
+                const modalElement = document.getElementById(modal.id);
+                if (modalElement && event.target === modalElement) {
+                    modal.closeFunc();
+                }
+            });
+        });
     </script>
     </div>
 </body>
