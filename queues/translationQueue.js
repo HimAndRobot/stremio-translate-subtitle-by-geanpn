@@ -5,13 +5,17 @@ const dbConnection = require("../connection");
 const fs = require("fs").promises;
 const path = require("path");
 const batchQueue = require("./batchQueue");
-const { encryptCredential } = require("../utils/crypto");
-const { getMetadata } = require("../utils/metadata");
-const crypto = require("crypto");
 const {
   translateSRTDocument,
   supportsDocumentTranslation
 } = require("../translateProvider");
+const {
+  resolveImdbFromStremioId,
+  fetchSubtitlesFromOpenSubtitles,
+  updateDatabaseWithResolvedData,
+  parseSRTFile,
+  getTranslationQueueId
+} = require("./translationQueueHelpers");
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -36,93 +40,77 @@ const worker = new Worker(
   "subtitle-translation",
   async (job) => {
     const {
-      subs,
-      customSubtitle,
-      imdbid,
-      season,
-      episode,
+      stremioId,
+      extra,
       oldisocode,
       provider,
       apikey,
       base_url,
       model_name,
-      password,
       password_hash: jobPasswordHash,
-      saveCredentials,
       existingTranslationQueueId,
+      customSubtitle,
     } = job.data;
 
-    await job.log(`[START] Processing translation for ${imdbid}`);
-    await job.log(`[INFO] Provider: ${provider}, Target Language: ${oldisocode}`);
-    await job.log(`[INFO] Season: ${season}, Episode: ${episode}`);
-    await job.log(`[INFO] Subtitles found: ${subs?.length || 0}`);
-
-    console.log(`Processing job ${job.id} for ${imdbid}`);
+    let imdbid = null;
+    let season = null;
+    let episode = null;
+    let type = null;
+    let resolvedSubs = null;
 
     let filepaths = [];
 
     try {
+      if (stremioId && !existingTranslationQueueId) {
+        const resolved = await resolveImdbFromStremioId(stremioId, extra, job);
+        imdbid = resolved.imdbid;
+        season = resolved.season;
+        episode = resolved.episode;
+        type = resolved.type;
+      }
+
+      if (!resolvedSubs && !customSubtitle) {
+        const subtitleResult = await fetchSubtitlesFromOpenSubtitles(imdbid, season, episode, type, oldisocode, job);
+
+        if (subtitleResult.skipped) {
+          return {
+            success: true,
+            message: 'Subtitle already in target language',
+            skipped: true
+          };
+        }
+
+        resolvedSubs = subtitleResult.subtitles;
+      }
+
+      await job.log(`[START] Processing translation for ${imdbid}`);
+      await job.log(`[INFO] Provider: ${provider}, Target Language: ${oldisocode}`);
+      await job.log(`[INFO] Season: ${season}, Episode: ${episode}`);
+      await job.log(`[INFO] Subtitles found: ${resolvedSubs?.length || 0}`);
+
+      console.log(`Processing job ${job.id} for ${imdbid}`);
+
       let password_hash = jobPasswordHash || null;
       let apikey_encrypted = null;
       let base_url_encrypted = null;
       let model_name_encrypted = null;
 
-      if (password && !password_hash) {
-        const encryptionKey = process.env.ENCRYPTION_KEY;
-        if (encryptionKey && encryptionKey.length === 32) {
-          password_hash = crypto.createHash('sha256').update(password).digest('hex');
-
-          if (saveCredentials) {
-            if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
-            if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
-            if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);
-          }
-        }
-      }
-
       let translationQueueId = existingTranslationQueueId;
 
       if (!translationQueueId) {
-        const existingStatus = await dbConnection.checkForTranslation(imdbid, season, episode, oldisocode);
-
-        let series_name = null;
-        let poster = null;
-        if (!existingStatus) {
-          try {
-            const type = season && episode ? "series" : "movie";
-            const metadata = await getMetadata(imdbid, type);
-            series_name = metadata.name;
-            poster = metadata.poster;
-          } catch (metaError) {
-            console.error("Failed to fetch metadata:", metaError.message);
-            series_name = imdbid;
-          }
-
-          await dbConnection.addToTranslationQueue(
-            imdbid,
-            season,
-            episode,
-            0,
-            oldisocode,
-            password_hash,
-            apikey_encrypted,
-            base_url_encrypted,
-            model_name_encrypted,
-            series_name,
-            poster
-          );
-        } else if (password_hash) {
-          await dbConnection.updateTranslationCredentials(
-            imdbid,
-            season,
-            episode,
-            oldisocode,
-            password_hash,
-            apikey_encrypted,
-            base_url_encrypted,
-            model_name_encrypted
-          );
-        }
+        await updateDatabaseWithResolvedData(
+          stremioId,
+          imdbid,
+          season,
+          episode,
+          type,
+          oldisocode,
+          password_hash,
+          apikey_encrypted,
+          base_url_encrypted,
+          model_name_encrypted,
+          job
+        );
       } else {
         await job.log(`[REPROCESS] Using existing translation_queue ID: ${translationQueueId}`);
       }
@@ -133,9 +121,9 @@ const worker = new Worker(
         await job.log('[STEP 1/4] Using uploaded custom subtitle file...');
         filepaths = [customSubtitle.filePath];
         await job.log(`[INFO] Using custom subtitle: ${customSubtitle.filename}`);
-      } else if (subs && subs.length > 0) {
+      } else if (resolvedSubs && resolvedSubs.length > 0) {
         await job.log('[STEP 1/4] Downloading subtitles from OpenSubtitles...');
-        filepaths = await opensubtitles.downloadSubtitles(subs, imdbid, season, episode, oldisocode);
+        filepaths = await opensubtitles.downloadSubtitles(resolvedSubs, imdbid, season, episode, oldisocode);
 
         if (!filepaths || filepaths.length === 0) {
           throw new Error('No subtitle files downloaded');
@@ -145,81 +133,14 @@ const worker = new Worker(
       }
 
       await job.updateProgress(20);
-      await job.log('[STEP 2/4] Parsing SRT file...');
 
       const originalSubtitleFilePath = filepaths[0];
-      const originalSubtitleContent = await fs.readFile(originalSubtitleFilePath, { encoding: "utf-8" });
-      const lines = originalSubtitleContent.split("\n");
-
-      const subcounts = [];
-      const timecodes = [];
-      const texts = [];
-
-      let currentBlock = {
-        iscount: true,
-        istimecode: false,
-        istext: false,
-        textcount: 0,
-      };
-
-      for (const line of lines) {
-        if (line.trim() === "") {
-          currentBlock = {
-            iscount: true,
-            istimecode: false,
-            istext: false,
-            textcount: 0,
-          };
-          continue;
-        }
-
-        if (currentBlock.iscount) {
-          subcounts.push(line);
-          currentBlock = {
-            iscount: false,
-            istimecode: true,
-            istext: false,
-            textcount: 0,
-          };
-          continue;
-        }
-
-        if (currentBlock.istimecode) {
-          timecodes.push(line);
-          currentBlock = {
-            iscount: false,
-            istimecode: false,
-            istext: true,
-            textcount: 0,
-          };
-          continue;
-        }
-
-        if (currentBlock.istext) {
-          if (currentBlock.textcount === 0) {
-            texts.push(line);
-          } else {
-            texts[texts.length - 1] += "\n" + line;
-          }
-          currentBlock.textcount++;
-        }
-      }
-
-      await job.log(`[INFO] Parsed ${subcounts.length} subtitle entries`);
+      const { subcounts, timecodes, texts, originalContent: originalSubtitleContent } = await parseSRTFile(originalSubtitleFilePath, job);
 
       const adapter = await dbConnection.getAdapter();
 
       if (!translationQueueId) {
-        const queueResult = await adapter.query(
-          `SELECT id FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?`,
-          [imdbid, season, episode, oldisocode]
-        );
-
-        if (queueResult.length === 0) {
-          throw new Error('Translation queue entry not found');
-        }
-
-        translationQueueId = queueResult[0].id;
+        translationQueueId = await getTranslationQueueId(imdbid, season, episode, oldisocode);
       }
 
       const useDocumentTranslation = supportsDocumentTranslation(provider);
@@ -238,26 +159,22 @@ const worker = new Worker(
           );
 
           const providerPath = password_hash || 'translated';
-          const dirPath = season !== null && episode !== null
-            ? `subtitles/${providerPath}/${imdbid}/season${season}`
-            : `subtitles/${providerPath}/${imdbid}`;
+          const subtitlePath = `${providerPath}/${stremioId}.srt`;
+          const fullPath = `subtitles/${subtitlePath}`;
+          const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 
           await fs.mkdir(dirPath, { recursive: true });
 
-          const translatedFilePath = season !== null && episode !== null
-            ? `${dirPath}/${imdbid}-translated-${episode}-1.srt`
-            : `${dirPath}/${imdbid}-translated-1.srt`;
-
-          await fs.writeFile(translatedFilePath, translatedSRT, 'utf-8');
+          await fs.writeFile(fullPath, translatedSRT, 'utf-8');
 
           await job.updateProgress(90);
           await job.log(`[${provider}] Translation completed successfully!`);
-          await job.log(`[${provider}] Saved to: ${translatedFilePath}`);
+          await job.log(`[${provider}] Saved to: ${fullPath}`);
 
           const charCount = originalSubtitleContent.length;
           await adapter.query(
-            `UPDATE translation_queue SET status = ?, token_usage_total = ? WHERE id = ?`,
-            ['completed', charCount, translationQueueId]
+            `UPDATE translation_queue SET status = ?, token_usage_total = ?, subtitle_path = ? WHERE id = ?`,
+            ['completed', charCount, subtitlePath, translationQueueId]
           );
 
           await job.updateProgress(100);
@@ -390,8 +307,9 @@ worker.on("error", (err) => {
 });
 
 translationQueue.push = function (jobData) {
+  const identifier = jobData.stremioId || `${jobData.imdbid}-${jobData.season}-${jobData.episode}`;
   return this.add("translate", jobData, {
-    jobId: `${jobData.imdbid}-${jobData.season}-${jobData.episode}-${jobData.oldisocode}-${Date.now()}`,
+    jobId: `${identifier}-${jobData.oldisocode}-${Date.now()}`,
   });
 };
 

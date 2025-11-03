@@ -80,18 +80,20 @@ class MySQLAdapter extends BaseAdapter {
     base_url_encrypted = null,
     model_name_encrypted = null,
     series_name = null,
-    poster = null
+    poster = null,
+    stremioId = null,
+    subtitle_path = null
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster) VALUES (?,?,?,?,?,?,?,?,?)",
-          [imdbid, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
         );
       }
     } catch (error) {
@@ -202,6 +204,38 @@ class MySQLAdapter extends BaseAdapter {
       return null;
     } catch (error) {
       console.error("Translation check error:", error.message);
+      return null;
+    }
+  }
+
+  async checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {
+    try {
+      let query, params;
+
+      if (password_hash) {
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash = ?";
+        params = [stremioId, langcode, password_hash];
+      } else {
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND (password_hash IS NULL OR password_hash = '')";
+        params = [stremioId, langcode];
+      }
+
+      console.log(`[DEBUG checkForTranslationByStremioId] Searching for: StremioID=${stremioId}, Lang=${langcode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
+
+      const result = await this.query(query, params);
+
+      if (result.length > 0) {
+        console.log(`[DEBUG checkForTranslationByStremioId] FOUND: Status=${result[0].status}, Path=${result[0].subtitle_path}`);
+        return {
+          status: result[0].status,
+          subtitle_path: result[0].subtitle_path
+        };
+      }
+
+      console.log(`[DEBUG checkForTranslationByStremioId] NOT FOUND`);
+      return null;
+    } catch (error) {
+      console.error("Translation check by stremio_id error:", error.message);
       return null;
     }
   }

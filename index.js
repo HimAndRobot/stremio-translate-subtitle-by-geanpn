@@ -64,6 +64,14 @@ const builder = new addonBuilder({
       key: "model_name",
       type: "text",
     },
+    {
+      key: "password",
+      type: "text",
+    },
+    {
+      key: "saveCredentials",
+      type: "text",
+    },
   ],
   description:
     "This addon takes subtitles from OpenSubtitlesV3 then translates into desired language using Google Translate, or ChatGPT (OpenAI Compatible Providers). For donations:in progress Bug report: geanpn@gmail.com",
@@ -88,293 +96,90 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const iso6392Lang = getISO6392Code(config.translateto, targetLanguage);
 
-  // Extract imdbid from id
-  let imdbid = null;
-  let season = null;
-  let episode = null;
-  let type = null;
-
-  if (id.startsWith("kkh-")) {
-    // KissKH integration
-    const integrations = require("./integrations");
-    const resolved = await integrations.kisskh.resolveKissKHId(id);
-    if (resolved) {
-      imdbid = resolved.imdbid;
-      season = resolved.season;
-      episode = resolved.episode;
-      type = "series";
-    }
-  } else if (id.startsWith("dcool-")) {
-    imdbid = "tt5994346";
-    const parsed = parseId(id);
-    type = parsed.type;
-    season = parsed.season;
-    episode = parsed.episode;
-  } else if (id !== null && id.startsWith("tt")) {
-    const parts = id.split(":");
-    if (parts.length >= 1) {
-      imdbid = parts[0];
-    } else {
-      console.log("Invalid ID format.");
-    }
-    const parsed = parseId(id);
-    type = parsed.type;
-    season = parsed.season;
-    episode = parsed.episode;
-  }
-
-  // Fallback: se não conseguiu extrair IMDb ID e temos filename, tentar buscar no Cinemeta
-  if (imdbid === null && extra && extra.filename) {
-    console.log(`[Fallback] No IMDb ID found, trying Cinemeta with filename: ${extra.filename}`);
-    try {
-      const { searchContent } = require("./utils/search");
-      const searchResults = await searchContent(extra.filename);
-
-      if (searchResults.results && searchResults.results.length > 0) {
-        imdbid = searchResults.results[0].id;
-        type = searchResults.results[0].type;
-        console.log(`[Fallback] Found IMDb ID via Cinemeta: ${imdbid} (${searchResults.results[0].name})`);
-
-        // Para filmes, season e episode são 1
-        if (type === "movie") {
-          season = 1;
-          episode = 1;
-        }
-      }
-    } catch (error) {
-      console.error("[Fallback] Error searching Cinemeta:", error.message);
-    }
-  }
-
-  if (imdbid === null) {
-    console.log("Invalid ID format and no filename fallback succeeded.");
-    return Promise.resolve({ subtitles: [] });
-  }
-
-  const providerPath = config.password
+  const password_hash = config.password
     ? crypto.createHash('sha256').update(config.password).digest('hex')
-    : 'translated';
+    : null;
+
+  const providerPath = password_hash || 'translated';
 
   try {
-    // 1. Check if already exists in database
-    const existingSubtitle = await connection.getsubtitles(
-      imdbid,
-      season,
-      episode,
-      targetLanguage
-    );
-
-    if (existingSubtitle.length > 0) {
-      console.log(
-        "Subtitle found in database:",
-        generateSubtitleUrl(
-          targetLanguage,
-          imdbid,
-          season,
-          episode,
-          providerPath
-        )
-      );
-      return Promise.resolve({
-        subtitles: [
-          {
-            id: `${imdbid}-subtitle`,
-            url: generateSubtitleUrl(
-              targetLanguage,
-              imdbid,
-              season,
-              episode,
-              providerPath
-            ),
-            lang: iso6392Lang,
-          },
-        ],
-      });
-    }
-
-    // 2. If not found, search OpenSubtitles
-    const subs = await opensubtitles.getsubtitles(
-      type,
-      imdbid,
-      season,
-      episode,
-      targetLanguage
-    );
-
-    if (!subs || subs.length === 0) {
-      await createOrUpdateMessageSub(
-        "No subtitles found on OpenSubtitles",
-        imdbid,
-        season,
-        episode,
-        targetLanguage,
-        providerPath
-      );
-      return Promise.resolve({
-        subtitles: [
-          {
-            id: `${imdbid}-subtitle`,
-            url: generateSubtitleUrl(
-              targetLanguage,
-              imdbid,
-              season,
-              episode,
-              providerPath
-            ),
-            lang: iso6392Lang,
-          },
-        ],
-      });
-    }
-
-    const foundSubtitle = subs[0];
-
-    const mappedFoundSubtitleLang = isoCodeMapping[foundSubtitle.lang] || foundSubtitle.lang;
-
-    if (mappedFoundSubtitleLang === targetLanguage) {
-      console.log(
-        "Desired language subtitle found on OpenSubtitles, returning it directly."
-      );
-      await connection.addsubtitle(
-        imdbid,
-        type,
-        season,
-        episode,
-        foundSubtitle.url.replace(`${process.env.BASE_URL}/`, ""),
-        targetLanguage
-      );
-      return Promise.resolve({
-        subtitles: [
-          {
-            id: `${imdbid}-subtitle`,
-            url: foundSubtitle.url,
-            lang: foundSubtitle.lang,
-          },
-        ],
-      });
-    }
-
-    console.log(
-      "Subtitles found on OpenSubtitles, but not in target language. Translating..."
-    );
-
-    const password_hash = config.password
-      ? crypto.createHash('sha256').update(config.password).digest('hex')
-      : null;
-
-    const queueStatus = await connection.checkForTranslation(
-      imdbid,
-      season,
-      episode,
+    const queueStatus = await connection.checkForTranslationByStremioId(
+      id,
       targetLanguage,
       password_hash
     );
 
-    console.log(`[CHECK] queueStatus="${queueStatus}" | ${imdbid} S${season}E${episode} lang:${targetLanguage} | pwHash:${password_hash ? password_hash.substring(0,8)+'...' : 'NULL'}`);
+    console.log(`[HANDLER] queueStatus="${queueStatus}" | stremioId:${id} lang:${targetLanguage}`);
 
-    if (queueStatus === 'processing') {
-      console.log("Translation already in progress, returning placeholder");
+    if (queueStatus) {
+      const statusMessages = {
+        'completed': 'Subtitle found in database (completed), returning it',
+        'processing': 'Translation in progress, returning placeholder',
+        'failed': 'Translation failed, returning error subtitle'
+      };
+
+      console.log(`[HANDLER] ${statusMessages[queueStatus.status]}`);
+
+      const subtitleUrl = queueStatus.subtitle_path
+        ? `${BASE_URL}/subtitles/${queueStatus.subtitle_path}`
+        : generateSubtitleUrl(targetLanguage, id, 1, 1, providerPath);
+
       return Promise.resolve({
         subtitles: [
           {
-            id: `${imdbid}-subtitle`,
-            url: generateSubtitleUrl(
-              targetLanguage,
-              imdbid,
-              season,
-              episode,
-              providerPath
-            ),
+            id: `${id}-subtitle`,
+            url: subtitleUrl,
             lang: iso6392Lang,
           },
         ],
       });
     }
 
-    if (queueStatus === 'failed') {
-      console.log(`[FAILED] Translation ${imdbid} S${season}E${episode} lang:${targetLanguage} is FAILED - returning error subtitle WITHOUT adding to queue`);
+    console.log("[HANDLER] No translation found, adding to queue");
 
-      return Promise.resolve({
-        subtitles: [
-          {
-            id: `${imdbid}-subtitle`,
-            url: generateSubtitleUrl(
-              targetLanguage,
-              imdbid,
-              season,
-              episode,
-              providerPath
-            ),
-            lang: iso6392Lang,
-          },
-        ],
-      });
-    }
+    const subtitlePath = `${providerPath}/${id}.srt`;
 
-    console.log(`[NEW] Translation ${imdbid} S${season}E${episode} lang:${targetLanguage} does NOT exist - adding to queue`);
-
-    await createOrUpdateMessageSub(
-      "Translating subtitles. Please wait 1 minute and try again.",
-      imdbid,
-      season,
-      episode,
+    await connection.addToTranslationQueue(
+      null,
+      null,
+      null,
+      0,
       targetLanguage,
-      providerPath
+      password_hash,
+      null,
+      null,
+      null,
+      null,
+      null,
+      id,
+      subtitlePath
     );
 
-    // 3. Process and translate subtitles
     translationQueue.push({
-      subs: [foundSubtitle], // Pass the found subtitle to the queue
-      imdbid: imdbid,
-      season: season,
-      episode: episode,
+      stremioId: id,
+      extra: extra,
       oldisocode: targetLanguage,
       provider: config.provider,
-      apikey: config.apikey ?? null,
-      base_url: config.base_url ?? "https://api.openai.com/v1/responses",
-      model_name: config.model_name ?? "gpt-4o-mini",
-      password: config.password ?? null,
-      saveCredentials: config.saveCredentials ?? true,
+      apikey: config.apikey,
+      base_url: config.base_url,
+      model_name: config.model_name,
+      password_hash: password_hash,
     });
 
-    console.log(
-      "Subtitles processed",
-      generateSubtitleUrl(
-        targetLanguage,
-        imdbid,
-        season,
-        episode,
-        providerPath
-      )
-    );
+    console.log("[HANDLER] Job queued for automatic processing");
 
-    await connection.addsubtitle(
-      imdbid,
-      type,
-      season,
-      episode,
-      generateSubtitleUrl(
-        targetLanguage,
-        imdbid,
-        season,
-        episode,
-        providerPath
-      ).replace(`${process.env.BASE_URL}/`, ""),
-      targetLanguage
+    await createOrUpdateMessageSub(
+      "We are processing your subtitle. Please check the dashboard or wait 1 minute.",
+      id,
+      providerPath
     );
 
     return Promise.resolve({
       subtitles: [
         {
-          id: `${imdbid}-subtitle`,
-          url: generateSubtitleUrl(
-            targetLanguage,
-            imdbid,
-            season,
-            episode,
-            providerPath
-          ),
-          lang: `${targetLanguage}-translated`,
+          id: `${id}-subtitle`,
+          url: `${process.env.BASE_URL}/subtitles/${subtitlePath}`,
+          lang: iso6392Lang,
         },
       ],
     });
@@ -694,7 +499,6 @@ app.post("/admin/reprocess", requireAuth, async (req, res) => {
         base_url: base_url,
         model_name: model_name,
         password_hash: req.session.userPasswordHash,
-        saveCredentials: false,
       });
 
       console.log(`Reprocess job queued for ${translation.series_imdbid} with provider ${provider}`);
@@ -760,7 +564,6 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
         base_url: base_url || null,
         model_name: model_name || null,
         password_hash: req.session.userPasswordHash,
-        saveCredentials: false,
         existingTranslationQueueId: translation.id,
       });
 
@@ -934,7 +737,6 @@ app.use("/subtitles", async (req, _res, next) => {
           base_url: process.env.DEFAULT_BASE_URL || null,
           model_name: process.env.DEFAULT_MODEL || null,
           password_hash: password_hash,
-          saveCredentials: false,
         });
 
         console.log(`Retry job created for ${imdbid}, serving error subtitle meanwhile`);

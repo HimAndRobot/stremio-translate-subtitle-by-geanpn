@@ -159,7 +159,7 @@ async function assembleFinalSubtitle(translationQueueId) {
 
   const adapter = await connection.getAdapter();
   const queueInfo = await adapter.query(
-    `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
+    `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash, stremio_id FROM translation_queue WHERE id = ?`,
     [translationQueueId]
   );
 
@@ -167,7 +167,7 @@ async function assembleFinalSubtitle(translationQueueId) {
     throw new Error(`Translation queue ${translationQueueId} not found`);
   }
 
-  const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
+  const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash, stremio_id } = queueInfo[0];
 
   const batches = await connection.getBatchesForTranslation(translationQueueId);
 
@@ -199,21 +199,18 @@ async function assembleFinalSubtitle(translationQueueId) {
     );
   }
 
-  const provider = password_hash || 'translated';
-  const dirPath = series_seasonno !== null && series_episodeno !== null
-    ? `subtitles/${provider}/${series_imdbid}/season${series_seasonno}`
-    : `subtitles/${provider}/${series_imdbid}`;
+  const providerPath = password_hash || 'translated';
+  const subtitlePath = `${providerPath}/${stremio_id}.srt`;
+  const fullPath = `subtitles/${subtitlePath}`;
+  const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 
   await fs.mkdir(dirPath, { recursive: true });
 
   const type = series_seasonno && series_episodeno ? "series" : "movie";
-  const newSubtitleFilePath = series_seasonno && series_episodeno
-    ? `${dirPath}/${series_imdbid}-translated-${series_episodeno}-1.srt`
-    : `${dirPath}/${series_imdbid}-translated-1.srt`;
 
-  await fs.writeFile(newSubtitleFilePath, output.join("\n"), { flag: "w" });
+  await fs.writeFile(fullPath, output.join("\n"), { flag: "w" });
 
-  console.log(`[ASSEMBLY] File written: ${newSubtitleFilePath}`);
+  console.log(`[ASSEMBLY] File written: ${fullPath}`);
 
   if (!(await connection.checkseries(series_imdbid))) {
     await connection.addseries(series_imdbid, type);
@@ -229,12 +226,9 @@ async function assembleFinalSubtitle(translationQueueId) {
     );
   }
 
-  await connection.updateTranslationStatus(
-    series_imdbid,
-    series_seasonno,
-    series_episodeno,
-    langcode,
-    'completed'
+  await adapter.query(
+    `UPDATE translation_queue SET status = ?, subtitle_path = ? WHERE id = ?`,
+    ['completed', subtitlePath, translationQueueId]
   );
 
   console.log(`[ASSEMBLY] Subtitle assembly finished successfully!`);
