@@ -2,11 +2,9 @@ const fs = require("fs").promises;
 
 async function createOrUpdateMessageSub(
   placeholderText,
-  stremioId,
-  providerPath
+  subtitlePath
 ) {
   try {
-    const subtitlePath = `${providerPath}/${stremioId}.srt`;
     const fullPath = `subtitles/${subtitlePath}`;
     const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 

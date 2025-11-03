@@ -21,17 +21,6 @@ function getISO6392Code(languageName, shortCode) {
   return `${shortCode}-translated`;
 }
 
-function generateSubtitleUrl(
-  targetLanguage,
-  imdbid,
-  season,
-  episode,
-  provider,
-  baseUrl = process.env.BASE_URL
-) {
-  return `${baseUrl}/subtitles/${provider}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`;
-}
-
 const builder = new addonBuilder({
   id: "org.autotranslate.geanpn",
   version: "1.0.2",
@@ -102,6 +91,28 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const providerPath = password_hash || 'translated';
 
+  const parsed = parseId(id);
+  let imdbid = null;
+  let season = null;
+  let episode = null;
+  let type = parsed.type;
+
+  if (id.startsWith("tt")) {
+    const parts = id.split(":");
+    imdbid = parts[0];
+    if (parsed.type === "series") {
+      season = parsed.season;
+      episode = parsed.episode;
+    } else if (parsed.type === "movie") {
+      season = 1;
+      episode = 1;
+    }
+  }
+
+  const subtitlePath = type === "movie"
+    ? `${providerPath}/${imdbid}/movie.srt`
+    : `${providerPath}/${imdbid}/S${season}E${episode}.srt`;
+
   try {
     const queueStatus = await connection.checkForTranslationByStremioId(
       id,
@@ -121,8 +132,8 @@ builder.defineSubtitlesHandler(async function (args) {
       console.log(`[HANDLER] ${statusMessages[queueStatus.status]}`);
 
       const subtitleUrl = queueStatus.subtitle_path
-        ? `${BASE_URL}/subtitles/${queueStatus.subtitle_path}`
-        : generateSubtitleUrl(targetLanguage, id, 1, 1, providerPath);
+        ? `${process.env.BASE_URL}/subtitles/${queueStatus.subtitle_path}`
+        : `${process.env.BASE_URL}/subtitles/${subtitlePath}`;
 
       return Promise.resolve({
         subtitles: [
@@ -137,12 +148,10 @@ builder.defineSubtitlesHandler(async function (args) {
 
     console.log("[HANDLER] No translation found, adding to queue");
 
-    const subtitlePath = `${providerPath}/${id}.srt`;
-
     await connection.addToTranslationQueue(
-      null,
-      null,
-      null,
+      imdbid,
+      season,
+      episode,
       0,
       targetLanguage,
       password_hash,
@@ -152,7 +161,8 @@ builder.defineSubtitlesHandler(async function (args) {
       null,
       null,
       id,
-      subtitlePath
+      subtitlePath,
+      type
     );
 
     translationQueue.push({
@@ -170,8 +180,7 @@ builder.defineSubtitlesHandler(async function (args) {
 
     await createOrUpdateMessageSub(
       "We are processing your subtitle. Please check the dashboard or wait 1 minute.",
-      id,
-      providerPath
+      subtitlePath
     );
 
     return Promise.resolve({

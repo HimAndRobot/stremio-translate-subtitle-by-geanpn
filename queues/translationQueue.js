@@ -158,8 +158,16 @@ const worker = new Worker(
             apikey
           );
 
-          const providerPath = password_hash || 'translated';
-          const subtitlePath = `${providerPath}/${stremioId}.srt`;
+          const queueInfo = await adapter.query(
+            `SELECT subtitle_path FROM translation_queue WHERE id = ?`,
+            [translationQueueId]
+          );
+
+          const subtitlePath = queueInfo[0]?.subtitle_path;
+          if (!subtitlePath) {
+            throw new Error('subtitle_path not found in translation_queue');
+          }
+
           const fullPath = `subtitles/${subtitlePath}`;
           const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 
@@ -173,15 +181,14 @@ const worker = new Worker(
 
           const charCount = originalSubtitleContent.length;
           await adapter.query(
-            `UPDATE translation_queue SET status = ?, token_usage_total = ?, subtitle_path = ? WHERE id = ?`,
-            ['completed', charCount, subtitlePath, translationQueueId]
+            `UPDATE translation_queue SET status = ?, token_usage_total = ? WHERE id = ?`,
+            ['completed', charCount, translationQueueId]
           );
 
           await job.updateProgress(100);
           return {
             success: true,
             message: `Translation completed using ${provider} Document API`,
-            translatedFile: translatedFilePath,
             method: 'document-api',
             characterCount: charCount
           };

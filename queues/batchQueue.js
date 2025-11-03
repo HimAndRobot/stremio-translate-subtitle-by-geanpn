@@ -94,23 +94,18 @@ const worker = new Worker(
         await job.log(`[ACTION] Translation queue ${translationQueueId} marked as FAILED`);
 
         const queueInfo = await adapter.query(
-          `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
+          `SELECT subtitle_path FROM translation_queue WHERE id = ?`,
           [translationQueueId]
         );
 
         if (queueInfo.length > 0) {
-          const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
+          const { subtitle_path } = queueInfo[0];
 
           const { createOrUpdateMessageSub } = require('../subtitles');
-          const providerPath = password_hash || 'translated';
 
           await createOrUpdateMessageSub(
             "An error occurred while generating your subtitle. We will try again.",
-            series_imdbid,
-            series_seasonno,
-            series_episodeno,
-            langcode,
-            providerPath
+            subtitle_path
           );
           await job.log(`[ACTION] Created error message subtitle`);
 
@@ -159,7 +154,7 @@ async function assembleFinalSubtitle(translationQueueId) {
 
   const adapter = await connection.getAdapter();
   const queueInfo = await adapter.query(
-    `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash, stremio_id FROM translation_queue WHERE id = ?`,
+    `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash, stremio_id, subtitle_path FROM translation_queue WHERE id = ?`,
     [translationQueueId]
   );
 
@@ -167,7 +162,7 @@ async function assembleFinalSubtitle(translationQueueId) {
     throw new Error(`Translation queue ${translationQueueId} not found`);
   }
 
-  const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash, stremio_id } = queueInfo[0];
+  const { series_imdbid, series_seasonno, series_episodeno, langcode, subtitle_path } = queueInfo[0];
 
   const batches = await connection.getBatchesForTranslation(translationQueueId);
 
@@ -199,9 +194,7 @@ async function assembleFinalSubtitle(translationQueueId) {
     );
   }
 
-  const providerPath = password_hash || 'translated';
-  const subtitlePath = `${providerPath}/${stremio_id}.srt`;
-  const fullPath = `subtitles/${subtitlePath}`;
+  const fullPath = `subtitles/${subtitle_path}`;
   const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 
   await fs.mkdir(dirPath, { recursive: true });
@@ -227,8 +220,8 @@ async function assembleFinalSubtitle(translationQueueId) {
   }
 
   await adapter.query(
-    `UPDATE translation_queue SET status = ?, subtitle_path = ? WHERE id = ?`,
-    ['completed', subtitlePath, translationQueueId]
+    `UPDATE translation_queue SET status = ? WHERE id = ?`,
+    ['completed', translationQueueId]
   );
 
   console.log(`[ASSEMBLY] Subtitle assembly finished successfully!`);
@@ -269,24 +262,19 @@ worker.on("failed", async (job, err) => {
         if (job?.log) await job.log(`[ACTION] Canceled all remaining batches for this translation`);
 
         const queueInfo = await adapter.query(
-          `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, password_hash FROM translation_queue WHERE id = ?`,
+          `SELECT series_imdbid, series_seasonno, series_episodeno, langcode, subtitle_path FROM translation_queue WHERE id = ?`,
           [translationQueueId]
         );
 
         if (queueInfo.length > 0) {
-          const { series_imdbid, series_seasonno, series_episodeno, langcode, password_hash } = queueInfo[0];
+          const { series_imdbid, series_seasonno, series_episodeno, langcode, subtitle_path } = queueInfo[0];
           console.log(`   Found translation: ${series_imdbid} S${series_seasonno}E${series_episodeno} -> ${langcode}`);
 
           const { createOrUpdateMessageSub } = require('../subtitles');
-          const providerPath = password_hash || 'translated';
 
           await createOrUpdateMessageSub(
             "An error occurred while generating your subtitle. We will try again.",
-            series_imdbid,
-            series_seasonno,
-            series_episodeno,
-            langcode,
-            providerPath
+            subtitle_path
           );
           console.log(`   ✓ Created error message subtitle`);
           if (job?.log) await job.log(`[ACTION] Created error message subtitle file`);
