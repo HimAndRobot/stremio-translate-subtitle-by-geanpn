@@ -973,6 +973,50 @@ app.post("/api/download", requireAuth, async (req, res) => {
   }
 });
 
+app.get("/api/download-subtitle/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adapter = await connection.getAdapter();
+
+    const result = await adapter.query(
+      'SELECT * FROM translation_queue WHERE id = ? AND password_hash = ?',
+      [id, req.session.userPasswordHash]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Translation not found' });
+    }
+
+    const translation = result[0];
+
+    if (translation.status !== 'completed') {
+      return res.status(400).json({ error: 'Translation is not completed yet' });
+    }
+
+    const password_hash = req.session.userPasswordHash;
+    const subtitlePath = `subtitles/${password_hash}/${translation.series_imdbid}/season${translation.series_seasonno}/${translation.series_imdbid}-translated-${translation.series_episodeno}-1.srt`;
+
+    const fs = require('fs');
+    const path = require('path');
+    const fullPath = path.join(__dirname, subtitlePath);
+
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Subtitle file not found' });
+    }
+
+    const fileName = `${translation.series_name || translation.series_imdbid}_S${String(translation.series_seasonno).padStart(2, '0')}E${String(translation.series_episodeno).padStart(2, '0')}_${translation.langcode}.srt`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+    const fileStream = fs.createReadStream(fullPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Download subtitle error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use("/subtitles", express.static("subtitles"));
 app.use("/public", express.static("public"));
 

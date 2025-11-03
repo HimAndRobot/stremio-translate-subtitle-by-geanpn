@@ -797,6 +797,9 @@
                                         <div class="episode-actions">
                                             <button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, <%= episode.id %>)">⋮</button>
                                             <div id="menu-<%= episode.id %>" class="episode-dropdown">
+                                                <% if (episode.status === 'completed') { %>
+                                                    <button onclick="downloadSubtitle(<%= episode.id %>)">📥 Download</button>
+                                                <% } %>
                                                 <% if (showReprocess) { %>
                                                     <% if (episode.apikey_encrypted) { %>
                                                         <button class="warning" onclick="reprocess(<%= episode.id %>)">🔄 Reprocess</button>
@@ -818,40 +821,46 @@
                                 <% } %>
                             <% } else { %>
                             <% const item = series.episodes[0]; %>
-                            <div class="stats-grid">
-                                <div class="stat-box">
-                                    <div class="stat-label">Status</div>
-                                    <div class="stat-value"><span class="status status-<%= item.status %>"><%= item.status %></span></div>
-                                </div>
-                                <div class="stat-box">
-                                    <div class="stat-label">Tokens</div>
-                                    <div class="stat-value tokens"><%= (item.token_usage_total || 0).toLocaleString() %></div>
-                                </div>
-                                <% if (item.batches_total > 0) { %>
+                                <div class="stats-grid">
                                     <div class="stat-box">
-                                        <div class="stat-label">Batches</div>
-                                        <div class="stat-value batches"><%= item.batches_completed %>/<%= item.batches_total %></div>
+                                        <div class="stat-label">Status</div>
+                                        <div class="stat-value"><span class="status status-<%= item.status %>"><%= item.status %></span></div>
                                     </div>
-                                <% } %>
-                            </div>
+                                    <div class="stat-box">
+                                        <div class="stat-label">Tokens</div>
+                                        <div class="stat-value tokens"><%= (item.token_usage_total || 0).toLocaleString() %></div>
+                                    </div>
+                                    <% if (item.batches_total > 0) { %>
+                                        <div class="stat-box">
+                                            <div class="stat-label">Batches</div>
+                                            <div class="stat-value batches"><%= item.batches_completed %>/<%= item.batches_total %></div>
+                                        </div>
+                                    <% } %>
+                                </div>
+                        <% } %>
+                        </div>
 
-                            <div class="card-actions">
+                        <% if (series.episodes.length === 1) { %>
+                            <% const item = series.episodes[0]; %>
+                            <div class="card-actions" style="margin-top: auto;">
                                 <%
                                     const showReprocess = item.status === 'failed' ||
                                         (item.status === 'processing' &&
                                          new Date() - new Date(item.created_at) > 10 * 60 * 1000);
                                 %>
+                                <% if (item.status === 'completed') { %>
+                                    <button onclick="downloadSubtitle(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">📥 Download</button>
+                                <% } %>
                                 <% if (showReprocess) { %>
                                     <% if (item.apikey_encrypted) { %>
-                                        <button onclick="reprocess(<%= item.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                        <button onclick="reprocess(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
                                     <% } else { %>
-                                        <button onclick="openReprocessModal(<%= item.id %>)" class="btn btn-warning btn-sm">Reprocess</button>
+                                        <button onclick="openReprocessModal(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
                                     <% } %>
                                 <% } %>
-                                <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm">Delete</button>
+                                <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm" style="flex: 1;">Delete</button>
                             </div>
                         <% } %>
-                        </div>
 
                         <% if (!series.isMovie) { %>
                             <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0;">
@@ -1694,6 +1703,8 @@
                     }
                 }
 
+                const downloadBtn = (episode.status === 'completed') ? '<button onclick="downloadSubtitle(' + episode.id + ')">📥 Download</button>' : '';
+
                 html += '<div class="episode-item">' +
                     '<div class="episode-info">' +
                         '<span class="episode-label">S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0') + '</span>' +
@@ -1707,6 +1718,7 @@
                     '<div class="episode-actions">' +
                         '<button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, ' + episode.id + ')">⋮</button>' +
                         '<div id="menu-' + episode.id + '" class="episode-dropdown">' +
+                            downloadBtn +
                             reprocessBtn +
                             '<button class="danger" onclick="deleteTranslation(' + episode.id + ')">🗑️ Delete</button>' +
                         '</div>' +
@@ -1820,6 +1832,17 @@
                 }
             } catch (error) {
                 showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        async function downloadSubtitle(id) {
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
+            try {
+                window.location.href = '/api/download-subtitle/' + id;
+                showToast('Downloading subtitle...', 'success');
+            } catch (error) {
+                showToast('Error downloading subtitle', 'error');
             }
         }
 
