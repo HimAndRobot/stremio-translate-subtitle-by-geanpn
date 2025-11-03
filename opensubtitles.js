@@ -111,4 +111,37 @@ const getsubtitles = async (
   }
 };
 
-module.exports = { getsubtitles, downloadSubtitles };
+const getAllSubtitles = async (
+  type,
+  imdbid,
+  season = null,
+  episode = null
+) => {
+  let url = opensubtitlesbaseurl;
+
+  if (type === "series") {
+    url = url.concat(type, "/", imdbid, ":", season, ":", episode, ".json");
+  } else {
+    url = url.concat(type, "/", imdbid, ".json");
+  }
+
+  try {
+    const response = await axios.get(url);
+
+    if (response.data.subtitles.length === 0) {
+      return [];
+    }
+
+    return response.data.subtitles.map(subtitle => ({
+      url: subtitle.url,
+      lang: subtitle.lang,
+      mappedLang: isoCodeMapping[subtitle.lang] || subtitle.lang
+    }));
+
+  } catch (error) {
+    console.error("Get all subtitles error:", error);
+    throw error;
+  }
+};
+
+module.exports = { getsubtitles, getAllSubtitles, downloadSubtitles };

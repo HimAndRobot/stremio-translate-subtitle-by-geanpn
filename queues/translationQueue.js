@@ -37,6 +37,7 @@ const worker = new Worker(
   async (job) => {
     const {
       subs,
+      customSubtitle,
       imdbid,
       season,
       episode,
@@ -127,12 +128,20 @@ const worker = new Worker(
       }
 
       await job.updateProgress(10);
-      await job.log('[STEP 1/4] Downloading subtitles from OpenSubtitles...');
 
-      filepaths = await opensubtitles.downloadSubtitles(subs, imdbid, season, episode, oldisocode);
+      if (customSubtitle && customSubtitle.filePath) {
+        await job.log('[STEP 1/4] Using uploaded custom subtitle file...');
+        filepaths = [customSubtitle.filePath];
+        await job.log(`[INFO] Using custom subtitle: ${customSubtitle.filename}`);
+      } else if (subs && subs.length > 0) {
+        await job.log('[STEP 1/4] Downloading subtitles from OpenSubtitles...');
+        filepaths = await opensubtitles.downloadSubtitles(subs, imdbid, season, episode, oldisocode);
 
-      if (!filepaths || filepaths.length === 0) {
-        throw new Error('No subtitle files downloaded');
+        if (!filepaths || filepaths.length === 0) {
+          throw new Error('No subtitle files downloaded');
+        }
+      } else {
+        throw new Error('No subtitle source provided (neither custom file nor OpenSubtitles URL)');
       }
 
       await job.updateProgress(20);
@@ -349,8 +358,13 @@ const worker = new Worker(
     } finally {
       for (const fp of filepaths) {
         try {
-          await fs.unlink(fp);
-          await job.log(`[CLEANUP] Removed temporary file: ${fp}`);
+          if (customSubtitle && customSubtitle.filePath === fp) {
+            await fs.unlink(fp);
+            await job.log(`[CLEANUP] Removed uploaded subtitle file: ${fp}`);
+          } else if (!customSubtitle) {
+            await fs.unlink(fp);
+            await job.log(`[CLEANUP] Removed temporary file: ${fp}`);
+          }
         } catch (unlinkError) {
           console.error(`Error cleaning up file ${fp}:`, unlinkError);
         }

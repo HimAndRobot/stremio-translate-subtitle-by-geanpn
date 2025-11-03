@@ -31,7 +31,7 @@ const downloadQueue = new Queue("download", {
 const worker = new Worker(
   "download",
   async (job) => {
-    const { imdbid, type, episodes, targetLanguage, provider, apikey, base_url, model_name, password_hash } = job.data;
+    const { imdbid, type, episodes, targetLanguage, provider, apikey, base_url, model_name, password_hash, customSubtitles } = job.data;
 
     await job.log(`[START] Processing download request for ${imdbid}`);
     await job.log(`[INFO] Episodes: ${episodes.length}, Language: ${targetLanguage}, Provider: ${provider}`);
@@ -59,25 +59,28 @@ const worker = new Worker(
       const season = ep.season || null;
       const episode = ep.episode || null;
 
+      const dbSeason = (type === 'movie') ? 1 : season;
+      const dbEpisode = (type === 'movie') ? 1 : episode;
+
       try {
         const queueStatus = await connection.checkForTranslation(
           imdbid,
-          season,
-          episode,
+          dbSeason,
+          dbEpisode,
           targetLanguage,
           password_hash
         );
 
         if (queueStatus === 'processing' || queueStatus === 'completed') {
-          await job.log(`[SKIP] ${imdbid} S${season}E${episode} already ${queueStatus}`);
+          await job.log(`[SKIP] ${imdbid} S${dbSeason}E${dbEpisode} already ${queueStatus}`);
           continue;
         }
 
         await createOrUpdateMessageSub(
           "Translating subtitles. Please wait 1 minute and try again.",
           imdbid,
-          season,
-          episode,
+          dbSeason,
+          dbEpisode,
           targetLanguage,
           providerPath
         );
@@ -85,16 +88,16 @@ const worker = new Worker(
         await connection.addsubtitle(
           imdbid,
           type,
-          season,
-          episode,
-          `subtitles/${providerPath}/${imdbid}/season${season}/${imdbid}-translated-${episode}-1.srt`,
+          dbSeason,
+          dbEpisode,
+          `subtitles/${providerPath}/${imdbid}/season${dbSeason}/${imdbid}-translated-${dbEpisode}-1.srt`,
           targetLanguage
         );
 
         await connection.addToTranslationQueue(
           imdbid,
-          season,
-          episode,
+          dbSeason,
+          dbEpisode,
           0,
           targetLanguage,
           password_hash,
@@ -105,11 +108,11 @@ const worker = new Worker(
           poster
         );
 
-        translationQueueIds.push({ season, episode });
-        await job.log(`[CREATED] Translation record for S${season}E${episode}`);
+        translationQueueIds.push({ season: dbSeason, episode: dbEpisode });
+        await job.log(`[CREATED] Translation record for S${dbSeason}E${dbEpisode}`);
 
       } catch (error) {
-        await job.log(`[ERROR] Failed to create record for S${season}E${episode}: ${error.message}`);
+        await job.log(`[ERROR] Failed to create record for S${dbSeason}E${dbEpisode}: ${error.message}`);
       }
     }
 
@@ -125,15 +128,38 @@ const worker = new Worker(
       await job.log(`[PROCESSING] ${imdbid} S${season}E${episode} (${processed + 1}/${translationQueueIds.length})`);
 
       try {
-        const subs = await opensubtitles.getsubtitles(
-          type,
-          imdbid,
-          season,
-          episode,
-          targetLanguage
-        );
+        // For custom subtitles episodeKey, movies use 'movie' in frontend
+        const episodeKey = (type === 'movie') ? 'movie' : `S${season}E${episode}`;
+        let subs = null;
+        let customSubtitleData = null;
 
-        if (!subs || subs.length === 0) {
+        if (customSubtitles && customSubtitles[episodeKey]) {
+          const customSub = customSubtitles[episodeKey];
+          await job.log(`[CUSTOM] Using custom subtitle for S${season}E${episode} (type: ${customSub.type})`);
+
+          if (customSub.type === 'url') {
+            subs = [{ url: customSub.url, lang: customSub.lang }];
+          } else if (customSub.type === 'file') {
+            customSubtitleData = {
+              filePath: customSub.filePath,
+              filename: customSub.filename
+            };
+          }
+        } else {
+          // For OpenSubtitles API, movies need type='movie' with null season/episode
+          const osSeason = (type === 'movie') ? null : season;
+          const osEpisode = (type === 'movie') ? null : episode;
+
+          subs = await opensubtitles.getsubtitles(
+            type,
+            imdbid,
+            osSeason,
+            osEpisode,
+            targetLanguage
+          );
+        }
+
+        if (!subs && !customSubtitleData) {
           await job.log(`[SKIP] No subtitles found for S${season}E${episode}`);
           await createOrUpdateMessageSub(
             "No subtitles found on OpenSubtitles",
@@ -155,7 +181,8 @@ const worker = new Worker(
         const existingTranslationQueueId = queueResult.length > 0 ? queueResult[0].id : null;
 
         await translationQueue.push({
-          subs: [subs[0]],
+          subs: subs ? [subs[0]] : null,
+          customSubtitle: customSubtitleData,
           imdbid: imdbid,
           season: season,
           episode: episode,

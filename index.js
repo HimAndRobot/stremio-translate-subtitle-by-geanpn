@@ -416,6 +416,8 @@ const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const getRouter = require("stremio-addon-sdk/src/getRouter");
+const multer = require("multer");
+const path = require("path");
 
 const { createBullBoard } = require("@bull-board/api");
 const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
@@ -443,6 +445,29 @@ app.use(session({
 app.use((_, res, next) => {
   res.setHeader("Cache-Control", "max-age=10, public");
   next();
+});
+
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads', 'temp');
+    fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `subtitle-${uniqueSuffix}.srt`);
+  }
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (path.extname(file.originalname).toLowerCase() !== '.srt') {
+      return cb(new Error('Only .srt files are allowed'));
+    }
+    cb(null, true);
+  }
 });
 
 function requireAuth(req, res, next) {
@@ -939,9 +964,46 @@ app.get("/api/episodes/:imdbid", requireAuth, async (req, res) => {
   }
 });
 
+app.get("/api/subtitles/:imdbid/:season/:episode", requireAuth, async (req, res) => {
+  try {
+    const { imdbid, season, episode } = req.params;
+    const { getAllSubtitles } = require("./opensubtitles");
+
+    const type = (season && season !== 'null' && episode && episode !== 'null') ? 'series' : 'movie';
+    const subtitles = await getAllSubtitles(
+      type,
+      imdbid,
+      (season && season !== 'null') ? parseInt(season) : null,
+      (episode && episode !== 'null') ? parseInt(episode) : null
+    );
+
+    res.json({ subtitles });
+  } catch (error) {
+    console.error("Subtitles API error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/upload-subtitle", requireAuth, upload.single('subtitle'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    res.json({
+      success: true,
+      filePath: req.file.path,
+      filename: req.file.originalname
+    });
+  } catch (error) {
+    console.error("Upload subtitle error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/download", requireAuth, async (req, res) => {
   try {
-    const { imdbid, type, episodes, targetLanguage, provider, apikey, base_url, model_name } = req.body;
+    const { imdbid, type, episodes, targetLanguage, provider, apikey, base_url, model_name, customSubtitles } = req.body;
 
     if (!imdbid || !type || !episodes || episodes.length === 0 || !targetLanguage || !provider) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -963,7 +1025,8 @@ app.post("/api/download", requireAuth, async (req, res) => {
       apikey,
       base_url,
       model_name,
-      password_hash: req.session.userPasswordHash
+      password_hash: req.session.userPasswordHash,
+      customSubtitles: customSubtitles || null
     });
 
     res.json({ success: true, message: `Queued ${episodes.length} episode(s) for translation` });
