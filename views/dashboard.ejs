@@ -935,13 +935,19 @@
                             </div>
                         <% } %>
 
-                        <% if (!series.isMovie) { %>
-                            <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0;">
-                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="btn btn-primary btn-sm" style="width: 100%;">
+                        <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0; gap: 10px;">
+                            <% if (!series.isMovie) { %>
+                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="btn btn-primary btn-sm" style="flex: 1;">
                                     📥 Download More Subtitles
                                 </button>
-                            </div>
-                        <% } %>
+                            <% } %>
+                            <% if (series.episodes.length !== 1) { %>
+                                <% const firstEpisode = series.episodes[0]; %>
+                                <button onclick="deleteTranslation(<%= firstEpisode.id %>)" class="btn btn-danger btn-sm" style="<%= series.isMovie ? 'width: 100%;' : 'flex: 1;' %>">
+                                    🗑️ Delete
+                                </button>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
             <% }); %>
