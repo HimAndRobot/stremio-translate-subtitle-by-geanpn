@@ -61,7 +61,7 @@ const worker = new Worker(
     let filepaths = [];
 
     try {
-      if (stremioId && !existingTranslationQueueId) {
+      if (stremioId) {
         const resolved = await resolveImdbFromStremioId(stremioId, extra, job);
         imdbid = resolved.imdbid;
         season = resolved.season;
@@ -275,6 +275,24 @@ const worker = new Worker(
 
     } catch (error) {
       await job.log(`[ERROR] ${error.message}`);
+
+      const adapter = await dbConnection.getAdapter();
+      const queueInfo = await adapter.query(
+        `SELECT subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ?`,
+        [imdbid, season, episode, oldisocode]
+      );
+
+      if (queueInfo.length > 0 && queueInfo[0].subtitle_path) {
+        const { subtitle_path } = queueInfo[0];
+        const { createOrUpdateMessageSub } = require('../subtitles');
+
+        const errorMessage = error.message.includes('No subtitles found')
+          ? 'No subtitles found on OpenSubtitles for this episode.'
+          : 'An error occurred while generating your subtitle. We will try again.';
+
+        await createOrUpdateMessageSub(errorMessage, subtitle_path);
+        await job.log(`[ACTION] Created error message subtitle`);
+      }
 
       await dbConnection.updateTranslationStatus(imdbid, season, episode, oldisocode, 'failed');
 

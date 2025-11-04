@@ -114,13 +114,15 @@ builder.defineSubtitlesHandler(async function (args) {
     : `${providerPath}/${imdbid}/S${season}E${episode}.srt`;
 
   try {
-    const queueStatus = await connection.checkForTranslationByStremioId(
-      id,
+    const queueStatus = await connection.checkForTranslation(
+      imdbid,
+      season,
+      episode,
       targetLanguage,
       password_hash
     );
 
-    console.log(`[HANDLER] queueStatus="${queueStatus}" | stremioId:${id} lang:${targetLanguage}`);
+    console.log(`[HANDLER] queueStatus="${queueStatus}" | ${imdbid} S${season}E${episode} lang:${targetLanguage}`);
 
     if (queueStatus) {
       const statusMessages = {
@@ -346,7 +348,7 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
     const adapter = await connection.getAdapter();
     const translations = await adapter.query(
       `SELECT id, series_imdbid, series_seasonno, series_episodeno, langcode, status,
-              series_name, poster, retry_attempts, token_usage_total, created_at
+              series_name, poster, retry_attempts, token_usage_total, created_at, type
        FROM translation_queue
        WHERE password_hash = ?
        ORDER BY created_at DESC`,
@@ -375,12 +377,15 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
       const key = translation.series_imdbid;
 
       if (!groupedSeries.has(key)) {
+        const isMovie = translation.type === 'movie';
+
         groupedSeries.set(key, {
           series_imdbid: translation.series_imdbid,
           series_name: translation.series_name,
           poster: translation.poster,
           episodes: [],
-          isMovie: !translation.series_seasonno && !translation.series_episodeno,
+          isMovie: isMovie,
+          type: translation.type || 'series',
           total_tokens: 0
         });
       }
@@ -878,18 +883,35 @@ app.get("/api/download-subtitle/:id", requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Translation is not completed yet' });
     }
 
-    const password_hash = req.session.userPasswordHash;
-    const subtitlePath = `subtitles/${password_hash}/${translation.series_imdbid}/season${translation.series_seasonno}/${translation.series_imdbid}-translated-${translation.series_episodeno}-1.srt`;
+    if (!translation.subtitle_path) {
+      return res.status(404).json({ error: 'Subtitle path not found in database' });
+    }
 
     const fs = require('fs');
     const path = require('path');
-    const fullPath = path.join(__dirname, subtitlePath);
+    const fullPath = path.join(__dirname, 'subtitles', translation.subtitle_path);
+
+    console.log(`[DOWNLOAD] Attempting to download subtitle for translation ${id}`);
+    console.log(`[DOWNLOAD] subtitle_path from DB: ${translation.subtitle_path}`);
+    console.log(`[DOWNLOAD] fullPath: ${fullPath}`);
+    console.log(`[DOWNLOAD] File exists: ${fs.existsSync(fullPath)}`);
 
     if (!fs.existsSync(fullPath)) {
-      return res.status(404).json({ error: 'Subtitle file not found' });
+      return res.status(404).json({
+        error: 'Subtitle file not found',
+        path: translation.subtitle_path,
+        fullPath: fullPath
+      });
     }
 
-    const fileName = `${translation.series_name || translation.series_imdbid}_S${String(translation.series_seasonno).padStart(2, '0')}E${String(translation.series_episodeno).padStart(2, '0')}_${translation.langcode}.srt`;
+    const isMovie = translation.type === 'movie';
+
+    let fileName;
+    if (isMovie) {
+      fileName = `${translation.series_name || translation.series_imdbid}_${translation.langcode}.srt`;
+    } else {
+      fileName = `${translation.series_name || translation.series_imdbid}_S${String(translation.series_seasonno).padStart(2, '0')}E${String(translation.series_episodeno).padStart(2, '0')}_${translation.langcode}.srt`;
+    }
 
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');

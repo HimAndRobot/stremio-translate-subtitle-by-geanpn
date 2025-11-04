@@ -815,28 +815,35 @@
         </div>
     <% } else { %>
         <div class="search-container">
-            <input type="text" id="searchBox" class="search-box" placeholder="Search by title, IMDB ID, season, episode..." onkeyup="filterSeries()">
+            <form autocomplete="off" style="margin: 0; padding: 0;">
+                <input type="text" id="searchBox" class="search-box" placeholder="Search by title, IMDB ID, season, episode..." onkeyup="filterSeries()" autocomplete="off" autocapitalize="off" spellcheck="false" name="search-box-unique">
+            </form>
         </div>
         <div class="grid-container" id="seriesGrid">
             <% groupedSeries.forEach(series => { %>
                 <div class="card series-card">
-                    <% if (series.poster && series.poster !== null && series.poster !== '') { %>
-                        <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="card-poster-placeholder" style="display:none;">
-                            <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
-                        </div>
-                    <% } else { %>
-                        <div class="card-poster-placeholder">
-                            <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
-                        </div>
-                    <% } %>
+                    <div style="position: relative;">
+                        <span class="status-badge" style="background: <%= series.type === 'movie' ? '#ff6b6b' : '#4ecdc4' %>; color: white; font-size: 10px; padding: 4px 10px; border-radius: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <%= series.type === 'movie' ? '🎬 MOVIE' : '📺 SERIES' %>
+                        </span>
+                        <% if (series.poster && series.poster !== null && series.poster !== '') { %>
+                            <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="card-poster-placeholder" style="display:none;">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            </div>
+                        <% } else { %>
+                            <div class="card-poster-placeholder">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            </div>
+                        <% } %>
+                    </div>
 
                     <div class="card-content">
                         <div style="flex-grow: 1;">
                             <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
                             <div class="card-subtitle">
                                 <% if (series.isMovie) { %>
-                                    Movie • <%= series.languages %>
+                                    <%= series.languages %>
                                 <% } else { %>
                                     <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.languages %>
                                 <% } %>
@@ -853,7 +860,11 @@
                                     <% firstThree.forEach(episode => { %>
                                     <div class="episode-item">
                                         <div class="episode-info">
-                                            <span class="episode-label">S<%= String(episode.series_seasonno).padStart(2, '0') %>E<%= String(episode.series_episodeno).padStart(2, '0') %></span>
+                                            <%
+                                                const isEpisodeMovie = episode.type === 'movie';
+                                                const episodeLabel = isEpisodeMovie ? 'Movie' : `S${String(episode.series_seasonno).padStart(2, '0')}E${String(episode.series_episodeno).padStart(2, '0')}`;
+                                            %>
+                                            <span class="episode-label"><%= episodeLabel %></span>
                                             <span class="status status-<%= episode.status %>"><%= episode.status %></span>
                                             <div class="episode-stats">
                                                 <span>🌐 <%= episode.langcode %></span>
@@ -2012,9 +2023,12 @@
 
                 const downloadBtn = (episode.status === 'completed') ? '<button onclick="downloadSubtitle(' + episode.id + ')">📥 Download</button>' : '';
 
+                const isEpisodeMovie = episode.type === 'movie';
+                const episodeLabel = isEpisodeMovie ? 'Movie' : 'S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0');
+
                 html += '<div class="episode-item">' +
                     '<div class="episode-info">' +
-                        '<span class="episode-label">S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0') + '</span>' +
+                        '<span class="episode-label">' + episodeLabel + '</span>' +
                         '<span class="status status-' + episode.status + '">' + episode.status + '</span>' +
                         '<div class="episode-stats">' +
                             '<span>🌐 ' + episode.langcode + '</span>' +

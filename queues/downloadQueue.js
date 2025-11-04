@@ -1,7 +1,6 @@
 const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const connection = require("../connection");
-const opensubtitles = require("../opensubtitles");
 const translationQueue = require("./translationQueue");
 const { createOrUpdateMessageSub } = require("../subtitles");
 const { getMetadata } = require("../utils/metadata");
@@ -76,23 +75,18 @@ const worker = new Worker(
           continue;
         }
 
+        const subtitlePath = type === 'movie'
+          ? `${providerPath}/${imdbid}/movie.srt`
+          : `${providerPath}/${imdbid}/S${dbSeason}E${dbEpisode}.srt`;
+
         await createOrUpdateMessageSub(
           "Translating subtitles. Please wait 1 minute and try again.",
-          imdbid,
-          dbSeason,
-          dbEpisode,
-          targetLanguage,
-          providerPath
+          subtitlePath
         );
 
-        await connection.addsubtitle(
-          imdbid,
-          type,
-          dbSeason,
-          dbEpisode,
-          `subtitles/${providerPath}/${imdbid}/season${dbSeason}/${imdbid}-translated-${dbEpisode}-1.srt`,
-          targetLanguage
-        );
+        const stremioId = type === 'movie'
+          ? imdbid
+          : `${imdbid}:${dbSeason}:${dbEpisode}`;
 
         await connection.addToTranslationQueue(
           imdbid,
@@ -105,7 +99,10 @@ const worker = new Worker(
           null,
           null,
           series_name,
-          poster
+          poster,
+          stremioId,
+          subtitlePath,
+          type
         );
 
         translationQueueIds.push({ season: dbSeason, episode: dbEpisode });
@@ -128,49 +125,19 @@ const worker = new Worker(
       await job.log(`[PROCESSING] ${imdbid} S${season}E${episode} (${processed + 1}/${translationQueueIds.length})`);
 
       try {
-        // For custom subtitles episodeKey, movies use 'movie' in frontend
         const episodeKey = (type === 'movie') ? 'movie' : `S${season}E${episode}`;
-        let subs = null;
         let customSubtitleData = null;
 
         if (customSubtitles && customSubtitles[episodeKey]) {
           const customSub = customSubtitles[episodeKey];
           await job.log(`[CUSTOM] Using custom subtitle for S${season}E${episode} (type: ${customSub.type})`);
 
-          if (customSub.type === 'url') {
-            subs = [{ url: customSub.url, lang: customSub.lang }];
-          } else if (customSub.type === 'file') {
+          if (customSub.type === 'file') {
             customSubtitleData = {
               filePath: customSub.filePath,
               filename: customSub.filename
             };
           }
-        } else {
-          // For OpenSubtitles API, movies need type='movie' with null season/episode
-          const osSeason = (type === 'movie') ? null : season;
-          const osEpisode = (type === 'movie') ? null : episode;
-
-          subs = await opensubtitles.getsubtitles(
-            type,
-            imdbid,
-            osSeason,
-            osEpisode,
-            targetLanguage
-          );
-        }
-
-        if (!subs && !customSubtitleData) {
-          await job.log(`[SKIP] No subtitles found for S${season}E${episode}`);
-          await createOrUpdateMessageSub(
-            "No subtitles found on OpenSubtitles",
-            imdbid,
-            season,
-            episode,
-            targetLanguage,
-            providerPath
-          );
-          processed++;
-          continue;
         }
 
         const queueResult = await adapter.query(
@@ -180,8 +147,12 @@ const worker = new Worker(
 
         const existingTranslationQueueId = queueResult.length > 0 ? queueResult[0].id : null;
 
+        const stremioId = type === 'movie'
+          ? imdbid
+          : `${imdbid}:${season}:${episode}`;
+
         await translationQueue.push({
-          subs: subs ? [subs[0]] : null,
+          stremioId: stremioId,
           customSubtitle: customSubtitleData,
           imdbid: imdbid,
           season: season,
