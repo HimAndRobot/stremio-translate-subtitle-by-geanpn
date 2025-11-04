@@ -10,7 +10,6 @@ const {
   supportsDocumentTranslation
 } = require("../translateProvider");
 const {
-  resolveImdbFromStremioId,
   fetchSubtitlesFromOpenSubtitles,
   updateDatabaseWithResolvedData,
   parseSRTFile,
@@ -41,7 +40,6 @@ const worker = new Worker(
   async (job) => {
     const {
       stremioId,
-      extra,
       oldisocode,
       provider,
       apikey,
@@ -61,13 +59,23 @@ const worker = new Worker(
     let filepaths = [];
 
     try {
-      if (stremioId) {
-        const resolved = await resolveImdbFromStremioId(stremioId, extra, job);
-        imdbid = resolved.imdbid;
-        season = resolved.season;
-        episode = resolved.episode;
-        type = resolved.type;
+      const adapter = await dbConnection.getAdapter();
+      const queueInfo = await adapter.query(
+        `SELECT series_imdbid, series_seasonno, series_episodeno, type, stremio_id
+         FROM translation_queue
+         WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+        jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+      );
+
+      if (queueInfo.length === 0) {
+        throw new Error(`Translation queue entry not found for stremioId: ${stremioId}`);
       }
+
+      imdbid = queueInfo[0].series_imdbid;
+      season = queueInfo[0].series_seasonno;
+      episode = queueInfo[0].series_episodeno;
+      type = queueInfo[0].type;
+      await job.log(`[DB] Pulled from database: ${imdbid} S${season}E${episode} (${type})`)
 
       if (!resolvedSubs && !customSubtitle) {
         const subtitleResult = await fetchSubtitlesFromOpenSubtitles(imdbid, season, episode, type, oldisocode, job);
@@ -136,8 +144,6 @@ const worker = new Worker(
 
       const originalSubtitleFilePath = filepaths[0];
       const { subcounts, timecodes, texts, originalContent: originalSubtitleContent } = await parseSRTFile(originalSubtitleFilePath, job);
-
-      const adapter = await dbConnection.getAdapter();
 
       if (!translationQueueId) {
         translationQueueId = await getTranslationQueueId(imdbid, season, episode, oldisocode);

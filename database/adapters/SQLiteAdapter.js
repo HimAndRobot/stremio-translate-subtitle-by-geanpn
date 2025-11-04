@@ -189,22 +189,25 @@ class SQLiteAdapter extends BaseAdapter {
     }
   }
 
-  async checkForTranslation(imdbid, season = null, episode = null, langcode, password_hash = null) {
+  async checkForTranslation(imdbid, season = null, episode = null, password_hash = null) {
     try {
       let query, params;
 
       if (password_hash) {
-        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash = ?";
-        params = [imdbid, season, episode, langcode, password_hash];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND password_hash = ? LIMIT 1";
+        params = [imdbid, season, episode, password_hash];
       } else {
-        query = "SELECT status FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash IS NULL";
-        params = [imdbid, season, episode, langcode];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND password_hash IS NULL LIMIT 1";
+        params = [imdbid, season, episode];
       }
 
       const result = await this.query(query, params);
 
       if (result.length > 0) {
-        return result[0].status;
+        return {
+          status: result[0].status,
+          subtitle_path: result[0].subtitle_path
+        };
       }
       return null;
     } catch (error) {

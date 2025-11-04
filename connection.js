@@ -35,9 +35,9 @@ async function deletetranslationQueue(imdbid, season = null, episode = null, lan
     return adapter.deletetranslationQueue(imdbid, season, episode, langcode);
 }
 
-async function checkForTranslation(imdbid, season = null, episode = null, langcode, password_hash = null) {
+async function checkForTranslation(imdbid, season = null, episode = null, password_hash = null) {
     const adapter = await getAdapter();
-    return adapter.checkForTranslation(imdbid, season, episode, langcode, password_hash);
+    return adapter.checkForTranslation(imdbid, season, episode, password_hash);
 }
 
 async function checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {

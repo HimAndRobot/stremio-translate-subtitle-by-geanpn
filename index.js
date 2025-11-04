@@ -97,16 +97,82 @@ builder.defineSubtitlesHandler(async function (args) {
   let episode = null;
   let type = parsed.type;
 
-  if (id.startsWith("tt")) {
+  if (id.startsWith("kkh-")) {
+    console.log('[HANDLER] KissKH format detected, resolving...');
+    const integrations = require("./integrations");
+    try {
+      const resolved = await integrations.kisskh.resolveKissKHId(id);
+      if (resolved) {
+        imdbid = resolved.imdbid;
+        season = resolved.season;
+        episode = resolved.episode;
+        type = "series";
+        console.log(`[HANDLER] KissKH resolved to ${imdbid} S${season}E${episode}`);
+      } else {
+        throw new Error('Failed to resolve KissKH ID');
+      }
+    } catch (error) {
+      console.error(`[HANDLER] KissKH resolution failed: ${error.message}`);
+      return Promise.resolve({ subtitles: [] });
+    }
+  } else if (id.startsWith("dcool-")) {
+    console.log('[HANDLER] DCool format detected, resolving...');
+    imdbid = "tt5994346";
+    const match = id.match(/dcool-(.+)::(.+)-episode-(\d+)/);
+    if (match) {
+      const [, , , ep] = match;
+      type = "series";
+      season = 1;
+      episode = Number(ep);
+      console.log(`[HANDLER] DCool resolved to ${imdbid} S${season}E${episode}`);
+    } else {
+      console.error('[HANDLER] Invalid DCool format');
+      return Promise.resolve({ subtitles: [] });
+    }
+  } else if (id.startsWith("tt")) {
+    console.log('[HANDLER] IMDb format detected');
     const parts = id.split(":");
     imdbid = parts[0];
-    if (parsed.type === "series") {
-      season = parsed.season;
-      episode = parsed.episode;
-    } else if (parsed.type === "movie") {
+
+    const match = id.match(/tt(\d+):(\d+):(\d+)/);
+    if (match) {
+      const [, , s, e] = match;
+      type = "series";
+      season = Number(s);
+      episode = Number(e);
+      console.log(`[HANDLER] IMDb resolved to ${imdbid} S${season}E${episode}`);
+    } else {
+      type = "movie";
       season = 1;
       episode = 1;
+      console.log(`[HANDLER] IMDb resolved to ${imdbid} (movie)`);
     }
+  }
+
+  if (!imdbid && extra && extra.filename) {
+    console.log(`[HANDLER] Trying Cinemeta fallback with filename: ${extra.filename}`);
+    try {
+      const { searchContent } = require("./utils/search");
+      const searchResults = await searchContent(extra.filename);
+
+      if (searchResults.results && searchResults.results.length > 0) {
+        imdbid = searchResults.results[0].id;
+        type = searchResults.results[0].type;
+        console.log(`[HANDLER] Cinemeta found: ${imdbid} (${searchResults.results[0].name})`);
+
+        if (type === "movie") {
+          season = 1;
+          episode = 1;
+        }
+      }
+    } catch (error) {
+      console.error(`[HANDLER] Cinemeta fallback failed: ${error.message}`);
+    }
+  }
+
+  if (!imdbid) {
+    console.error('[HANDLER] Could not resolve IMDb ID from stremioId');
+    return Promise.resolve({ subtitles: [] });
   }
 
   const subtitlePath = type === "movie"
@@ -118,7 +184,6 @@ builder.defineSubtitlesHandler(async function (args) {
       imdbid,
       season,
       episode,
-      targetLanguage,
       password_hash
     );
 

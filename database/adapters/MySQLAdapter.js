@@ -180,25 +180,28 @@ class MySQLAdapter extends BaseAdapter {
     }
   }
 
-  async checkForTranslation(imdbid, season = null, episode = null, langcode, password_hash = null) {
+  async checkForTranslation(imdbid, season = null, episode = null, password_hash = null) {
     try {
       let query, params;
 
       if (password_hash) {
-        query = "SELECT status, password_hash as db_password_hash FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND password_hash = ?";
-        params = [imdbid, season, episode, langcode, password_hash];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND password_hash = ? LIMIT 1";
+        params = [imdbid, season, episode, password_hash];
       } else {
-        query = "SELECT status, password_hash as db_password_hash FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND langcode = ? AND (password_hash IS NULL OR password_hash = '')";
-        params = [imdbid, season, episode, langcode];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND (password_hash IS NULL OR password_hash = '') LIMIT 1";
+        params = [imdbid, season, episode];
       }
 
-      console.log(`[DEBUG checkForTranslation] Searching for: IMDB=${imdbid}, S${season}E${episode}, Lang=${langcode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
+      console.log(`[DEBUG checkForTranslation] Searching for: IMDB=${imdbid}, S${season}E${episode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
 
       const result = await this.query(query, params);
 
       if (result.length > 0) {
-        console.log(`[DEBUG checkForTranslation] FOUND: Status=${result[0].status}, DB_Password=${result[0].db_password_hash ? result[0].db_password_hash.substring(0, 8) + '...' : 'NULL'}`);
-        return result[0].status;
+        console.log(`[DEBUG checkForTranslation] FOUND: Status=${result[0].status}, Path=${result[0].subtitle_path}`);
+        return {
+          status: result[0].status,
+          subtitle_path: result[0].subtitle_path
+        };
       }
 
       console.log(`[DEBUG checkForTranslation] NOT FOUND`);
