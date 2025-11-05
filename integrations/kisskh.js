@@ -9,11 +9,10 @@ const KISSKH_API = "https://kisskh-proxy.kisskhstremiotranslate.workers.dev/api"
  * @param {string} id - Format: "kkh-3163::65119"
  * @returns {Promise<{imdbid: string, season: number, episode: number}|null>}
  */
-async function resolveKissKHId(id) {
+async function resolveKissKHId(id, password_hash = null) {
   try {
     console.log(`[KissKH] Resolving ID: ${id}`);
 
-    // Extract seriesId and episodeId
     const match = id.match(/kkh-(\d+)::(\d+)/);
     if (!match) {
       console.log(`[KissKH] Invalid format: ${id}`);
@@ -25,8 +24,32 @@ async function resolveKissKHId(id) {
 
     console.log(`[KissKH] Series ID: ${kkhSeriesId}, Episode ID: ${kkhEpisodeId}`);
 
-    // Fetch via Cloudflare Worker (bypass datacenter IP blocking)
-    console.log(`[KissKH] Fetching from Worker: ${KISSKH_API}/${kkhSeriesId}`);
+    const seriesPrefix = `kkh-${kkhSeriesId}::`;
+    console.log(`[KissKH] Checking database cache for: ${seriesPrefix}%`);
+
+    const connection = require("../connection");
+    const adapter = await connection.getAdapter();
+    const existingSeries = await adapter.query(
+      `SELECT series_imdbid, series_name FROM translation_queue WHERE stremio_id LIKE ? AND series_imdbid != 'unknown' AND password_hash ${password_hash ? '= ?' : 'IS NULL'} LIMIT 1`,
+      password_hash ? [`${seriesPrefix}%`, password_hash] : [`${seriesPrefix}%`]
+    );
+
+    if (existingSeries.length > 0) {
+      console.log(`[KissKH] Found cached series: ${existingSeries[0].series_imdbid} (${existingSeries[0].series_name})`);
+
+      const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}`, { timeout: 10000 });
+      const episodeData = response.data.episodes?.find(ep => ep.id == kkhEpisodeId);
+      const episodeNumber = episodeData ? episodeData.number : 1;
+
+      return {
+        imdbid: existingSeries[0].series_imdbid,
+        season: 1,
+        episode: episodeNumber,
+        similarity: 1.0,
+      };
+    }
+
+    console.log(`[KissKH] No cache found, fetching from Worker: ${KISSKH_API}/${kkhSeriesId}`);
     const response = await axios.get(`${KISSKH_API}/${kkhSeriesId}`, {
       timeout: 10000,
     });
@@ -43,8 +66,6 @@ async function resolveKissKHId(id) {
 
     console.log(`[KissKH] Series title: "${seriesData.title}"`);
 
-    // Remove season number from title for better search results
-    // "Single's Inferno Season 4" → "Single's Inferno"
     const searchTitle = seriesData.title.replace(/\s+Season\s+\d+/i, '').trim();
 
     console.log(`[KissKH] Searching Cinemeta for: "${searchTitle}"`);
@@ -132,6 +153,7 @@ async function resolveKissKHId(id) {
       imdbid: imdbid,
       season: 1,
       episode: episodeNumber,
+      similarity: bestScore,
     };
   } catch (error) {
     console.error(`[KissKH] Error resolving ID:`, error.message);

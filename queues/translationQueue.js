@@ -81,10 +81,80 @@ const worker = new Worker(
         const subtitleResult = await fetchSubtitlesFromOpenSubtitles(imdbid, season, episode, type, oldisocode, job);
 
         if (subtitleResult.skipped) {
+          await job.log('[DOWNLOAD] Downloading subtitle (already in target language)');
+
+          const downloadedFiles = await opensubtitles.downloadSubtitles(
+            subtitleResult.subtitles,
+            imdbid,
+            season,
+            episode,
+            oldisocode
+          );
+
+          if (!downloadedFiles || downloadedFiles.length === 0) {
+            throw new Error('Failed to download subtitle file');
+          }
+
+          const downloadedPath = downloadedFiles[0];
+          await job.log(`[DOWNLOAD] Subtitle downloaded to: ${downloadedPath}`);
+
+          const queuePathInfo = await adapter.query(
+            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+          );
+
+          if (queuePathInfo.length === 0) {
+            throw new Error('Translation queue entry not found');
+          }
+
+          const targetPath = `subtitles/${queuePathInfo[0].subtitle_path}`;
+          const targetDir = targetPath.substring(0, targetPath.lastIndexOf('/'));
+
+          await fs.mkdir(targetDir, { recursive: true });
+          await fs.copyFile(downloadedPath, targetPath);
+          await fs.unlink(downloadedPath);
+
+          await job.log(`[SAVE] Copied to final location: ${targetPath}`);
+
+          await adapter.query(
+            `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? ['completed', stremioId, oldisocode, jobPasswordHash] : ['completed', stremioId, oldisocode]
+          );
+
+          await job.log('[STATUS] Marked as completed');
+
           return {
             success: true,
             message: 'Subtitle already in target language',
             skipped: true
+          };
+        }
+
+        if (subtitleResult.needsManualSearch) {
+          await job.log('[OPENSUBTITLES] No subtitles found, marking as manual_search');
+
+          const pathInfo = await adapter.query(
+            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+          );
+
+          if (pathInfo.length > 0) {
+            await adapter.query(
+              `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+              jobPasswordHash ? ['manual_search', stremioId, oldisocode, jobPasswordHash] : ['manual_search', stremioId, oldisocode]
+            );
+
+            const { createOrUpdateMessageSub } = require('../subtitles');
+            await createOrUpdateMessageSub(
+              "We couldn't automatically identify this content. Please access the dashboard to search and add subtitles manually.",
+              pathInfo[0].subtitle_path
+            );
+          }
+
+          return {
+            success: true,
+            message: 'Manual search required',
+            manual_search: true
           };
         }
 

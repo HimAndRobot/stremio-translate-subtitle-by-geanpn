@@ -92,18 +92,19 @@ class SQLiteAdapter extends BaseAdapter {
     poster = null,
     stremioId = null,
     subtitle_path = null,
-    type = null
+    type = null,
+    status = 'processing'
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, stremioId, type, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, type, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path, status]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, stremioId, type, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, type, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path, status]
         );
       }
     } catch (error) {
@@ -216,19 +217,19 @@ class SQLiteAdapter extends BaseAdapter {
     }
   }
 
-  async checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {
+  async checkForTranslationByStremioId(stremioId, password_hash = null) {
     try {
       let query, params;
 
       if (password_hash) {
-        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash = ?";
-        params = [stremioId, langcode, password_hash];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND password_hash = ?";
+        params = [stremioId, password_hash];
       } else {
-        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND (password_hash IS NULL OR password_hash = '')";
-        params = [stremioId, langcode];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND (password_hash IS NULL OR password_hash = '')";
+        params = [stremioId];
       }
 
-      console.log(`[DEBUG checkForTranslationByStremioId] Searching for: StremioID=${stremioId}, Lang=${langcode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
+      console.log(`[DEBUG checkForTranslationByStremioId] Searching for: StremioID=${stremioId}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
 
       const result = await this.query(query, params);
 

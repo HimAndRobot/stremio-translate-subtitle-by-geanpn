@@ -222,6 +222,10 @@
             background: #ffebee;
             color: #c62828;
         }
+        .status-manual_search {
+            background: #fff9e6;
+            color: #f57f17;
+        }
         .card-actions {
             display: flex;
             gap: 10px;
@@ -865,7 +869,11 @@
                                                 const episodeLabel = isEpisodeMovie ? 'Movie' : `S${String(episode.series_seasonno).padStart(2, '0')}E${String(episode.series_episodeno).padStart(2, '0')}`;
                                             %>
                                             <span class="episode-label"><%= episodeLabel %></span>
-                                            <span class="status status-<%= episode.status %>"><%= episode.status %></span>
+                                            <span class="status status-<%= episode.status %>">
+                                                <%= episode.status %><% if (episode.status === 'manual_search') { %>
+                                                • <%= new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
+                                            </span>
                                             <div class="episode-stats">
                                                 <span>🌐 <%= episode.langcode %></span>
                                                 <span>🪙 <%= (episode.token_usage_total || 0).toLocaleString() %></span>
@@ -908,7 +916,13 @@
                                 <div class="stats-grid">
                                     <div class="stat-box">
                                         <div class="stat-label">Status</div>
-                                        <div class="stat-value"><span class="status status-<%= item.status %>"><%= item.status %></span></div>
+                                        <div class="stat-value">
+                                            <span class="status status-<%= item.status %>">
+                                                <%= item.status %><% if (item.status === 'manual_search') { %>
+                                                • <%= new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="stat-box">
                                         <div class="stat-label">Tokens</div>
@@ -932,6 +946,9 @@
                                         (item.status === 'processing' &&
                                          new Date() - new Date(item.created_at) > 10 * 60 * 1000);
                                 %>
+                                <% if (item.status === 'manual_search' && series.series_imdbid === 'unknown') { %>
+                                    <button onclick="openIdentifyModal(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">🔍 Identify Content</button>
+                                <% } %>
                                 <% if (item.status === 'completed') { %>
                                     <button onclick="downloadSubtitle(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">📥 Download</button>
                                 <% } %>
@@ -1569,6 +1586,11 @@
         }
 
         async function selectSeries(imdbId, name, type, poster, year) {
+            if (currentIdentifyId) {
+                await identifyContent(imdbId, name, poster);
+                return;
+            }
+
             currentSelectedSeries = { imdbId, name, type, poster, year };
 
             document.getElementById('searchContainer').style.display = 'none';
@@ -2026,10 +2048,14 @@
                 const isEpisodeMovie = episode.type === 'movie';
                 const episodeLabel = isEpisodeMovie ? 'Movie' : 'S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0');
 
+                const statusText = episode.status === 'manual_search'
+                    ? episode.status + ' • ' + new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : episode.status;
+
                 html += '<div class="episode-item">' +
                     '<div class="episode-info">' +
                         '<span class="episode-label">' + episodeLabel + '</span>' +
-                        '<span class="status status-' + episode.status + '">' + episode.status + '</span>' +
+                        '<span class="status status-' + episode.status + '">' + statusText + '</span>' +
                         '<div class="episode-stats">' +
                             '<span>🌐 ' + episode.langcode + '</span>' +
                             '<span>🪙 ' + (episode.token_usage_total || 0).toLocaleString() + '</span>' +
@@ -2188,6 +2214,44 @@
                 showToast('Downloading subtitle...', 'success');
             } catch (error) {
                 showToast('Error downloading subtitle', 'error');
+            }
+        }
+
+        let currentIdentifyId = null;
+
+        function openIdentifyModal(id) {
+            currentIdentifyId = id;
+            resetAddSubtitleModal();
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalTitle').textContent = 'Identify Content';
+        }
+
+        async function identifyContent(imdbId, name, poster) {
+            try {
+                const response = await fetch('/api/identify-content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentIdentifyId,
+                        imdbId: imdbId,
+                        name: name,
+                        poster: poster
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Content identified successfully!', 'success');
+                    closeAddSubtitleModal();
+                    currentIdentifyId = null;
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    showToast('Error: ' + (data.error || 'Failed to identify content'), 'error');
+                }
+            } catch (error) {
+                console.error('Identify error:', error);
+                showToast('Connection error. Please try again.', 'error');
             }
         }
 

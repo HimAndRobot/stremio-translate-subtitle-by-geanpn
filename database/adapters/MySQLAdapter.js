@@ -7,35 +7,28 @@ class MySQLAdapter extends BaseAdapter {
     super(config);
     this.connection = null;
     this.query = null;
-    this.reconnectInterval = null;
   }
 
   async connect() {
     try {
-      this.connection = mysql.createConnection({
+      this.connection = mysql.createPool({
         host: this.config.host,
         port: this.config.port,
         user: this.config.user,
         password: this.config.password,
         database: this.config.database,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0
       });
 
-      await new Promise((resolve, reject) => {
-        this.connection.connect((err) => {
-          if (err) {
-            console.error("Error connecting to MySQL:", err);
-            reject(err);
-          } else {
-            console.log("Connected to MySQL!");
-            resolve();
-          }
-        });
-      });
+      const testQuery = util.promisify(this.connection.query).bind(this.connection);
+      await testQuery('SELECT 1');
+      console.log("Connected to MySQL pool!");
 
       this.query = util.promisify(this.connection.query).bind(this.connection);
-
-      // Set up auto-reconnection
-      this._setupReconnection();
 
       return true;
     } catch (error) {
@@ -45,28 +38,10 @@ class MySQLAdapter extends BaseAdapter {
   }
 
   async disconnect() {
-    if (this.reconnectInterval) {
-      clearInterval(this.reconnectInterval);
-    }
-
     if (this.connection) {
-      this.connection.end();
+      await this.connection.end();
       this.connection = null;
     }
-  }
-
-  _setupReconnection() {
-    this.reconnectInterval = setInterval(() => {
-      if (this.connection.state === "disconnected") {
-        this.connection.connect((err) => {
-          if (err) {
-            console.error("MySQL reconnection error:", err);
-          } else {
-            console.log("Reconnected to MySQL!");
-          }
-        });
-      }
-    }, 60000);
   }
 
   async addToTranslationQueue(
@@ -83,18 +58,19 @@ class MySQLAdapter extends BaseAdapter {
     poster = null,
     stremioId = null,
     subtitle_path = null,
-    type = null
+    type = null,
+    status = 'processing'
   ) {
     try {
       if (season && episode) {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, stremioId, type, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,series_seasonno,series_episodeno,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, type, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path, status]
         );
       } else {
         await this.query(
-          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-          [imdbid, stremioId, type, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path]
+          "INSERT INTO translation_queue (series_imdbid,stremio_id,type,subcount,langcode,password_hash,apikey_encrypted,base_url_encrypted,model_name_encrypted,series_name,poster,subtitle_path,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [imdbid, stremioId, type, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, subtitle_path, status]
         );
       }
     } catch (error) {
@@ -212,19 +188,19 @@ class MySQLAdapter extends BaseAdapter {
     }
   }
 
-  async checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {
+  async checkForTranslationByStremioId(stremioId, password_hash = null) {
     try {
       let query, params;
 
       if (password_hash) {
-        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash = ?";
-        params = [stremioId, langcode, password_hash];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND password_hash = ?";
+        params = [stremioId, password_hash];
       } else {
-        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND (password_hash IS NULL OR password_hash = '')";
-        params = [stremioId, langcode];
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE stremio_id = ? AND (password_hash IS NULL OR password_hash = '')";
+        params = [stremioId];
       }
 
-      console.log(`[DEBUG checkForTranslationByStremioId] Searching for: StremioID=${stremioId}, Lang=${langcode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
+      console.log(`[DEBUG checkForTranslationByStremioId] Searching for: StremioID=${stremioId}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
 
       const result = await this.query(query, params);
 

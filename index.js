@@ -91,6 +91,19 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const providerPath = password_hash || 'translated';
 
+  const existingRecord = await connection.checkForTranslationByStremioId(id, password_hash);
+  if (existingRecord && existingRecord.subtitle_path) {
+    console.log(`[HANDLER] Found existing record for stremio_id: ${id}, status: ${existingRecord.status}`);
+
+    return Promise.resolve({
+      subtitles: [{
+        id: `${id}-subtitle`,
+        url: `${process.env.BASE_URL}/subtitles/${existingRecord.subtitle_path}`,
+        lang: iso6392Lang,
+      }],
+    });
+  }
+
   const parsed = parseId(id);
   let imdbid = null;
   let season = null;
@@ -101,13 +114,37 @@ builder.defineSubtitlesHandler(async function (args) {
     console.log('[HANDLER] KissKH format detected, resolving...');
     const integrations = require("./integrations");
     try {
-      const resolved = await integrations.kisskh.resolveKissKHId(id);
+      const resolved = await integrations.kisskh.resolveKissKHId(id, password_hash);
       if (resolved) {
         imdbid = resolved.imdbid;
         season = resolved.season;
         episode = resolved.episode;
         type = "series";
-        console.log(`[HANDLER] KissKH resolved to ${imdbid} S${season}E${episode}`);
+        console.log(`[HANDLER] KissKH resolved to ${imdbid} S${season}E${episode} (similarity: ${(resolved.similarity * 100).toFixed(1)}%)`);
+
+        if (resolved.similarity < 0.70) {
+          console.log(`[HANDLER] Low similarity (${(resolved.similarity * 100).toFixed(1)}%), marking as manual_search`);
+          const unknownImdb = 'unknown';
+          const subtitlePath = `${providerPath}/${unknownImdb}/S${season}E${episode}.srt`;
+
+          await connection.addToTranslationQueue(
+            unknownImdb, season, episode, 0, targetLanguage, password_hash,
+            null, null, null, null, null, id, subtitlePath, type, 'manual_search'
+          );
+
+          await createOrUpdateMessageSub(
+            "We couldn't automatically identify this content. Please access the dashboard to search and add subtitles manually.",
+            subtitlePath
+          );
+
+          return Promise.resolve({
+            subtitles: [{
+              id: `${id}-subtitle`,
+              url: `${process.env.BASE_URL}/subtitles/${subtitlePath}`,
+              lang: iso6392Lang,
+            }],
+          });
+        }
       } else {
         throw new Error('Failed to resolve KissKH ID');
       }
@@ -193,7 +230,8 @@ builder.defineSubtitlesHandler(async function (args) {
       const statusMessages = {
         'completed': 'Subtitle found in database (completed), returning it',
         'processing': 'Translation in progress, returning placeholder',
-        'failed': 'Translation failed, returning error subtitle'
+        'failed': 'Translation failed, returning error subtitle',
+        'manual_search': 'Manual search required, returning help message'
       };
 
       console.log(`[HANDLER] ${statusMessages[queueStatus.status]}`);
@@ -634,6 +672,7 @@ app.post("/admin/reprocess-with-credentials", requireAuth, async (req, res) => {
     if (subs && subs.length > 0) {
       translationQueue.push({
         subs: subs,
+        stremioId: translation.stremio_id,
         imdbid: translation.series_imdbid,
         season: translation.series_seasonno,
         episode: translation.series_episodeno,
@@ -924,6 +963,43 @@ app.post("/api/download", requireAuth, async (req, res) => {
     res.json({ success: true, message: `Queued ${episodes.length} episode(s) for translation` });
   } catch (error) {
     console.error("Download API error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/identify-content", requireAuth, async (req, res) => {
+  try {
+    const { id, imdbId, name, poster } = req.body;
+
+    if (!id || !imdbId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const adapter = await connection.getAdapter();
+
+    const result = await adapter.query(
+      'SELECT * FROM translation_queue WHERE id = ? AND password_hash = ?',
+      [id, req.session.userPasswordHash]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Translation not found' });
+    }
+
+    const translation = result[0];
+    const oldSubtitlePath = translation.subtitle_path;
+    const newSubtitlePath = oldSubtitlePath.replace('/unknown/', `/${imdbId}/`);
+
+    await adapter.query(
+      'UPDATE translation_queue SET series_imdbid = ?, series_name = ?, poster = ?, status = ?, subtitle_path = ? WHERE id = ?',
+      [imdbId, name || null, poster || null, 'failed', newSubtitlePath, id]
+    );
+
+    console.log(`[IDENTIFY] Content identified: ${imdbId} (${name})`);
+    console.log(`[IDENTIFY] Updated subtitle_path: ${oldSubtitlePath} -> ${newSubtitlePath}`);
+    res.json({ success: true, message: 'Content identified! Now reprocess your episode to start translation' });
+  } catch (error) {
+    console.error("Identify content error:", error);
     res.status(500).json({ error: error.message });
   }
 });

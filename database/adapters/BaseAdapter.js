@@ -44,7 +44,7 @@ class BaseAdapter {
     throw new Error("checkForTranslation() must be implemented by child class");
   }
 
-  async checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {
+  async checkForTranslationByStremioId(stremioId, password_hash = null) {
     throw new Error("checkForTranslationByStremioId() must be implemented by child class");
   }
 

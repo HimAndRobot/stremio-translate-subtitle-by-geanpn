@@ -101,7 +101,7 @@ async function fetchSubtitlesFromOpenSubtitles(imdbid, season, episode, type, ol
   );
 
   if (!fetchedSubs || fetchedSubs.length === 0) {
-    throw new Error('No subtitles found on OpenSubtitles');
+    return { needsManualSearch: true };
   }
 
   await job.log(`[OPENSUBTITLES] Found ${fetchedSubs.length} subtitle(s)`);
@@ -111,16 +111,8 @@ async function fetchSubtitlesFromOpenSubtitles(imdbid, season, episode, type, ol
   const mappedFoundSubtitleLang = isoCodeMapping[foundSubtitle.lang] || foundSubtitle.lang;
 
   if (mappedFoundSubtitleLang === oldisocode) {
-    await job.log('[OPENSUBTITLES] Subtitle already in target language, saving directly');
-    await dbConnection.addsubtitle(
-      imdbid,
-      type,
-      season,
-      episode,
-      foundSubtitle.url.replace(`${process.env.BASE_URL}/`, ""),
-      oldisocode
-    );
-    return { skipped: true, subtitles: null };
+    await job.log('[OPENSUBTITLES] Subtitle already in target language, will download and save directly');
+    return { skipped: true, subtitles: fetchedSubs };
   }
 
   return { skipped: false, subtitles: fetchedSubs };

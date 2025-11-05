@@ -25,9 +25,9 @@ async function getAdapter() {
 }
 
 // Utility methods for backward API compatibility
-async function addToTranslationQueue(imdbid, season = null, episode = null, count, langcode, password_hash = null, apikey_encrypted = null, base_url_encrypted = null, model_name_encrypted = null, series_name = null, poster = null, stremioId = null, subtitle_path = null, type = null) {
+async function addToTranslationQueue(imdbid, season = null, episode = null, count, langcode, password_hash = null, apikey_encrypted = null, base_url_encrypted = null, model_name_encrypted = null, series_name = null, poster = null, stremioId = null, subtitle_path = null, type = null, status = 'processing') {
     const adapter = await getAdapter();
-    return adapter.addToTranslationQueue(imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, stremioId, subtitle_path, type);
+    return adapter.addToTranslationQueue(imdbid, season, episode, count, langcode, password_hash, apikey_encrypted, base_url_encrypted, model_name_encrypted, series_name, poster, stremioId, subtitle_path, type, status);
 }
 
 async function deletetranslationQueue(imdbid, season = null, episode = null, langcode) {
@@ -40,9 +40,9 @@ async function checkForTranslation(imdbid, season = null, episode = null, passwo
     return adapter.checkForTranslation(imdbid, season, episode, password_hash);
 }
 
-async function checkForTranslationByStremioId(stremioId, langcode, password_hash = null) {
+async function checkForTranslationByStremioId(stremioId, password_hash = null) {
     const adapter = await getAdapter();
-    return adapter.checkForTranslationByStremioId(stremioId, langcode, password_hash);
+    return adapter.checkForTranslationByStremioId(stremioId, password_hash);
 }
 
 async function updateTranslationStatus(imdbid, season = null, episode = null, langcode, status) {
