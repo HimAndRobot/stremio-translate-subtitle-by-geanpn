@@ -946,7 +946,7 @@
                                         (item.status === 'processing' &&
                                          new Date() - new Date(item.created_at) > 10 * 60 * 1000);
                                 %>
-                                <% if (item.status === 'manual_search' && series.series_imdbid === 'unknown') { %>
+                                <% if (item.status === 'manual_search') { %>
                                     <button onclick="openIdentifyModal(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">🔍 Identify Content</button>
                                 <% } %>
                                 <% if (item.status === 'completed') { %>
