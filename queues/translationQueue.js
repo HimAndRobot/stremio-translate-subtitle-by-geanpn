@@ -63,8 +63,8 @@ const worker = new Worker(
       const queueInfo = await adapter.query(
         `SELECT series_imdbid, series_seasonno, series_episodeno, type, stremio_id
          FROM translation_queue
-         WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
-        jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+         WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+        jobPasswordHash ? [stremioId, jobPasswordHash] : [stremioId]
       );
 
       if (queueInfo.length === 0) {
@@ -99,8 +99,8 @@ const worker = new Worker(
           await job.log(`[DOWNLOAD] Subtitle downloaded to: ${downloadedPath}`);
 
           const queuePathInfo = await adapter.query(
-            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
-            jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? [stremioId, jobPasswordHash] : [stremioId]
           );
 
           if (queuePathInfo.length === 0) {
@@ -117,8 +117,8 @@ const worker = new Worker(
           await job.log(`[SAVE] Copied to final location: ${targetPath}`);
 
           await adapter.query(
-            `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
-            jobPasswordHash ? ['completed', stremioId, oldisocode, jobPasswordHash] : ['completed', stremioId, oldisocode]
+            `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? ['completed', stremioId, jobPasswordHash] : ['completed', stremioId]
           );
 
           await job.log('[STATUS] Marked as completed');
@@ -134,14 +134,14 @@ const worker = new Worker(
           await job.log('[OPENSUBTITLES] No subtitles found, marking as manual_search');
 
           const pathInfo = await adapter.query(
-            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
-            jobPasswordHash ? [stremioId, oldisocode, jobPasswordHash] : [stremioId, oldisocode]
+            `SELECT subtitle_path FROM translation_queue WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+            jobPasswordHash ? [stremioId, jobPasswordHash] : [stremioId]
           );
 
           if (pathInfo.length > 0) {
             await adapter.query(
-              `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND langcode = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
-              jobPasswordHash ? ['manual_search', stremioId, oldisocode, jobPasswordHash] : ['manual_search', stremioId, oldisocode]
+              `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
+              jobPasswordHash ? ['manual_search', stremioId, jobPasswordHash] : ['manual_search', stremioId]
             );
 
             const { createOrUpdateMessageSub } = require('../subtitles');

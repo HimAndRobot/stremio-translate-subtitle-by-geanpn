@@ -1080,3 +1080,51 @@ const server = app.listen(port, address, () => {
 server.on("error", (error) => {
   console.error("Server startup error:", error);
 });
+
+async function gracefulShutdown(signal) {
+  console.log(`\n[${signal}] Received shutdown signal, starting graceful shutdown...`);
+
+  server.close(async () => {
+    console.log('[SHUTDOWN] HTTP server closed');
+
+    try {
+      const batchQueue = require('./queues/batchQueue');
+      const Worker = require('bullmq').Worker;
+
+      console.log('[SHUTDOWN] Closing workers...');
+
+      const translationWorker = translationQueue.workers ? translationQueue.workers[0] : null;
+      const batchWorker = batchQueue.workers ? batchQueue.workers[0] : null;
+
+      const closePromises = [];
+
+      if (translationWorker instanceof Worker) {
+        closePromises.push(translationWorker.close());
+      }
+
+      if (batchWorker instanceof Worker) {
+        closePromises.push(batchWorker.close());
+      }
+
+      await Promise.all(closePromises);
+      console.log('[SHUTDOWN] All workers closed');
+
+      await connection.disconnect();
+      console.log('[SHUTDOWN] Database connection closed');
+
+      console.log('[SHUTDOWN] Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('[SHUTDOWN] Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+
+  setTimeout(() => {
+    console.error('[SHUTDOWN] Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
