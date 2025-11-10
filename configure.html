@@ -222,9 +222,15 @@
             </div>
 
             <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                <small class="help-text">Username is required to organize your translations and allows you to reprocess failed translations and track token usage</small>
+            </div>
+
+            <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                <small class="help-text">Password is required to organize your translations and allows you to reprocess failed translations and track token usage</small>
+                <small class="help-text">Choose a strong password for your account</small>
             </div>
 
             <!-- Save Credentials checkbox - hidden for now, default is Save Access Only -->
@@ -359,6 +365,7 @@
                 }
             }
 
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const saveCredentials = false;
 
@@ -368,6 +375,7 @@
                 apikey: document.getElementById('apikey').value || '',
                 base_url: base_url,
                 model_name: model_name,
+                username: username,
                 password: password,
                 saveCredentials: saveCredentials
             };
@@ -376,8 +384,30 @@
             return `${baseUrl}/${configStr}/manifest.json`;
         }
 
-        document.getElementById('configForm').addEventListener('submit', function(e) {
+        async function createUserIfNeeded() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username && password) {
+                try {
+                    await fetch('/api/create-user', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                }
+            }
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            await createUserIfNeeded();
+
             const provider = document.getElementById('provider').value;
             const providerCfg = providerConfig[provider];
 
@@ -401,20 +431,25 @@
                 apikey: document.getElementById('apikey').value || '',
                 base_url: base_url,
                 model_name: model_name,
+                username: document.getElementById('username').value,
                 password: document.getElementById('password').value,
                 saveCredentials: false
             }))}/manifest.json`;
             window.location.href = installUrl;
         });
 
-        document.getElementById('openWebBtn').addEventListener('click', function() {
+        document.getElementById('openWebBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
             const manifestUrl = getManifestUrl();
             const encodedManifestUrl = encodeURIComponent(manifestUrl);
             const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodedManifestUrl}`;
             window.open(stremioWebUrl, '_blank');
         });
 
-        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+        document.getElementById('copyLinkBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
             const manifestUrl = getManifestUrl();
 
             navigator.clipboard.writeText(manifestUrl).then(function() {

@@ -75,7 +75,18 @@ class SQLiteAdapter extends BaseAdapter {
             )
         `;
 
+    const createUsersTable = `
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                password_bcrypt TEXT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+
     await this.query(createMigrationsTable);
+    await this.query(createUsersTable);
   }
 
   async addToTranslationQueue(

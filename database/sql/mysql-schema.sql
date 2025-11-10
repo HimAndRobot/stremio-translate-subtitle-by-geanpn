@@ -30,6 +30,16 @@ CREATE TABLE IF NOT EXISTS subtitle (
     INDEX idx_subtitle_langcode (subtitle_langcode)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(64) NOT NULL,
+    password_bcrypt VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_users_username (username),
+    INDEX idx_users_hash (password_hash)
+);
+
 CREATE TABLE IF NOT EXISTS translation_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     series_imdbid VARCHAR(255) NOT NULL,

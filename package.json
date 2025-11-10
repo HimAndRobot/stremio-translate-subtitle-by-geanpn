@@ -25,6 +25,7 @@
     "@bull-board/ui": "^5.0.0",
     "axios": "^1.6.1",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "bottleneck": "^2.19.5",
     "bullmq": "^5.0.0",
     "cors": "^2.8.5",

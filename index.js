@@ -85,9 +85,12 @@ builder.defineSubtitlesHandler(async function (args) {
 
   const iso6392Lang = getISO6392Code(config.translateto, targetLanguage);
 
-  const password_hash = config.password
-    ? crypto.createHash('sha256').update(config.password).digest('hex')
-    : null;
+  let password_hash = null;
+  if (config.username && config.password) {
+    password_hash = crypto.createHash('sha256').update(config.username + config.password).digest('hex');
+  } else if (config.password) {
+    password_hash = crypto.createHash('sha256').update(config.password).digest('hex');
+  }
 
   const providerPath = password_hash || 'translated';
 
@@ -411,6 +414,38 @@ app.get("/", (_, res) => {
   res.redirect("/configure");
 });
 
+app.post("/api/create-user", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const bcrypt = require('bcryptjs');
+    const passwordHash = crypto.createHash('sha256').update(username + password).digest('hex');
+    const passwordBcrypt = await bcrypt.hash(password, 10);
+    const adapter = await connection.getAdapter();
+
+    const existingUser = await adapter.query(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (existingUser.length === 0) {
+      await adapter.query(
+        'INSERT INTO users (username, password_hash, password_bcrypt) VALUES (?, ?, ?)',
+        [username, passwordHash, passwordBcrypt]
+      );
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Create user error:', error);
+    return res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
 app.get("/admin/login", (req, res) => {
   if (req.session.userPasswordHash) {
     return res.redirect('/admin/dashboard');
@@ -419,27 +454,44 @@ app.get("/admin/login", (req, res) => {
 });
 
 app.post("/admin/auth", async (req, res) => {
-  const { password } = req.body;
+  const { username, password } = req.body;
 
   if (!password) {
     return res.status(400).json({ error: 'Password required' });
   }
 
   try {
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-
     const adapter = await connection.getAdapter();
-    const results = await adapter.query(
-      'SELECT COUNT(*) as count FROM translation_queue WHERE password_hash = ?',
-      [passwordHash]
-    );
 
-    if (results[0].count > 0) {
-      req.session.userPasswordHash = passwordHash;
-      return res.json({ success: true, redirect: '/admin/dashboard' });
+    if (username && username.trim() !== '') {
+      const passwordHash = crypto.createHash('sha256').update(username + password).digest('hex');
+
+      const userResults = await adapter.query(
+        'SELECT COUNT(*) as count FROM users WHERE password_hash = ?',
+        [passwordHash]
+      );
+
+      if (userResults[0].count > 0) {
+        req.session.userPasswordHash = passwordHash;
+        return res.json({ success: true, redirect: '/admin/dashboard' });
+      }
+
+      return res.status(401).json({ error: 'Invalid credentials' });
+    } else {
+      const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+
+      const queueResults = await adapter.query(
+        'SELECT COUNT(*) as count FROM translation_queue WHERE password_hash = ?',
+        [passwordHash]
+      );
+
+      if (queueResults[0].count > 0) {
+        req.session.userPasswordHash = passwordHash;
+        return res.json({ success: true, redirect: '/admin/dashboard' });
+      }
+
+      return res.status(401).json({ error: 'Invalid password' });
     }
-
-    return res.status(401).json({ error: 'Invalid password' });
   } catch (error) {
     console.error('Auth error:', error);
     return res.status(500).json({ error: 'Authentication failed' });
