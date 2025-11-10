@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(64) NOT NULL,
     password_bcrypt VARCHAR(255) NULL,
+    needs_addon_reconfiguration BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_users_username (username),
     INDEX idx_users_hash (password_hash)

@@ -403,6 +403,57 @@ const upload = multer({
   }
 });
 
+async function detectUserType(req) {
+  const passwordHash = req.session.userPasswordHash;
+  const adapter = await connection.getAdapter();
+
+  const userResults = await adapter.query(
+    'SELECT username, needs_addon_reconfiguration FROM users WHERE password_hash = ?',
+    [passwordHash]
+  );
+
+  if (userResults.length > 0) {
+    return {
+      isOldUser: false,
+      hasUsername: true,
+      username: userResults[0].username,
+      needsAddonReconfiguration: Boolean(userResults[0].needs_addon_reconfiguration)
+    };
+  }
+
+  const queueResults = await adapter.query(
+    'SELECT COUNT(*) as count FROM translation_queue WHERE password_hash = ?',
+    [passwordHash]
+  );
+
+  if (queueResults[0].count > 0) {
+    return {
+      isOldUser: true,
+      hasUsername: false,
+      username: null,
+      needsAddonReconfiguration: false
+    };
+  }
+
+  return {
+    isOldUser: false,
+    hasUsername: false,
+    username: null,
+    needsAddonReconfiguration: false
+  };
+}
+
+async function attachUserInfo(req, res, next) {
+  try {
+    req.userInfo = await detectUserType(req);
+    next();
+  } catch (error) {
+    console.error('Error detecting user type:', error);
+    req.userInfo = { isOldUser: false, hasUsername: false, username: null, needsAddonReconfiguration: false };
+    next();
+  }
+}
+
 function requireAuth(req, res, next) {
   if (!req.session.userPasswordHash) {
     return res.redirect('/admin/login');
@@ -428,15 +479,21 @@ app.post("/api/create-user", async (req, res) => {
     const adapter = await connection.getAdapter();
 
     const existingUser = await adapter.query(
-      'SELECT id FROM users WHERE username = ?',
+      'SELECT id, needs_addon_reconfiguration FROM users WHERE username = ?',
       [username]
     );
 
     if (existingUser.length === 0) {
       await adapter.query(
-        'INSERT INTO users (username, password_hash, password_bcrypt) VALUES (?, ?, ?)',
-        [username, passwordHash, passwordBcrypt]
+        'INSERT INTO users (username, password_hash, password_bcrypt, needs_addon_reconfiguration) VALUES (?, ?, ?, ?)',
+        [username, passwordHash, passwordBcrypt, false]
       );
+    } else if (existingUser[0].needs_addon_reconfiguration) {
+      await adapter.query(
+        'UPDATE users SET needs_addon_reconfiguration = ? WHERE username = ?',
+        [false, username]
+      );
+      console.log(`[CREATE-USER] User ${username} reconfigured addon, marking needs_addon_reconfiguration=false`);
     }
 
     return res.json({ success: true });
@@ -451,6 +508,21 @@ app.get("/admin/login", (req, res) => {
     return res.redirect('/admin/dashboard');
   }
   res.sendFile(__dirname + '/views/login.html');
+});
+
+app.get("/admin/migrate", requireAuth, async (req, res) => {
+  try {
+    const userInfo = await detectUserType(req);
+
+    if (!userInfo.isOldUser) {
+      return res.redirect('/admin/dashboard');
+    }
+
+    res.sendFile(__dirname + '/views/migrate-account.html');
+  } catch (error) {
+    console.error('Error accessing migration page:', error);
+    res.redirect('/admin/dashboard');
+  }
 });
 
 app.post("/admin/auth", async (req, res) => {
@@ -498,7 +570,69 @@ app.post("/admin/auth", async (req, res) => {
   }
 });
 
-app.get("/admin/dashboard", requireAuth, async (req, res) => {
+app.get("/api/user-info", requireAuth, async (req, res) => {
+  try {
+    const userInfo = await detectUserType(req);
+    res.json(userInfo);
+  } catch (error) {
+    console.error('User info error:', error);
+    res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+app.post("/api/migrate-account", requireAuth, async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const bcrypt = require('bcryptjs');
+    const adapter = await connection.getAdapter();
+
+    const oldPasswordHash = req.session.userPasswordHash;
+
+    const userInfo = await detectUserType(req);
+    if (!userInfo.isOldUser) {
+      return res.status(400).json({ error: 'Account already migrated' });
+    }
+
+    const newPasswordHash = crypto.createHash('sha256').update(username + password).digest('hex');
+    const passwordBcrypt = await bcrypt.hash(password, 10);
+
+    const existingUser = await adapter.query(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
+    await adapter.query(
+      'INSERT INTO users (username, password_hash, password_bcrypt, needs_addon_reconfiguration) VALUES (?, ?, ?, ?)',
+      [username, newPasswordHash, passwordBcrypt, true]
+    );
+
+    await adapter.query(
+      'UPDATE translation_queue SET password_hash = ? WHERE password_hash = ?',
+      [newPasswordHash, oldPasswordHash]
+    );
+
+    req.session.userPasswordHash = newPasswordHash;
+
+    return res.json({
+      success: true,
+      message: 'Account migrated successfully'
+    });
+  } catch (error) {
+    console.error('Migration error:', error);
+    return res.status(500).json({ error: 'Failed to migrate account' });
+  }
+});
+
+app.get("/admin/dashboard", requireAuth, attachUserInfo, async (req, res) => {
   try {
     const adapter = await connection.getAdapter();
     const translations = await adapter.query(
@@ -525,7 +659,6 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
       translation.batches_failed = Number(batchStats[0]?.failed) || 0;
     }
 
-    // Group translations by series (without language - unified view)
     const groupedSeries = new Map();
 
     for (const translation of translations) {
@@ -564,12 +697,15 @@ app.get("/admin/dashboard", requireAuth, async (req, res) => {
     }
 
     const corsProxy = process.env.CORS_URL || '';
+    const migrationDeadline = new Date('2025-11-17T23:59:59');
 
     res.render('dashboard', {
       translations,
       groupedSeries: Array.from(groupedSeries.values()),
       corsProxy,
-      languages: baseLanguages
+      languages: baseLanguages,
+      userInfo: req.userInfo,
+      migrationDeadline: migrationDeadline.toISOString()
     });
   } catch (error) {
     console.error('Dashboard error:', error);

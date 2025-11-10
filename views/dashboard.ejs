@@ -799,6 +799,79 @@
         .preview-btn:hover {
             background: #5568d3;
         }
+        .migration-alert {
+            background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.25);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .migration-alert-icon {
+            font-size: 42px;
+            flex-shrink: 0;
+        }
+        .migration-alert-content {
+            flex: 1;
+        }
+        .migration-alert-content h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        .migration-alert-content p {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .migration-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 193, 7, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+        .migration-alert-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .migration-alert-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #856404;
+            cursor: pointer;
+            padding: 0 10px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .migration-alert-close:hover {
+            color: #533f03;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -811,6 +884,38 @@
                 <button onclick="logout()" class="btn btn-secondary">Logout</button>
             </div>
         </div>
+
+        <% if (userInfo && userInfo.isOldUser) { %>
+        <div class="migration-alert" id="migrationAlert">
+            <div class="migration-alert-icon">⚠️</div>
+            <div class="migration-alert-content">
+                <div class="migration-countdown" id="countdownBadge">
+                    <span>⏱️</span>
+                    <span id="daysRemaining">...</span>
+                </div>
+                <h3>Account Upgrade Required</h3>
+                <p>You're using legacy password-only authentication. Please upgrade to a username+password account to continue using the service after <strong>November 17, 2025</strong>.</p>
+                <div class="migration-alert-actions">
+                    <button onclick="openMigrationModal()" class="btn btn-primary btn-sm">🔐 Upgrade Now</button>
+                    <a href="/admin/migrate" class="btn btn-secondary btn-sm">Learn More</a>
+                </div>
+            </div>
+            <button class="migration-alert-close" onclick="dismissMigrationAlert()">&times;</button>
+        </div>
+        <% } %>
+
+        <% if (userInfo && userInfo.needsAddonReconfiguration) { %>
+        <div class="migration-alert" id="reconfigAlert" style="background: #fff3cd; border-left-color: #ffc107;">
+            <div class="migration-alert-icon">🔌</div>
+            <div class="migration-alert-content">
+                <h3>Addon Reconfiguration Required</h3>
+                <p>You've successfully migrated your account! Now you need to <strong>reinstall your Stremio addon</strong> with your new username and password to complete the process.</p>
+                <div class="migration-alert-actions">
+                    <a href="/configure" class="btn btn-primary btn-sm">🔧 Reinstall Addon</a>
+                </div>
+            </div>
+        </div>
+        <% } %>
 
         <% if (translations.length === 0) { %>
         <div class="empty-state">
@@ -1153,6 +1258,60 @@
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
                 <button class="modal-btn modal-btn-primary" onclick="submitMasterPassword()">Decrypt</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="accountMigrationModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">
+                <h2 style="margin: 0 0 10px 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+                    <span>🔐</span>
+                    <span>Upgrade Your Account</span>
+                </h2>
+                <p style="margin: 0; opacity: 0.95; font-size: 14px;">Create a username to secure your account and continue using the service</p>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6;">
+                        <strong>⚠️ Important:</strong> After migration, all your translations will be transferred to the new account. You'll be logged out automatically and must log in with your new credentials.
+                    </p>
+                </div>
+
+                <form id="migrationForm" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <label for="migrationUsername" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Username</label>
+                        <input type="text" id="migrationUsername" name="username" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Choose a unique username"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">This will be your login username</small>
+                    </div>
+
+                    <div>
+                        <label for="migrationPassword" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Password</label>
+                        <input type="password" id="migrationPassword" name="password" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Your current password"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">Use your existing password</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px 24px; font-weight: 600;">
+                            ✓ Upgrade Account
+                        </button>
+                        <button type="button" onclick="closeMigrationModal()" class="btn btn-secondary" style="padding: 12px 24px;">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+
+                <div id="migrationError" style="display: none; background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                    <p style="margin: 0; color: #c62828; font-size: 14px;" id="migrationErrorText"></p>
+                </div>
             </div>
         </div>
     </div>
@@ -2418,6 +2577,126 @@
                 }
             });
         });
+
+        function updateMigrationCountdown() {
+            const deadline = new Date('<%= migrationDeadline %>');
+            const now = new Date();
+            const diff = deadline - now;
+            const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+            const badge = document.getElementById('daysRemaining');
+            if (badge) {
+                if (daysRemaining > 0) {
+                    badge.textContent = `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`;
+                } else {
+                    badge.textContent = 'Deadline passed';
+                    badge.style.background = '#f44336';
+                    badge.style.color = 'white';
+                }
+            }
+        }
+
+        function dismissMigrationAlert() {
+            const alert = document.getElementById('migrationAlert');
+            if (alert) {
+                alert.style.display = 'none';
+                localStorage.setItem('migrationAlertDismissed', Date.now());
+            }
+        }
+
+        function openMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'block';
+        }
+
+        function closeMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'none';
+            document.getElementById('migrationForm').reset();
+            document.getElementById('migrationError').style.display = 'none';
+        }
+
+        document.getElementById('migrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('migrationUsername').value.trim();
+            const password = document.getElementById('migrationPassword').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('migrationError');
+            const errorText = document.getElementById('migrationErrorText');
+
+            if (!username || !password) {
+                errorText.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Migrating...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/migrate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    submitBtn.innerHTML = '✓ Success! Redirecting...';
+                    submitBtn.style.background = '#4caf50';
+
+                    showToast('Account upgraded successfully! Please log in with your new credentials.', 'success');
+
+                    setTimeout(async () => {
+                        try {
+                            const logoutResponse = await fetch('/admin/logout', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            const logoutData = await logoutResponse.json();
+                            if (logoutData.success && logoutData.redirect) {
+                                window.location.href = logoutData.redirect;
+                            } else {
+                                window.location.href = '/admin/login';
+                            }
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            window.location.href = '/admin/login';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Migration failed');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                errorText.textContent = error.message || 'Failed to migrate account. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '✓ Upgrade Account';
+            }
+        });
+
+        <% if (userInfo && userInfo.isOldUser) { %>
+        updateMigrationCountdown();
+        setInterval(updateMigrationCountdown, 60000);
+
+        const dismissed = localStorage.getItem('migrationAlertDismissed');
+        if (dismissed) {
+            const dismissTime = parseInt(dismissed);
+            const hoursSinceDismiss = (Date.now() - dismissTime) / (1000 * 60 * 60);
+            if (hoursSinceDismiss < 24) {
+                const alert = document.getElementById('migrationAlert');
+                if (alert) alert.style.display = 'none';
+            } else {
+                localStorage.removeItem('migrationAlertDismissed');
+            }
+        }
+        <% } %>
     </script>
     </div>
 </body>
