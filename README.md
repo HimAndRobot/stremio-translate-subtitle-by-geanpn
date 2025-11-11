@@ -1,152 +1,223 @@
-# Stremio Auto Subtitle Translate Addon
+# Stremio Auto Subtitle Translate
 
-This Stremio addon automatically translates subtitles from OpenSubtitles to your desired language using various translation providers.
+Automatically translate subtitles from OpenSubtitles to your preferred language in Stremio.
 
-## Features
+🌐 **Official Instance:** [stremio-translate.geanpedro.com.br](https://stremio-translate.geanpedro.com.br/)
 
-- Fetches subtitles from OpenSubtitlesV3
-- Configurable target language
-- Queue system for processing translation requests
-- Caching of translated subtitles for improved performance
-- Automatic provider fallback
-- Rate limit protection
-- Provider rotation for optimal performance
+📊 **Your Translations Dashboard:** [/admin/dashboard](https://stremio-translate.geanpedro.com.br/admin/dashboard) - Track all your translations, retry failed jobs, monitor token usage
 
-## How it Works
+⚙️ **Configure Addon:** [/configure](https://stremio-translate.geanpedro.com.br/configure) - Install the addon with your settings
 
-This addon follows the following workflow:
+---
 
-1. Receives subtitle request from Stremio
-2. Checks if translated subtitles exist in the database
-3. If not found, fetches subtitles from OpenSubtitles
-4. Adds subtitles to a queue for translation
-5. Returns a placeholder message during translation processing
-6. Saves translated subtitles upon completion
+## 🎯 What You Get
 
-## Configuration
+### Personal Translation Dashboard
+Access your dashboard at [/admin/dashboard](https://stremio-translate.geanpedro.com.br/admin/dashboard):
 
-This addon can be configured via Stremio with the following options:
+- **View All Translations** - See every movie/show you've translated with posters and details
+- **Retry Failed Jobs** - If a translation failed, click retry to reprocess it
+- **Monitor Token Usage** - Track AI API costs per translation (for ChatGPT/Gemini users)
+- **Search & Filter** - Find translations by title, IMDB ID, season, or episode
+- **Manual Search** - Force subtitle search for content that wasn't auto-detected
+- **Delete Translations** - Remove old or unwanted translations to free up space
 
-- Provider: Choose from Google Translate, or ChatGPT (OpenAI Compatible Providers)
-- BASE URL: Required for ChatGPT
-  - ChatGPT: https://api.openai.com/v1/responses
-  - Gemini: https://generativelanguage.googleapis.com/v1beta/openai/
-  - OpenRouter: https://openrouter.ai/api/v1/chat/completions
-- API Key: Required for ChatGPT
-- Target Language: Select your desired translation language
+### Supported Translation Providers
+- **Google Translate** - Free, no API key needed
+- **DeepL** - Professional translation service
+- **OpenAI** - ChatGPT (GPT-4o, GPT-4o-mini, GPT-4-turbo, GPT-3.5-turbo)
+- **Google Gemini** - Google's AI models (Gemini 2.5 Flash, Gemini 2.0 Flash)
+- **OpenRouter** - Access to multiple AI models including Claude and Llama
+- **Groq** - Ultra-fast inference (Llama 3.3, Mixtral)
+- **Together AI** - Open-source models (Meta-Llama, Qwen, Mixtral)
+- **Custom** - Any OpenAI-compatible API endpoint
 
-## Technical Details
+### Translation Features
+- **Smart Caching** - Once translated, subtitles load instantly
+- **Background Processing** - Translations happen automatically while you browse
+- **Automatic Retries** - Failed translations are automatically retried
+- **Quality Preservation** - Timing and formatting are preserved perfectly
 
-- Built with Node.js
-- Uses `stremio-addon-sdk` for Stremio integration
-- Implements a queue system using `better-queue`
-- Stores subtitles on the local file system
+---
 
-### Translation Providers
+## 🚀 Quick Start
 
-- Google Translate
-  - Web scraping method
-- ChatGPT (Compatible API)
-  - Google Gemini
-  - OpenRouter
+1. Visit [stremio-translate.geanpedro.com.br/configure](https://stremio-translate.geanpedro.com.br/configure)
+2. Choose your translation provider and target language
+3. Create a username and password (to access your dashboard)
+4. Click "Install Addon" or "Open in Stremio Web"
+5. Start watching! Check your [dashboard](https://stremio-translate.geanpedro.com.br/admin/dashboard) to track translations
 
-### Queue System
+---
 
-This addon uses a queue system to efficiently process translation requests:
+## 🏠 Self-Hosting
 
-- Implements `better-queue` to manage translation tasks
-- Concurrent processing of subtitles
-- Automatic retries on failure
-- Progress tracking and status updates
+Want to run your own instance? We provide two options:
 
-### Storage
+### Option 1: Full Version with Docker (Recommended)
 
-- Subtitles are stored on the local file system
-- Organized by provider, language, and media ID
-- Translations are cached for improved performance
+**Requirements:** Docker and Docker Compose
 
-### Translation Process
+**Features:**
+- MySQL database (scalable, production-ready)
+- Redis queue system (Bull with job monitoring)
+- Bull Board dashboard at `/admin/queues`
+- Better for multiple users or high traffic
 
-1. Subtitle files are parsed and split into chunks
-2. Each chunk is translated using the selected provider
-3. Translated chunks are reassembled while maintaining timing
-4. The final subtitle file is saved in SRT format
+```bash
+# Clone the repository
+git clone https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn.git
+cd stremio-translate-subtitle-by-geanpn
 
-## Installation
+# Create environment file
+cp .env.example .env
 
-1. Web Installation (Recommended)
+# Edit .env with your settings (optional)
+nano .env
 
-   - Open Stremio
-   - Go to the following URL: In progress
-   - Click "Install Addon"
-   - Select your desired translation settings
-   - Click "Install"
-   - The addon will be automatically configured in Stremio
+# Start with Docker Compose
+docker-compose up -d
+```
 
-2. Manual Installation
+Access the addon at `http://localhost:3000`
 
-   - Open Stremio
-   - Navigate to Addons
-   - Click the "Community Addons" tab
-   - Paste this URL: In progress
-   - Click "Install"
+**What's included:**
+- Web server (Node.js)
+- Redis (queue management)
+- MySQL (database)
+- Automatic restarts
+- Volume persistence
 
-3. Self-Hosting
+### Option 2: Lightweight Version (Branch `old`)
 
-   ```bash
-   # Clone the repository
-   git clone https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn.git
-   cd stremio-auto-translate
+**Requirements:** Docker and Docker Compose (or Node.js)
 
-   # Install dependencies
-   npm install
+**Features:**
+- SQLite database (single file, no setup)
+- Simple in-memory queue (no Redis)
+- Same dashboard and features
+- Lower resource usage
+- Perfect for personal use
 
-   # Create necessary directories
-   mkdir -p debug subtitles
+```bash
+# Clone and switch to old branch
+git clone https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn.git
+cd stremio-translate-subtitle-by-geanpn
+git checkout old
 
-   # Create a .env file from .env.example
-   cp .env.example .env
+# Option A: Docker (Recommended)
+docker-compose up -d
 
-   # Start the addon
-   npm start
-   ```
+# Option B: Without Docker
+npm install
+npm start
+```
 
-   Then, add `http://localhost:3000/manifest.json` to Stremio.
+**Lightweight version:**
+- ✅ SQLite (no MySQL needed)
+- ✅ No Redis required
+- ✅ Smaller footprint
+- ✅ Same dashboard features
+- ✅ Docker support included
+- ❌ No Bull Board queue dashboard
+- ❌ Less scalable for high traffic
 
-The addon will be available at `http://localhost:3000`.
+---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
-- `PORT`: Server port (default: 3000)
-- `ADDRESS`: Server address (default: 0.0.0.0)
-- `BASE_URL`: Base URL for subtitle files
+Create a `.env` file:
 
-## Contributing
+**Full Version (MySQL + Redis):**
+```env
+PORT=3000
+BASE_URL=http://localhost:3000
+DB_TYPE=mysql
+MYSQL_HOST=mysql
+MYSQL_PORT=3306
+MYSQL_USER=mysql
+MYSQL_PASSWORD=your-password
+MYSQL_DATABASE=default
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
 
-Bug reports and pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+**Lightweight Version (SQLite):**
+```env
+PORT=3000
+BASE_URL=http://localhost:3000
+DB_TYPE=sqlite
+```
 
-## Support
+---
 
-Bug reports: geanpn@gmail.com
-Donations: geanpn@gmail.com
+## 📖 How It Works
 
-## License
+1. **Watch Content** - Open any movie/show in Stremio
+2. **Request Subtitles** - Addon fetches from OpenSubtitles
+3. **Background Translation** - Subtitles are queued and translated
+4. **First Time** - You'll see a placeholder message (translation in progress)
+5. **Next Time** - Subtitles load instantly from cache
 
-[MIT](https://choosealicense.com/licenses/mit/)
+**Check Progress:** Visit your [dashboard](https://stremio-translate.geanpedro.com.br/admin/dashboard) to see translation status, retry failed jobs, or manually trigger searches.
 
-## Credits
+---
 
-This project is based on [Auto-Subtitle-Translate-by-Sonsuz-Anime](https://github.com/sonsuzanime/Auto-Subtitle-Translate-by-Sonsuz-Anime) by @sonsuzanime. The original project was enhanced with:
+## 🔧 Dashboard Features Explained
 
-### Improvements:
+### Translations Page (`/admin/dashboard`)
+- **Card View** - Each translation shows poster, title, season/episode info
+- **Status Indicators** - See which translations completed, failed, or are processing
+- **Quick Actions** - Retry, delete, or manual search per translation
+- **Search Bar** - Filter by title, IMDB ID, or episode number
 
-- Code optimization
-- Queue system for handling multiple translation requests
+### Settings Page (`/admin/settings`)
+- **Change Password** - Update your account password
+- **API Settings** - View/update your translation provider and API keys
+- **Language Settings** - Change target translation language
+
+### Queue Dashboard (`/admin/queues`) - Full version only
+- **Real-time Monitoring** - See active, completed, and failed jobs
+- **Job Details** - View detailed logs and error messages
+- **Manual Controls** - Pause, resume, or clean jobs
+
+---
+
+## 🔒 Security & Privacy
+
+- **Encrypted API Keys** - Stored with AES-256 encryption
+- **Hashed Passwords** - Using bcrypt (industry standard)
+- **Isolated Data** - Each user's translations are private
+- **Self-Hosting Option** - Complete control over your data
+
+---
+
+## 🐛 Support
+
+- **Bug Reports:** geanpn@gmail.com
+- **Issues:** [GitHub Issues](https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn/issues)
+
+---
+
+## 📝 License
+
+MIT - See [LICENSE](LICENSE) file
+
+---
+
+## 🙏 Credits
+
+Based on [Auto-Subtitle-Translate-by-Sonsuz-Anime](https://github.com/sonsuzanime/Auto-Subtitle-Translate-by-Sonsuz-Anime) by @sonsuzanime
+
+**Enhancements:**
+- Personal dashboard with translation management
+- Queue system with Bull and Redis
+- MySQL support with migrations
+- User authentication and accounts
+- Token usage tracking per translation
+- Manual search and retry capabilities
 - Improved error handling
-- Better caching system
 - Provider fallback system
-- Rate limit protection
-- Automatic provider rotation
-- Chunk optimization for large subtitles
+- Better caching and performance
 
-Thanks to @sonsuzanime for providing the original implementation that made this project possible.
+Thanks to @sonsuzanime for the original implementation! 🚀
