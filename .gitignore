@@ -6,3 +6,4 @@
 /data
 *.db
 *.db-journal
+migrate-subtitle-paths.js

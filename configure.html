@@ -14,9 +14,38 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
+            padding: 0;
+        }
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .navbar-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .navbar-link:hover {
+            background: #f0f0f0;
+        }
+        .main-content {
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: calc(100vh - 60px);
             padding: 20px;
         }
         .container {
@@ -48,7 +77,7 @@
             font-weight: 500;
             font-size: 14px;
         }
-        select, input[type="text"] {
+        select, input[type="text"], input[type="password"] {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -56,9 +85,15 @@
             font-size: 14px;
             transition: border-color 0.2s;
         }
-        select:focus, input[type="text"]:focus {
+        select:focus, input[type="text"]:focus, input[type="password"]:focus {
             outline: none;
             border-color: #555;
+        }
+        .help-text {
+            color: #666;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
         }
         .hidden {
             display: none !important;
@@ -95,6 +130,24 @@
         .btn:active {
             background: #222;
         }
+        .btn-secondary {
+            background: #667eea;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background: #5568d3;
+        }
+        .btn-secondary:active {
+            background: #4557bb;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
         .info {
             background: #f9f9f9;
             border-left: 2px solid #ccc;
@@ -104,10 +157,60 @@
             font-size: 13px;
             color: #666;
         }
+        .success-message {
+            background: #d4edda;
+            border-left: 2px solid #28a745;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #155724;
+            display: none;
+        }
+        .success-message.show {
+            display: block;
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            color: #666;
+            user-select: none;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .password-toggle:hover {
+            color: #333;
+        }
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+        .password-wrapper input {
+            padding-right: 40px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <nav class="navbar">
+        <div class="navbar-brand">Auto Subtitle Translate</div>
+        <a href="/admin/login" class="navbar-link">My Translations</a>
+    </nav>
+
+    <div class="main-content">
+        <div class="container">
         <h1>Auto Subtitle Translate</h1>
         <p class="subtitle">Configure your subtitle translation preferences</p>
 
@@ -115,13 +218,6 @@
             <div class="form-group">
                 <label for="provider">Translation Provider</label>
                 <select id="provider" name="provider" required>
-                    <option value="Google Translate">Google Translate</option>
-                    <option value="OpenAI">OpenAI</option>
-                    <option value="Google Gemini">Google Gemini</option>
-                    <option value="OpenRouter">OpenRouter</option>
-                    <option value="Groq">Groq</option>
-                    <option value="Together AI">Together AI</option>
-                    <option value="Custom">Custom (OpenAI Compatible)</option>
                 </select>
             </div>
 
@@ -156,14 +252,54 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                <small class="help-text">Username is required to organize your translations and allows you to reprocess failed translations and track token usage</small>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">
+                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    </button>
+                </div>
+                <small class="help-text">Choose a strong password for your account</small>
+            </div>
+
+            <!-- Save Credentials checkbox - hidden for now, default is Save Access Only -->
+            <!-- <div class="form-group">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="saveCredentials" name="saveCredentials" style="margin-right: 8px; width: auto;">
+                    <span>Save Credentials (API Key, Provider, Model)</span>
+                </label>
+                <small class="help-text">If unchecked, only password is saved. You'll need to provide credentials again when reprocessing failed translations</small>
+            </div> -->
+
             <button type="submit" class="btn">Install Addon</button>
+            <button type="button" class="btn btn-secondary" id="openWebBtn">Open in Stremio Web</button>
+            <button type="button" class="btn btn-secondary" id="copyLinkBtn">Copy Link</button>
+
+            <div id="successMessage" class="success-message">
+                Link copied to clipboard!
+            </div>
 
             <div class="info">
-                Your configuration will be saved securely and used for subtitle translation.
+                Your configuration will be saved securely and used for subtitle translation. Use "Copy Link" to install on Stremio Web.
             </div>
         </form>
+        </div>
     </div>
 
+    <script src="/public/translation-config.js"></script>
     <script>
         const languages = <%= languages %>;
         const baseUrl = '<%= baseUrl %>';
@@ -185,57 +321,36 @@
         const baseUrlGroup = document.getElementById('baseUrlGroup');
         const modelNameGroup = document.getElementById('modelNameGroup');
 
-        const providerConfig = {
-            'Google Translate': {
-                showFields: false
-            },
-            'OpenAI': {
-                showFields: true,
-                title: 'OpenAI Configuration',
-                baseUrl: 'https://api.openai.com/v1',
-                models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Google Gemini': {
-                showFields: true,
-                title: 'Google Gemini Configuration',
-                baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-                models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'OpenRouter': {
-                showFields: true,
-                title: 'OpenRouter Configuration',
-                baseUrl: 'https://openrouter.ai/api/v1',
-                models: ['google/gemini-2.0-flash-exp:free', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b-instruct'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Groq': {
-                showFields: true,
-                title: 'Groq Configuration',
-                baseUrl: 'https://api.groq.com/openai/v1',
-                models: ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Together AI': {
-                showFields: true,
-                title: 'Together AI Configuration',
-                baseUrl: 'https://api.together.xyz/v1',
-                models: ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
-                showModelSelect: true,
-                showCustomFields: false
-            },
-            'Custom': {
-                showFields: true,
-                title: 'Custom Provider Configuration',
-                showModelSelect: false,
-                showCustomFields: true
+        PROVIDERS.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider;
+            option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+            providerSelect.appendChild(option);
+        });
+
+        const providerConfig = {};
+        PROVIDERS.forEach(provider => {
+            const config = PROVIDER_CONFIGS[provider];
+            if (!config.requiresApiKey) {
+                providerConfig[provider] = { showFields: false };
+            } else if (provider === 'Custom') {
+                providerConfig[provider] = {
+                    showFields: true,
+                    title: 'Custom Provider Configuration',
+                    showModelSelect: false,
+                    showCustomFields: true
+                };
+            } else {
+                providerConfig[provider] = {
+                    showFields: true,
+                    title: `${provider} Configuration`,
+                    baseUrl: config.defaultBaseUrl,
+                    models: config.models,
+                    showModelSelect: config.requiresModel,
+                    showCustomFields: false
+                };
             }
-        };
+        });
 
         function updateProviderFields() {
             const provider = providerSelect.value;
@@ -265,14 +380,91 @@
                 modelSelectGroup.classList.add('hidden');
                 baseUrlGroup.classList.remove('hidden');
                 modelNameGroup.classList.remove('hidden');
+            } else {
+                modelSelectGroup.classList.add('hidden');
+                baseUrlGroup.classList.add('hidden');
+                modelNameGroup.classList.add('hidden');
             }
         }
 
         providerSelect.addEventListener('change', updateProviderFields);
         updateProviderFields();
 
-        document.getElementById('configForm').addEventListener('submit', function(e) {
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const eyeOffIcon = document.getElementById('eyeOffIcon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.style.display = 'none';
+                eyeOffIcon.style.display = 'block';
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.style.display = 'block';
+                eyeOffIcon.style.display = 'none';
+            }
+        });
+
+        function getManifestUrl() {
+            const provider = document.getElementById('provider').value;
+            const providerCfg = providerConfig[provider];
+
+            let base_url = '';
+            let model_name = '';
+
+            if (provider !== 'Google Translate') {
+                if (providerCfg.showModelSelect) {
+                    base_url = providerCfg.baseUrl;
+                    model_name = document.getElementById('model_select').value;
+                } else if (providerCfg.showCustomFields) {
+                    base_url = document.getElementById('base_url').value;
+                    model_name = document.getElementById('model_name').value;
+                }
+            }
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const saveCredentials = false;
+
+            const config = {
+                provider: provider,
+                translateto: document.getElementById('translateto').value,
+                apikey: document.getElementById('apikey').value || '',
+                base_url: base_url,
+                model_name: model_name,
+                username: username,
+                password: password,
+                saveCredentials: saveCredentials
+            };
+
+            const configStr = encodeURIComponent(JSON.stringify(config));
+            return `${baseUrl}/${configStr}/manifest.json`;
+        }
+
+        async function createUserIfNeeded() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username && password) {
+                try {
+                    await fetch('/api/create-user', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                }
+            }
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            await createUserIfNeeded();
 
             const provider = document.getElementById('provider').value;
             const providerCfg = providerConfig[provider];
@@ -290,19 +482,43 @@
                 }
             }
 
-            const config = {
+            const host = baseUrl.replace(/^https?:\/\//, '');
+            const installUrl = `stremio://${host}/${encodeURIComponent(JSON.stringify({
                 provider: provider,
                 translateto: document.getElementById('translateto').value,
                 apikey: document.getElementById('apikey').value || '',
                 base_url: base_url,
-                model_name: model_name
-            };
-
-            const configStr = encodeURIComponent(JSON.stringify(config));
-            const host = baseUrl.replace(/^https?:\/\//, '');
-            const installUrl = `stremio://${host}/${configStr}/manifest.json`;
-
+                model_name: model_name,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                saveCredentials: false
+            }))}/manifest.json`;
             window.location.href = installUrl;
+        });
+
+        document.getElementById('openWebBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
+            const manifestUrl = getManifestUrl();
+            const encodedManifestUrl = encodeURIComponent(manifestUrl);
+            const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodedManifestUrl}`;
+            window.open(stremioWebUrl, '_blank');
+        });
+
+        document.getElementById('copyLinkBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
+            const manifestUrl = getManifestUrl();
+
+            navigator.clipboard.writeText(manifestUrl).then(function() {
+                const successMsg = document.getElementById('successMessage');
+                successMsg.classList.add('show');
+                setTimeout(function() {
+                    successMsg.classList.remove('show');
+                }, 3000);
+            }).catch(function(err) {
+                alert('Failed to copy link: ' + err);
+            });
         });
     </script>
 </body>

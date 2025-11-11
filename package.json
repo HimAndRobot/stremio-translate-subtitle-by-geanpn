@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "reset-db": "node reset-db.js",
+    "migrate": "node database/migrate.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,10 +20,21 @@
   "author": "Geanpn",
   "license": "MIT",
   "dependencies": {
+    "@bull-board/api": "^5.0.0",
+    "@bull-board/express": "^5.0.0",
+    "@bull-board/ui": "^5.0.0",
     "axios": "^1.6.1",
-    "better-queue": "^3.8.12",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
+    "bottleneck": "^2.19.5",
+    "bullmq": "^5.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express-session": "^1.17.3",
     "google-translate-api-browser": "^5.0.0",
+    "ioredis": "^5.3.0",
+    "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.4",
     "openai": "^4.73.1",
     "sqlite3": "^5.1.6",

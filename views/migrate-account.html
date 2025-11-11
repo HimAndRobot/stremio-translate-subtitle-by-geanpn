@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Migration - Stremio Translate Subtitle</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+
+        .countdown-banner {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 30px 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .countdown-banner-icon {
+            font-size: 32px;
+        }
+
+        .countdown-content h3 {
+            margin-bottom: 5px;
+            color: #856404;
+        }
+
+        .countdown-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section p {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .section ul li {
+            padding: 12px 0 12px 35px;
+            position: relative;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .section ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .info-box h4 {
+            margin-bottom: 10px;
+            color: #1565c0;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #0d47a1;
+        }
+
+        .migration-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+
+        .migration-form h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .error-message {
+            display: none;
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .error-message p {
+            margin: 0;
+            color: #c62828;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .countdown-banner {
+                margin: 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-secondary {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🔐</span>
+                <span>Account Migration Required</span>
+            </h1>
+            <p>We're upgrading to a more secure authentication system</p>
+        </div>
+
+        <div class="countdown-banner">
+            <div class="countdown-banner-icon">⏱️</div>
+            <div class="countdown-content">
+                <h3>Migration Deadline</h3>
+                <p>Please complete your account upgrade before: <strong>November 17, 2025</strong></p>
+                <span class="countdown-badge" id="countdownBadge">Loading...</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2><span>📢</span> What's Happening?</h2>
+                <p>
+                    We're upgrading to username+password authentication for better security. Your legacy password-only account needs to be upgraded before <strong>November 17, 2025</strong>.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2><span>⚙️</span> Migration Steps</h2>
+                <ul>
+                    <li>Choose a unique username</li>
+                    <li>Keep your existing password</li>
+                    <li>All translations are automatically transferred</li>
+                    <li>You'll be logged out after migration</li>
+                    <li><strong>IMPORTANT: You must reinstall your Stremio addon with new credentials</strong></li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h4>⚠️ Critical: Addon Reconfiguration Required</h4>
+                <p>
+                    After migrating, your old Stremio addon configuration will <strong>stop working</strong>.
+                    You MUST visit the <a href="/configure" style="color: #0066cc; font-weight: 600;">configuration page</a>
+                    and reinstall the addon with your new username and password.
+                </p>
+            </div>
+
+            <div class="info-box">
+                <h4>🛡️ Your Data is Safe</h4>
+                <p>
+                    All your translations and settings will be automatically transferred. No data will be lost during migration.
+                </p>
+            </div>
+
+            <div class="migration-form">
+                <h3>🚀 Upgrade Your Account Now</h3>
+                <form id="migrationForm">
+                    <div class="form-group">
+                        <label for="username">Choose Your Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            required
+                            placeholder="Enter a unique username"
+                            autocomplete="username">
+                        <small>This will be your login username. Choose something memorable and unique.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Your Current Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            placeholder="Enter your existing password"
+                            autocomplete="current-password">
+                        <small>Use the same password you've been using to access the dashboard.</small>
+                    </div>
+
+                    <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #0d47a1; font-size: 14px;">
+                            <strong>📝 Next Step:</strong> After clicking "Upgrade My Account", you will be logged out. Then go to <a href="/configure" style="color: #0066cc; font-weight: 600;">/configure</a> to reinstall your addon with the new credentials.
+                        </p>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            ✓ Upgrade My Account
+                        </button>
+                        <a href="/admin/dashboard" class="btn btn-secondary">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+
+                    <div class="error-message" id="errorMessage">
+                        <p id="errorText"></p>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section" style="margin-top: 40px;">
+                <h2><span>❓</span> Need Help?</h2>
+                <p>
+                    If you have any questions or encounter issues during the migration process,
+                    please don't hesitate to reach out for support. We're here to help ensure
+                    a smooth transition to the new authentication system.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                error: 'linear-gradient(to right, #f44336, #e91e63)',
+                warning: 'linear-gradient(to right, #ff9800, #ff5722)',
+                info: 'linear-gradient(to right, #2196F3, #00BCD4)'
+            };
+
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                stopOnFocus: true,
+                style: {
+                    background: colors[type] || colors.info,
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }
+            }).showToast();
+        }
+
+        function updateCountdown() {
+            const deadline = new Date('2025-11-17T23:59:59');
+            const now = new Date();
+            const diff = deadline - now;
+            const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+            const badge = document.getElementById('countdownBadge');
+            if (badge) {
+                if (daysRemaining > 0) {
+                    badge.textContent = `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`;
+                    badge.style.background = daysRemaining <= 3 ? '#f44336' : '#ffc107';
+                    badge.style.color = daysRemaining <= 3 ? 'white' : '#333';
+                } else {
+                    badge.textContent = 'Deadline passed';
+                    badge.style.background = '#f44336';
+                    badge.style.color = 'white';
+                }
+            }
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 60000);
+
+        document.getElementById('migrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+
+            if (!username || !password) {
+                errorText.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Processing...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/migrate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    submitBtn.innerHTML = '✓ Success! Redirecting...';
+                    submitBtn.style.background = '#4caf50';
+
+                    showToast('Account upgraded successfully! Redirecting to login...', 'success');
+
+                    setTimeout(async () => {
+                        try {
+                            const logoutResponse = await fetch('/admin/logout', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            const logoutData = await logoutResponse.json();
+                            if (logoutData.success && logoutData.redirect) {
+                                window.location.href = logoutData.redirect;
+                            } else {
+                                window.location.href = '/admin/login';
+                            }
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            window.location.href = '/admin/login';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Migration failed');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                errorText.textContent = error.message || 'Failed to migrate account. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '✓ Upgrade My Account';
+            }
+        });
+    </script>
+</body>
+</html>

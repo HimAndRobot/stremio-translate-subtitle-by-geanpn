@@ -1,0 +1,22 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    networks:
+      - coolify
+
+  stremio-translate:
+    build: .
+    volumes:
+      - subtitles-data:/app/subtitles
+    restart: unless-stopped
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  subtitles-data:

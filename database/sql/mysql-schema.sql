@@ -1,6 +1,13 @@
 -- Table creation for MySQL
 -- Run this file after database creation
 
+CREATE TABLE IF NOT EXISTS migrations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_migrations_name (name)
+);
+
 CREATE TABLE IF NOT EXISTS series (
     id INT AUTO_INCREMENT PRIMARY KEY,
     series_imdbid VARCHAR(255) NOT NULL,
@@ -23,6 +30,17 @@ CREATE TABLE IF NOT EXISTS subtitle (
     INDEX idx_subtitle_langcode (subtitle_langcode)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(64) NOT NULL,
+    password_bcrypt VARCHAR(255) NULL,
+    needs_addon_reconfiguration BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_users_username (username),
+    INDEX idx_users_hash (password_hash)
+);
+
 CREATE TABLE IF NOT EXISTS translation_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     series_imdbid VARCHAR(255) NOT NULL,
@@ -30,10 +48,21 @@ CREATE TABLE IF NOT EXISTS translation_queue (
     series_episodeno INT NULL,
     subcount INT NOT NULL,
     langcode VARCHAR(10) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'processing',
+    password_hash VARCHAR(255) NULL,
+    apikey_encrypted TEXT NULL,
+    base_url_encrypted TEXT NULL,
+    model_name_encrypted TEXT NULL,
+    series_name VARCHAR(500) NULL,
+    retry_attempts INT DEFAULT 0,
+    token_usage_total INT DEFAULT 0,
+    last_retry_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_translation_queue_imdbid (series_imdbid),
     INDEX idx_translation_queue_season_episode (series_seasonno, series_episodeno),
-    INDEX idx_translation_queue_langcode (langcode)
+    INDEX idx_translation_queue_langcode (langcode),
+    INDEX idx_translation_queue_status (status),
+    INDEX idx_translation_queue_password (password_hash)
 );
 
 -- Commands for management

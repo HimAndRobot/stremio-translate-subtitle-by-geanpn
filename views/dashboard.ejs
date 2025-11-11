@@ -1,0 +1,2703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Translations - Auto Subtitle Translate</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="/public/translation-config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-sm {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: visible;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.15);
+        }
+        .card-poster {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-poster-placeholder {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 64px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .status-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10;
+        }
+        .card-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .card-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .card-subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .series-total-tokens {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .series-total-tokens .tokens-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .series-total-tokens .tokens-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .stat-value.tokens {
+            color: #667eea;
+        }
+        .stat-value.retries {
+            color: #ff9800;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-processing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .status-failed {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status-manual_search {
+            background: #fff9e6;
+            color: #f57f17;
+        }
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .empty-state h2 {
+            color: #666;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .empty-state p {
+            color: #999;
+            font-size: 16px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            margin-bottom: 25px;
+        }
+        .modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .modal-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .modal-form-group select,
+        .modal-form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .modal-form-group select:focus,
+        .modal-form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .modal-btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .modal-btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .episodes-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .episodes-modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .episodes-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .episodes-modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+        .episodes-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .episodes-modal-close:hover {
+            color: #333;
+        }
+        .episodes-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        .episode-item {
+            padding: 10px 12px;
+            background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 10px;
+            border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .episode-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .episode-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .episode-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: #667eea;
+            min-width: 60px;
+        }
+        .episode-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #888;
+        }
+        .episode-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .episode-actions {
+            position: relative;
+        }
+        .episode-menu-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .episode-menu-btn:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+        .episode-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 5px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            min-width: 150px;
+        }
+        .episode-dropdown.show {
+            display: block;
+        }
+        .episode-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+            border-radius: 0;
+        }
+        .episode-dropdown button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        .episode-dropdown button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        .episode-dropdown button:hover {
+            background: #f5f5f5;
+        }
+        .episode-dropdown button.danger {
+            color: #f44336;
+        }
+        .episode-dropdown button.danger:hover {
+            background: #ffebee;
+        }
+        .episode-dropdown button.warning {
+            color: #ff9800;
+        }
+        .episode-dropdown button.warning:hover {
+            background: #fff3e0;
+        }
+        .view-more-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        .view-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .search-container {
+            margin: 20px auto 30px auto;
+            max-width: 100%;
+        }
+        .search-box {
+            width: 100%;
+            padding: 14px 20px;
+            padding-left: 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 15px center;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-box::placeholder {
+            color: #999;
+        }
+        .add-subtitle-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .add-subtitle-modal-content {
+            background: white;
+            margin: 3% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .add-subtitle-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .add-subtitle-modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+        .add-subtitle-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .add-subtitle-modal-close:hover {
+            color: #333;
+        }
+        .mode-card {
+            flex: 1;
+            padding: 30px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .mode-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        .search-modal-input {
+            width: 100%;
+            padding: 14px 20px;
+            padding-left: 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 15px center;
+        }
+        .search-modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .search-result-item {
+            cursor: pointer;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            background: white;
+            border: 2px solid #e8e8e8;
+        }
+        .search-result-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        .search-result-poster {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .search-result-info {
+            padding: 10px;
+        }
+        .search-result-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .search-result-meta {
+            font-size: 11px;
+            color: #888;
+        }
+        .episodes-selection-container {
+            display: none;
+        }
+        .episodes-selection-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        .back-button:hover {
+            background: #e0e0e0;
+        }
+        .episodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .episode-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e8e8e8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .episode-checkbox-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .episode-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .episode-checkbox-label {
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+        }
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .confirm-selection-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+        .confirm-selection-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .confirm-selection-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .subtitle-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+        }
+        .subtitle-preview-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .subtitle-preview-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .subtitle-preview-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .subtitle-preview-text {
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: #333;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .preview-btn {
+            padding: 5px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.2s;
+        }
+        .preview-btn:hover {
+            background: #5568d3;
+        }
+        .migration-alert {
+            background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.25);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .migration-alert-icon {
+            font-size: 42px;
+            flex-shrink: 0;
+        }
+        .migration-alert-content {
+            flex: 1;
+        }
+        .migration-alert-content h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        .migration-alert-content p {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .migration-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 193, 7, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+        .migration-alert-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .migration-alert-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #856404;
+            cursor: pointer;
+            padding: 0 10px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .migration-alert-close:hover {
+            color: #533f03;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>My Translations</h1>
+            <div class="header-actions">
+                <button onclick="openAddSubtitleModal()" class="btn btn-secondary">Add Subtitle</button>
+                <a href="/admin/settings" class="btn btn-secondary">Settings</a>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+
+        <% if (userInfo && userInfo.isOldUser) { %>
+        <div class="migration-alert" id="migrationAlert">
+            <div class="migration-alert-icon">⚠️</div>
+            <div class="migration-alert-content">
+                <div class="migration-countdown" id="countdownBadge">
+                    <span>⏱️</span>
+                    <span id="daysRemaining">...</span>
+                </div>
+                <h3>Account Upgrade Required</h3>
+                <p>You're using legacy password-only authentication. Please upgrade to a username+password account to continue using the service after <strong>November 17, 2025</strong>.</p>
+                <div class="migration-alert-actions">
+                    <button onclick="openMigrationModal()" class="btn btn-primary btn-sm">🔐 Upgrade Now</button>
+                    <a href="/admin/migrate" class="btn btn-secondary btn-sm">Learn More</a>
+                </div>
+            </div>
+            <button class="migration-alert-close" onclick="dismissMigrationAlert()">&times;</button>
+        </div>
+        <% } %>
+
+        <% if (userInfo && userInfo.needsAddonReconfiguration) { %>
+        <div class="migration-alert" id="reconfigAlert" style="background: #fff3cd; border-left-color: #ffc107;">
+            <div class="migration-alert-icon">🔌</div>
+            <div class="migration-alert-content">
+                <h3>Addon Reconfiguration Required</h3>
+                <p>You've successfully migrated your account! Now you need to <strong>reinstall your Stremio addon</strong> with your new username and password to complete the process.</p>
+                <div class="migration-alert-actions">
+                    <a href="/configure" class="btn btn-primary btn-sm">🔧 Reinstall Addon</a>
+                </div>
+            </div>
+        </div>
+        <% } %>
+
+        <% if (translations.length === 0) { %>
+        <div class="empty-state">
+            <h2>No Translations Yet</h2>
+            <p>Your translations will appear here once you start using the addon</p>
+        </div>
+    <% } else { %>
+        <div class="search-container">
+            <form autocomplete="off" style="margin: 0; padding: 0;">
+                <input type="text" id="searchBox" class="search-box" placeholder="Search by title, IMDB ID, season, episode..." onkeyup="filterSeries()" autocomplete="off" autocapitalize="off" spellcheck="false" name="search-box-unique">
+            </form>
+        </div>
+        <div class="grid-container" id="seriesGrid">
+            <% groupedSeries.forEach(series => { %>
+                <div class="card series-card">
+                    <div style="position: relative;">
+                        <span class="status-badge" style="background: <%= series.type === 'movie' ? '#ff6b6b' : '#4ecdc4' %>; color: white; font-size: 10px; padding: 4px 10px; border-radius: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <%= series.type === 'movie' ? '🎬 MOVIE' : '📺 SERIES' %>
+                        </span>
+                        <% if (series.poster && series.poster !== null && series.poster !== '') { %>
+                            <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="card-poster-placeholder" style="display:none;">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            </div>
+                        <% } else { %>
+                            <div class="card-poster-placeholder">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
+                            </div>
+                        <% } %>
+                    </div>
+
+                    <div class="card-content">
+                        <div style="flex-grow: 1;">
+                            <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
+                            <div class="card-subtitle">
+                                <% if (series.isMovie) { %>
+                                    <%= series.languages %>
+                                <% } else { %>
+                                    <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.languages %>
+                                <% } %>
+                            </div>
+
+                            <div class="series-total-tokens">
+                                <span class="tokens-label">Total Tokens</span>
+                                <span class="tokens-value">🪙 <%= series.total_tokens.toLocaleString() %></span>
+                            </div>
+
+                            <% if (!series.isMovie && series.episodes.length > 1) { %>
+                                <div class="episodes-list">
+                                    <% const firstThree = series.episodes.slice(0, 3); %>
+                                    <% firstThree.forEach(episode => { %>
+                                    <div class="episode-item">
+                                        <div class="episode-info">
+                                            <%
+                                                const isEpisodeMovie = episode.type === 'movie';
+                                                const episodeLabel = isEpisodeMovie ? 'Movie' : `S${String(episode.series_seasonno).padStart(2, '0')}E${String(episode.series_episodeno).padStart(2, '0')}`;
+                                            %>
+                                            <span class="episode-label"><%= episodeLabel %></span>
+                                            <span class="status status-<%= episode.status %>">
+                                                <%= episode.status %><% if (episode.status === 'manual_search') { %>
+                                                • <%= new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
+                                            </span>
+                                            <div class="episode-stats">
+                                                <span>🌐 <%= episode.langcode %></span>
+                                                <span>🪙 <%= (episode.token_usage_total || 0).toLocaleString() %></span>
+                                                <% if (episode.batches_total > 0) { %>
+                                                    <span>📦 <%= episode.batches_completed %>/<%= episode.batches_total %></span>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                        <%
+                                            const isProcessingTooLong = episode.status === 'processing' && (new Date() - new Date(episode.created_at) > 10 * 60 * 1000);
+                                            const showReprocess = episode.status === 'failed' || isProcessingTooLong;
+                                        %>
+                                        <div class="episode-actions">
+                                            <button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, <%= episode.id %>)">⋮</button>
+                                            <div id="menu-<%= episode.id %>" class="episode-dropdown">
+                                                <% if (episode.status === 'completed') { %>
+                                                    <button onclick="downloadSubtitle(<%= episode.id %>)">📥 Download</button>
+                                                <% } %>
+                                                <% if (showReprocess) { %>
+                                                    <% if (episode.apikey_encrypted) { %>
+                                                        <button class="warning" onclick="reprocess(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } else { %>
+                                                        <button class="warning" onclick="openReprocessModal(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } %>
+                                                <% } %>
+                                                <button class="danger" onclick="deleteTranslation(<%= episode.id %>)">🗑️ Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+
+                                <% if (series.episodes.length > 3) { %>
+                                    <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>')">
+                                        + <%= series.episodes.length - 3 %> more episodes
+                                    </button>
+                                <% } %>
+                            <% } else { %>
+                            <% const item = series.episodes[0]; %>
+                                <div class="stats-grid">
+                                    <div class="stat-box">
+                                        <div class="stat-label">Status</div>
+                                        <div class="stat-value">
+                                            <span class="status status-<%= item.status %>">
+                                                <%= item.status %><% if (item.status === 'manual_search') { %>
+                                                • <%= new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-box">
+                                        <div class="stat-label">Tokens</div>
+                                        <div class="stat-value tokens"><%= (item.token_usage_total || 0).toLocaleString() %></div>
+                                    </div>
+                                    <% if (item.batches_total > 0) { %>
+                                        <div class="stat-box">
+                                            <div class="stat-label">Batches</div>
+                                            <div class="stat-value batches"><%= item.batches_completed %>/<%= item.batches_total %></div>
+                                        </div>
+                                    <% } %>
+                                </div>
+                        <% } %>
+                        </div>
+
+                        <% if (series.episodes.length === 1) { %>
+                            <% const item = series.episodes[0]; %>
+                            <div class="card-actions" style="margin-top: auto;">
+                                <%
+                                    const showReprocess = item.status === 'failed' ||
+                                        (item.status === 'processing' &&
+                                         new Date() - new Date(item.created_at) > 10 * 60 * 1000);
+                                %>
+                                <% if (item.status === 'manual_search') { %>
+                                    <button onclick="openIdentifyModal(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">🔍 Identify Content</button>
+                                <% } %>
+                                <% if (item.status === 'completed') { %>
+                                    <button onclick="downloadSubtitle(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">📥 Download</button>
+                                <% } %>
+                                <% if (showReprocess) { %>
+                                    <% if (item.apikey_encrypted) { %>
+                                        <button onclick="reprocess(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
+                                    <% } else { %>
+                                        <button onclick="openReprocessModal(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
+                                    <% } %>
+                                <% } %>
+                                <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm" style="flex: 1;">Delete</button>
+                            </div>
+                        <% } %>
+
+                        <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0; gap: 10px;">
+                            <% if (!series.isMovie) { %>
+                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="btn btn-primary btn-sm" style="flex: 1;">
+                                    📥 Download More Subtitles
+                                </button>
+                            <% } %>
+                            <% if (series.episodes.length !== 1) { %>
+                                <% const firstEpisode = series.episodes[0]; %>
+                                <button onclick="deleteTranslation(<%= firstEpisode.id %>)" class="btn btn-danger btn-sm" style="<%= series.isMovie ? 'width: 100%;' : 'flex: 1;' %>">
+                                    🗑️ Delete
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    <% } %>
+
+    <div id="addSubtitleModal" class="add-subtitle-modal">
+        <div class="add-subtitle-modal-content">
+            <div class="add-subtitle-modal-header">
+                <h2 id="addSubtitleModalTitle">Add Subtitle</h2>
+                <button class="add-subtitle-modal-close" onclick="closeAddSubtitleModal()">&times;</button>
+            </div>
+
+            <div id="searchContainer">
+                <input type="text" id="searchModalInput" class="search-modal-input" placeholder="Search for series or movies..." onkeyup="handleSearchInput()">
+                <div id="searchLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Searching...</p>
+                </div>
+                <div id="searchResultsGrid" class="search-results-grid"></div>
+            </div>
+
+            <div id="episodesSelectionContainer" class="episodes-selection-container">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToSearch()">←</button>
+                    <div>
+                        <h3 id="selectedSeriesTitle" style="margin: 0; font-size: 18px; color: #1a1a1a;"></h3>
+                        <p id="selectedSeriesMeta" style="margin: 5px 0 0 0; font-size: 12px; color: #888;"></p>
+                    </div>
+                </div>
+                <div id="episodesLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading episodes...</p>
+                </div>
+                <div id="episodesGrid" class="episodes-grid"></div>
+                <button class="confirm-selection-btn" onclick="confirmSelection()" disabled>Confirm Selection</button>
+            </div>
+
+            <div id="modeSelectionContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToEpisodesFromMode()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Choose Translation Mode</h3>
+                </div>
+
+                <div style="display: flex; gap: 20px; margin-top: 20px;">
+                    <div class="mode-card" onclick="selectAutomaticMode()">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a;">Automatic Mode</h4>
+                        <p style="margin: 0; font-size: 14px; color: #666;">Use best available subtitles from OpenSubtitles automatically</p>
+                    </div>
+                    <div class="mode-card" onclick="selectCustomMode()">
+                        <div style="font-size: 48px; margin-bottom: 15px;">⚙️</div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a;">Custom Mode</h4>
+                        <p style="margin: 0; font-size: 14px; color: #666;">Select specific subtitles or upload your own .srt files</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subtitleCustomizationContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToModeSelection()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Customize Subtitles</h3>
+                </div>
+                <div id="subtitleCustomizationContent" style="margin-top: 20px;"></div>
+                <button class="confirm-selection-btn" onclick="proceedToTranslationOptions()" disabled>Continue to Translation Options</button>
+            </div>
+
+            <div id="translationOptionsContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToEpisodes()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Translation Options</h3>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadLanguage">Target Language</label>
+                    <select id="downloadLanguage"></select>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadProvider">Provider</label>
+                    <select id="downloadProvider"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadApiKeyGroup">
+                    <label for="downloadApiKey">API Key</label>
+                    <input type="text" id="downloadApiKey" placeholder="Enter your API key">
+                </div>
+
+                <div class="modal-form-group" id="downloadModelGroup">
+                    <label for="downloadModel">Model Name</label>
+                    <select id="downloadModel"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadBaseUrlGroup">
+                    <label for="downloadBaseUrl">Base URL</label>
+                    <input type="text" id="downloadBaseUrl" placeholder="e.g., https://api.openai.com/v1">
+                </div>
+
+                <button class="confirm-selection-btn" onclick="startTranslation()">Start Translation</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="episodesModal" class="episodes-modal">
+        <div class="episodes-modal-content">
+            <div class="episodes-modal-header">
+                <h2 id="episodesModalTitle">All Episodes</h2>
+                <button class="episodes-modal-close" onclick="closeEpisodesModal()">&times;</button>
+            </div>
+            <div id="episodesModalBody"></div>
+        </div>
+    </div>
+
+    <div id="reprocessModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reprocess Translation</h2>
+                <p>Provide credentials to reprocess this failed translation</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="modalLanguage">Target Language</label>
+                <select id="modalLanguage">
+                    <!-- Languages will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="modalProvider">Provider</label>
+                <select id="modalProvider">
+                </select>
+            </div>
+
+            <div class="modal-form-group" id="modalApiKeyGroup">
+                <label for="modalApiKey">API Key</label>
+                <input type="text" id="modalApiKey" placeholder="Enter your API key">
+            </div>
+
+            <div class="modal-form-group" id="modalModelGroup">
+                <label for="modalModel">Model</label>
+                <select id="modalModel"></select>
+            </div>
+
+            <div class="modal-form-group hidden" id="modalBaseUrlGroup">
+                <label for="modalBaseUrl">API Base URL</label>
+                <input type="text" id="modalBaseUrl" placeholder="https://api.example.com/v1">
+            </div>
+
+            <div class="modal-form-group hidden" id="modalModelNameGroup">
+                <label for="modalModelName">Model Name</label>
+                <input type="text" id="modalModelName" placeholder="model-name">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeReprocessModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitReprocess()">Reprocess</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="masterPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Enter Master Password</h2>
+                <p>Enter your master password to decrypt the saved credential</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="masterPasswordInput">Master Password</label>
+                <input type="password" id="masterPasswordInput" placeholder="Enter master password" onkeypress="if(event.key === 'Enter') submitMasterPassword()">
+            </div>
+
+            <div id="masterPasswordError" style="color: #f44336; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none;"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitMasterPassword()">Decrypt</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="accountMigrationModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">
+                <h2 style="margin: 0 0 10px 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+                    <span>🔐</span>
+                    <span>Upgrade Your Account</span>
+                </h2>
+                <p style="margin: 0; opacity: 0.95; font-size: 14px;">Create a username to secure your account and continue using the service</p>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6;">
+                        <strong>⚠️ Important:</strong> After migration, all your translations will be transferred to the new account. You'll be logged out automatically and must log in with your new credentials.
+                    </p>
+                </div>
+
+                <form id="migrationForm" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <label for="migrationUsername" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Username</label>
+                        <input type="text" id="migrationUsername" name="username" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Choose a unique username"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">This will be your login username</small>
+                    </div>
+
+                    <div>
+                        <label for="migrationPassword" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Password</label>
+                        <input type="password" id="migrationPassword" name="password" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Your current password"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">Use your existing password</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px 24px; font-weight: 600;">
+                            ✓ Upgrade Account
+                        </button>
+                        <button type="button" onclick="closeMigrationModal()" class="btn btn-secondary" style="padding: 12px 24px;">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+
+                <div id="migrationError" style="display: none; background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                    <p style="margin: 0; color: #c62828; font-size: 14px;" id="migrationErrorText"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="subtitlePreviewModal" class="subtitle-preview-modal">
+        <div class="subtitle-preview-content">
+            <div class="subtitle-preview-header">
+                <h3 style="margin: 0; font-size: 18px;">Subtitle Preview</h3>
+                <button class="add-subtitle-modal-close" onclick="closeSubtitlePreview()">&times;</button>
+            </div>
+            <div class="subtitle-preview-body">
+                <div id="subtitlePreviewLoading" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading preview...</p>
+                </div>
+                <div id="subtitlePreviewText" class="subtitle-preview-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const seriesData = <%- JSON.stringify(groupedSeries) %>;
+
+        let searchTimeout;
+        let selectedEpisodes = [];
+        let currentSelectedSeries = null;
+        let currentCredentialContext = null;
+        let pendingDecryptedCredential = null;
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                error: 'linear-gradient(to right, #f44336, #e91e63)',
+                warning: 'linear-gradient(to right, #ff9800, #ff5722)',
+                info: 'linear-gradient(to right, #2196F3, #00BCD4)'
+            };
+
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                stopOnFocus: true,
+                style: {
+                    background: colors[type] || colors.info,
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }
+            }).showToast();
+        }
+
+        async function deriveKey(password, salt) {
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available');
+            }
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+            const importedKey = await window.crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            return window.crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                importedKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function decryptData(encryptedData, salt, iv, password) {
+            const key = await deriveKey(password, new Uint8Array(salt));
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: new Uint8Array(iv) },
+                key,
+                new Uint8Array(encryptedData)
+            );
+
+            const decoder = new TextDecoder();
+            return JSON.parse(decoder.decode(decrypted));
+        }
+
+        function loadSavedCredentials() {
+            try {
+                const saved = localStorage.getItem('user_credentials');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('Error loading credentials:', error);
+            }
+            return [];
+        }
+
+        function populateProviderDropdownWithCredentials(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = '';
+
+            PROVIDERS.forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider;
+                option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                select.appendChild(option);
+            });
+
+            const credentials = loadSavedCredentials();
+            if (credentials.length > 0) {
+                const separator = document.createElement('optgroup');
+                separator.label = '--- Saved Credentials ---';
+                select.appendChild(separator);
+
+                credentials.forEach((cred, index) => {
+                    const option = document.createElement('option');
+                    option.value = `saved_${index}`;
+                    option.textContent = `🔑 ${cred.name} (${cred.provider})`;
+                    option.dataset.isSaved = 'true';
+                    option.dataset.credentialIndex = index;
+                    separator.appendChild(option);
+                });
+            }
+
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        function openMasterPasswordModal(context, credentialIndex) {
+            currentCredentialContext = { context, credentialIndex };
+            document.getElementById('masterPasswordInput').value = '';
+            document.getElementById('masterPasswordError').style.display = 'none';
+            document.getElementById('masterPasswordModal').style.display = 'block';
+        }
+
+        function closeMasterPasswordModal(resetSelect = true) {
+            const context = currentCredentialContext ? currentCredentialContext.context : null;
+
+            document.getElementById('masterPasswordModal').style.display = 'none';
+            currentCredentialContext = null;
+            pendingDecryptedCredential = null;
+
+            if (resetSelect && context) {
+                if (context === 'download') {
+                    document.getElementById('downloadProvider').selectedIndex = 0;
+                    updateProviderFields('download');
+                } else if (context === 'modal') {
+                    document.getElementById('modalProvider').selectedIndex = 0;
+                    updateModalFields();
+                }
+            }
+        }
+
+        async function submitMasterPassword() {
+            const password = document.getElementById('masterPasswordInput').value;
+            const errorDiv = document.getElementById('masterPasswordError');
+
+            if (!password) {
+                errorDiv.textContent = 'Please enter your master password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!currentCredentialContext) {
+                errorDiv.textContent = 'Invalid context';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const credentials = loadSavedCredentials();
+                const credential = credentials[currentCredentialContext.credentialIndex];
+
+                if (!credential) {
+                    errorDiv.textContent = 'Credential not found';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const decryptedData = await decryptData(
+                    credential.encrypted_data,
+                    credential.salt,
+                    credential.iv,
+                    password
+                );
+
+                const context = currentCredentialContext.context;
+
+                pendingDecryptedCredential = {
+                    provider: credential.provider,
+                    apikey: decryptedData.apikey || '',
+                    base_url: decryptedData.baseurl || '',
+                    model_name: decryptedData.model || '',
+                    name: credential.name
+                };
+
+                document.getElementById('masterPasswordModal').style.display = 'none';
+                currentCredentialContext = null;
+
+                applyDecryptedCredential(context);
+
+            } catch (error) {
+                console.error('Decryption error:', error);
+                errorDiv.textContent = 'Incorrect password or corrupted data';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function applyDecryptedCredential(context) {
+            if (!pendingDecryptedCredential) return;
+
+            const cred = pendingDecryptedCredential;
+
+            if (context === 'download') {
+                const providerSelect = document.getElementById('downloadProvider');
+                providerSelect.innerHTML = '';
+                PROVIDERS.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                    providerSelect.appendChild(option);
+                });
+                providerSelect.value = cred.provider;
+                updateProviderFields('download');
+
+                document.getElementById('downloadApiKey').value = cred.apikey;
+                document.getElementById('downloadBaseUrl').value = cred.base_url;
+
+                const modelSelect = document.getElementById('downloadModel');
+                if (modelSelect && cred.model_name) {
+                    const existingOption = Array.from(modelSelect.options).find(opt => opt.value === cred.model_name);
+                    if (existingOption) {
+                        modelSelect.value = cred.model_name;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = cred.model_name;
+                        option.textContent = cred.model_name;
+                        modelSelect.appendChild(option);
+                        modelSelect.value = cred.model_name;
+                    }
+                }
+
+                showToast(`✓ Loaded credentials: ${cred.name}`, 'success');
+
+            } else if (context === 'modal') {
+                const providerSelect = document.getElementById('modalProvider');
+                providerSelect.innerHTML = '';
+                PROVIDERS.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider === 'Custom' ? 'Custom (OpenAI Compatible)' : provider;
+                    providerSelect.appendChild(option);
+                });
+                providerSelect.value = cred.provider;
+                updateModalFields();
+
+                document.getElementById('modalApiKey').value = cred.apikey;
+                document.getElementById('modalBaseUrl').value = cred.base_url;
+                document.getElementById('modalModelName').value = cred.model_name;
+
+                const modelSelect = document.getElementById('modalModel');
+                if (modelSelect && cred.model_name) {
+                    const existingOption = Array.from(modelSelect.options).find(opt => opt.value === cred.model_name);
+                    if (existingOption) {
+                        modelSelect.value = cred.model_name;
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = cred.model_name;
+                        option.textContent = cred.model_name;
+                        modelSelect.appendChild(option);
+                        modelSelect.value = cred.model_name;
+                    }
+                }
+
+                showToast(`✓ Loaded credentials: ${cred.name}`, 'success');
+            }
+
+            pendingDecryptedCredential = null;
+        }
+
+        function resetAddSubtitleModal() {
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'none';
+            document.getElementById('subtitleCustomizationContainer').style.display = 'none';
+            document.getElementById('translationOptionsContainer').style.display = 'none';
+
+            document.getElementById('searchModalInput').value = '';
+            document.getElementById('searchResultsGrid').innerHTML = '';
+            document.getElementById('episodesGrid').innerHTML = '';
+
+            selectedEpisodes = [];
+            currentSelectedSeries = null;
+            customSubtitles = {};
+            isAutomaticMode = true;
+        }
+
+        function openAddSubtitleModal() {
+            resetAddSubtitleModal();
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'block';
+        }
+
+        function closeAddSubtitleModal() {
+            document.getElementById('addSubtitleModal').style.display = 'none';
+        }
+
+        async function openDownloadMoreModal(imdbId, seriesName) {
+            resetAddSubtitleModal();
+
+            currentSelectedSeries = {
+                imdbId: imdbId,
+                name: seriesName,
+                type: 'series',
+                poster: '',
+                year: ''
+            };
+
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('episodesSelectionContainer').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = seriesName;
+            document.getElementById('selectedSeriesMeta').textContent = 'series';
+
+            const loadingState = document.getElementById('episodesLoadingState');
+            const episodesGrid = document.getElementById('episodesGrid');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+
+            loadingState.style.display = 'block';
+            episodesGrid.innerHTML = '';
+            selectedEpisodes = [];
+            confirmBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/episodes/' + imdbId);
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.episodes && data.episodes.length > 0) {
+                    let html = '';
+                    data.episodes.forEach((episode, index) => {
+                        const season = episode.season || 0;
+                        const episodeNum = episode.episode || 0;
+                        const title = episode.title || 'Episode ' + episodeNum;
+                        const checkboxId = 'ep-' + index;
+
+                        html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
+                        html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
+                        html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
+                        html += '</div>';
+                    });
+                    episodesGrid.innerHTML = html;
+                } else {
+                    episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No episodes found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                episodesGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading episodes</p>';
+                console.error('Episodes error:', error);
+            }
+        }
+
+        function handleSearchInput() {
+            const query = document.getElementById('searchModalInput').value.trim();
+
+            clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+                document.getElementById('searchResultsGrid').innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                searchContent(query);
+            }, 300);
+        }
+
+        async function searchContent(query) {
+            const loadingState = document.getElementById('searchLoadingState');
+            const resultsGrid = document.getElementById('searchResultsGrid');
+
+            loadingState.style.display = 'block';
+            resultsGrid.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/search?q=' + encodeURIComponent(query));
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.results && data.results.length > 0) {
+                    let html = '';
+                    data.results.forEach(item => {
+                        const poster = item.poster || '';
+                        const title = item.name || 'Unknown';
+                        const year = item.year || '';
+                        const type = item.contentType || item.type || '';
+                        const imdbId = item.id || '';
+
+                        html += '<div class="search-result-item" onclick="selectSeries(\'' + imdbId + '\', \'' + title.replace(/'/g, "\\'") + '\', \'' + type + '\', \'' + poster.replace(/'/g, "\\'") + '\', \'' + year + '\')">';
+                        if (poster) {
+                            html += '<img src="' + poster + '" class="search-result-poster" alt="' + title + '">';
+                        } else {
+                            html += '<div class="search-result-poster"></div>';
+                        }
+                        html += '<div class="search-result-info">';
+                        html += '<div class="search-result-title">' + title + '</div>';
+                        html += '<div class="search-result-meta">' + (year ? year + ' • ' : '') + type + '</div>';
+                        html += '</div></div>';
+                    });
+                    resultsGrid.innerHTML = html;
+                } else {
+                    resultsGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No results found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                resultsGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading results</p>';
+                console.error('Search error:', error);
+            }
+        }
+
+        async function selectSeries(imdbId, name, type, poster, year) {
+            if (currentIdentifyId) {
+                await identifyContent(imdbId, name, poster);
+                return;
+            }
+
+            currentSelectedSeries = { imdbId, name, type, poster, year };
+
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = name;
+            document.getElementById('selectedSeriesMeta').textContent = (year ? year + ' • ' : '') + type;
+
+            const loadingState = document.getElementById('episodesLoadingState');
+            const episodesGrid = document.getElementById('episodesGrid');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+
+            loadingState.style.display = 'block';
+            episodesGrid.innerHTML = '';
+            selectedEpisodes = [];
+            confirmBtn.disabled = true;
+
+            if (type === 'movie') {
+                loadingState.style.display = 'none';
+                selectedEpisodes = [];
+                showModeSelection();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/episodes/' + imdbId);
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (data.episodes && data.episodes.length > 0) {
+                    let html = '';
+                    data.episodes.forEach((episode, index) => {
+                        const season = episode.season || 0;
+                        const episodeNum = episode.episode || 0;
+                        const title = episode.title || 'Episode ' + episodeNum;
+                        const checkboxId = 'ep-' + index;
+
+                        html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
+                        html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
+                        html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
+                        html += '</div>';
+                    });
+                    episodesGrid.innerHTML = html;
+                } else {
+                    episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No episodes found</p>';
+                }
+            } catch (error) {
+                loadingState.style.display = 'none';
+                episodesGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading episodes</p>';
+                console.error('Episodes error:', error);
+            }
+        }
+
+        function toggleEpisodeCheckbox(checkboxId) {
+            const checkbox = document.getElementById(checkboxId);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                updateSelectedEpisodes();
+            }
+        }
+
+        function updateSelectedEpisodes() {
+            const checkboxes = document.querySelectorAll('#episodesGrid input[type="checkbox"]:checked');
+            selectedEpisodes = [];
+
+            checkboxes.forEach(checkbox => {
+                selectedEpisodes.push({
+                    season: parseInt(checkbox.dataset.season),
+                    episode: parseInt(checkbox.dataset.episode)
+                });
+            });
+
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+            confirmBtn.disabled = selectedEpisodes.length === 0;
+        }
+
+        function backToSearch() {
+            document.getElementById('searchContainer').style.display = 'block';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            selectedEpisodes = [];
+            currentSelectedSeries = null;
+        }
+
+        let customSubtitles = {};
+        let isAutomaticMode = true;
+
+        function confirmSelection() {
+            if (selectedEpisodes.length === 0) {
+                showToast('Please select at least one episode', 'warning');
+                return;
+            }
+
+            showModeSelection();
+        }
+
+        function showModeSelection() {
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'block';
+        }
+
+        function backToEpisodesFromMode() {
+            document.getElementById('modeSelectionContainer').style.display = 'none';
+            if (currentSelectedSeries.type === 'movie') {
+                backToSearch();
+            } else {
+                document.getElementById('episodesSelectionContainer').style.display = 'block';
+            }
+        }
+
+        function selectAutomaticMode() {
+            isAutomaticMode = true;
+            customSubtitles = {};
+            showTranslationOptions();
+        }
+
+        function selectCustomMode() {
+            isAutomaticMode = false;
+            showSubtitleCustomization();
+        }
+
+        function backToModeSelection() {
+            document.getElementById('subtitleCustomizationContainer').style.display = 'none';
+            document.getElementById('translationOptionsContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'block';
+        }
+
+        async function showSubtitleCustomization() {
+            document.getElementById('modeSelectionContainer').style.display = 'none';
+            document.getElementById('subtitleCustomizationContainer').style.display = 'block';
+
+            const content = document.getElementById('subtitleCustomizationContent');
+            content.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Loading subtitle options...</p></div>';
+
+            const episodes = currentSelectedSeries.type === 'movie'
+                ? [{ season: null, episode: null }]
+                : selectedEpisodes;
+
+            let html = '';
+            for (const ep of episodes) {
+                const episodeKey = currentSelectedSeries.type === 'movie' ? 'movie' : `S${ep.season}E${ep.episode}`;
+                html += `
+                    <div class="episode-subtitle-section" style="margin-bottom: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                        <h4 style="margin: 0 0 15px 0; color: #1a1a1a;">${currentSelectedSeries.type === 'movie' ? 'Movie' : `Season ${ep.season}, Episode ${ep.episode}`}</h4>
+                        <div id="subtitle-options-${episodeKey}" style="margin-bottom: 15px;"></div>
+                        <div style="margin-top: 15px;">
+                            <label style="display: block; margin-bottom: 8px; color: #666; font-size: 14px;">Or upload your own .srt file:</label>
+                            <input type="file"
+                                   accept=".srt"
+                                   id="upload-${episodeKey}"
+                                   onchange="handleSubtitleUpload(event, '${episodeKey}')"
+                                   style="display: block; padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                        </div>
+                    </div>
+                `;
+            }
+            content.innerHTML = html;
+
+            for (const ep of episodes) {
+                await loadSubtitleOptions(ep.season, ep.episode);
+            }
+
+            document.querySelector('#subtitleCustomizationContainer .confirm-selection-btn').disabled = false;
+        }
+
+        async function loadSubtitleOptions(season, episode) {
+            const episodeKey = (season === null && episode === null) ? 'movie' : `S${season}E${episode}`;
+            const container = document.getElementById(`subtitle-options-${episodeKey}`);
+
+            try {
+                const response = await fetch(`/api/subtitles/${currentSelectedSeries.imdbId}/${season}/${episode}`);
+                const data = await response.json();
+
+                if (data.subtitles && data.subtitles.length > 0) {
+                    let html = '<div style="display: grid; gap: 10px;">';
+                    data.subtitles.forEach((sub, idx) => {
+                        const subDataEscaped = JSON.stringify(sub).replace(/"/g, '&quot;');
+                        html += `
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                <div style="display: flex; align-items: center; flex: 1;">
+                                    <input type="radio"
+                                           name="subtitle-${episodeKey}"
+                                           value="${idx}"
+                                           onchange="selectSubtitle('${episodeKey}', ${idx}, ${subDataEscaped})"
+                                           style="margin-right: 10px;">
+                                    <span style="font-size: 14px; color: #333;">
+                                        <strong>${sub.mappedLang}</strong> (${sub.lang})
+                                    </span>
+                                </div>
+                                <button class="preview-btn" onclick="event.preventDefault(); event.stopPropagation(); previewSubtitle('${sub.url}')">Preview</button>
+                            </label>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p style="color: #999; font-size: 14px;">No subtitles available from OpenSubtitles</p>';
+                }
+            } catch (error) {
+                console.error('Error loading subtitles:', error);
+                container.innerHTML = '<p style="color: #e74c3c; font-size: 14px;">Failed to load subtitles</p>';
+            }
+        }
+
+        function selectSubtitle(episodeKey, index, subtitle) {
+            customSubtitles[episodeKey] = {
+                type: 'url',
+                url: subtitle.url,
+                lang: subtitle.lang
+            };
+            document.getElementById(`upload-${episodeKey}`).value = '';
+        }
+
+        async function handleSubtitleUpload(event, episodeKey) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('subtitle', file);
+
+            try {
+                const response = await fetch('/api/upload-subtitle', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    customSubtitles[episodeKey] = {
+                        type: 'file',
+                        filePath: data.filePath,
+                        filename: data.filename
+                    };
+
+                    const radios = document.querySelectorAll(`input[name="subtitle-${episodeKey}"]`);
+                    radios.forEach(radio => radio.checked = false);
+
+                    showToast(`Uploaded: ${file.name}`, 'success');
+                } else {
+                    showToast('Upload failed', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showToast('Upload error', 'error');
+            }
+        }
+
+        function proceedToTranslationOptions() {
+            const episodes = currentSelectedSeries.type === 'movie'
+                ? [{ season: null, episode: null }]
+                : selectedEpisodes;
+
+            let allHaveSubtitles = true;
+            for (const ep of episodes) {
+                const episodeKey = currentSelectedSeries.type === 'movie' ? 'movie' : `S${ep.season}E${ep.episode}`;
+                if (!customSubtitles[episodeKey]) {
+                    allHaveSubtitles = false;
+                    break;
+                }
+            }
+
+            if (!allHaveSubtitles) {
+                showToast('Please select or upload a subtitle for each episode', 'warning');
+                return;
+            }
+
+            showTranslationOptions();
+        }
+
+        function showTranslationOptions() {
+            document.getElementById('searchContainer').style.display = 'none';
+            document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'none';
+            document.getElementById('subtitleCustomizationContainer').style.display = 'none';
+            document.getElementById('translationOptionsContainer').style.display = 'block';
+
+            const langSelect = document.getElementById('downloadLanguage');
+            langSelect.innerHTML = '';
+            const languages = <%- JSON.stringify(languages) %>;
+            languages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = lang;
+                langSelect.appendChild(option);
+            });
+
+            populateProviderDropdownWithCredentials('downloadProvider');
+
+            const providerSelect = document.getElementById('downloadProvider');
+            const existingListener = providerSelect.onchange;
+            providerSelect.onchange = function() {
+                handleProviderChange('download');
+            };
+
+            updateProviderFields('download');
+        }
+
+        function handleProviderChange(context) {
+            const selectId = context === 'download' ? 'downloadProvider' : 'modalProvider';
+            const select = document.getElementById(selectId);
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (selectedOption.dataset.isSaved === 'true') {
+                const credentialIndex = parseInt(selectedOption.dataset.credentialIndex);
+                openMasterPasswordModal(context, credentialIndex);
+            } else {
+                if (context === 'download') {
+                    updateProviderFields('download');
+                } else {
+                    updateModalFields();
+                }
+            }
+        }
+
+        function updateProviderFields(prefix) {
+            const provider = document.getElementById(prefix + 'Provider').value;
+            const config = PROVIDER_CONFIGS[provider];
+
+            const apiKeyGroup = document.getElementById(prefix + 'ApiKeyGroup');
+            const modelGroup = document.getElementById(prefix + 'ModelGroup');
+            const baseUrlGroup = document.getElementById(prefix + 'BaseUrlGroup');
+            const modelSelect = document.getElementById(prefix + 'Model');
+            const baseUrlInput = document.getElementById(prefix + 'BaseUrl');
+
+            if (!config.requiresApiKey) {
+                apiKeyGroup.style.display = 'none';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'none';
+            } else {
+                apiKeyGroup.style.display = 'block';
+
+                if (config.requiresModel) {
+                    modelGroup.style.display = 'block';
+                    modelSelect.innerHTML = '';
+                    if (config.models && config.models.length > 0) {
+                        config.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model;
+                            option.textContent = model;
+                            modelSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    modelGroup.style.display = 'none';
+                }
+
+                if (config.requiresBaseUrl) {
+                    baseUrlGroup.style.display = 'block';
+                    baseUrlInput.value = config.defaultBaseUrl || '';
+                    baseUrlInput.placeholder = config.defaultBaseUrl || 'Enter base URL';
+                } else {
+                    baseUrlGroup.style.display = 'none';
+                }
+            }
+        }
+
+        function backToEpisodes() {
+            document.getElementById('translationOptionsContainer').style.display = 'none';
+            document.getElementById('modeSelectionContainer').style.display = 'block';
+        }
+
+        async function startTranslation() {
+            const provider = document.getElementById('downloadProvider').value;
+            const config = PROVIDER_CONFIGS[provider];
+
+            let apikey = '';
+            let base_url = '';
+            let model_name = '';
+
+            if (config.requiresApiKey) {
+                apikey = document.getElementById('downloadApiKey').value;
+                if (provider === 'Custom') {
+                    base_url = document.getElementById('downloadBaseUrl').value;
+                    model_name = document.getElementById('downloadModel').value;
+                } else {
+                    base_url = config.defaultBaseUrl;
+                    model_name = document.getElementById('downloadModel').value;
+                }
+            }
+
+            const targetLanguage = document.getElementById('downloadLanguage').value;
+
+            const episodes = currentSelectedSeries.type === 'movie'
+                ? [{ season: null, episode: null }]
+                : selectedEpisodes;
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imdbid: currentSelectedSeries.imdbId,
+                        type: currentSelectedSeries.type,
+                        episodes: episodes,
+                        targetLanguage: targetLanguage,
+                        provider: provider,
+                        apikey: apikey,
+                        base_url: base_url,
+                        model_name: model_name,
+                        customSubtitles: isAutomaticMode ? null : customSubtitles
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast(`Success! ${result.message}`, 'success');
+                    closeAddSubtitleModal();
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    showToast('Error: ' + (error.error || 'Failed to queue translation'), 'error');
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+
+        function openEpisodesModal(seriesImdbid) {
+            const series = seriesData.find(s => s.series_imdbid === seriesImdbid);
+            if (!series) return;
+
+            const modal = document.getElementById('episodesModal');
+            const modalTitle = document.getElementById('episodesModalTitle');
+            const modalBody = document.getElementById('episodesModalBody');
+
+            modalTitle.textContent = `${series.series_name || series.series_imdbid} - All Episodes`;
+
+            const sortedEpisodes = [...series.episodes].sort((a, b) => {
+                const dateA = new Date(a.created_at);
+                const dateB = new Date(b.created_at);
+                return dateB - dateA;
+            });
+
+            let html = '<div class="episodes-list">';
+            sortedEpisodes.forEach(episode => {
+                const now = new Date();
+                const created = new Date(episode.created_at);
+                const timeDiff = now - created;
+                const isProcessingTooLong = (episode.status === 'processing') ? (timeDiff > 600000) : false;
+                const showReprocess = (episode.status === 'failed') ? true : isProcessingTooLong;
+
+                let reprocessBtn = '';
+                if (showReprocess) {
+                    if (episode.apikey_encrypted) {
+                        reprocessBtn = '<button class="warning" onclick="reprocess(' + episode.id + ')">🔄 Reprocess</button>';
+                    } else {
+                        reprocessBtn = '<button class="warning" onclick="openReprocessModal(' + episode.id + ')">🔄 Reprocess</button>';
+                    }
+                }
+
+                const downloadBtn = (episode.status === 'completed') ? '<button onclick="downloadSubtitle(' + episode.id + ')">📥 Download</button>' : '';
+
+                const isEpisodeMovie = episode.type === 'movie';
+                const episodeLabel = isEpisodeMovie ? 'Movie' : 'S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0');
+
+                const statusText = episode.status === 'manual_search'
+                    ? episode.status + ' • ' + new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : episode.status;
+
+                html += '<div class="episode-item">' +
+                    '<div class="episode-info">' +
+                        '<span class="episode-label">' + episodeLabel + '</span>' +
+                        '<span class="status status-' + episode.status + '">' + statusText + '</span>' +
+                        '<div class="episode-stats">' +
+                            '<span>🌐 ' + episode.langcode + '</span>' +
+                            '<span>🪙 ' + (episode.token_usage_total || 0).toLocaleString() + '</span>' +
+                            (episode.batches_total > 0 ? '<span>📦 ' + episode.batches_completed + '/' + episode.batches_total + '</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="episode-actions">' +
+                        '<button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, ' + episode.id + ')">⋮</button>' +
+                        '<div id="menu-' + episode.id + '" class="episode-dropdown">' +
+                            downloadBtn +
+                            reprocessBtn +
+                            '<button class="danger" onclick="deleteTranslation(' + episode.id + ')">🗑️ Delete</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            html += '</div>';
+
+            modalBody.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function closeEpisodesModal() {
+            document.getElementById('episodesModal').style.display = 'none';
+        }
+
+        function toggleEpisodeMenu(event, episodeId) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const menu = document.getElementById(`menu-${episodeId}`);
+            if (!menu) {
+                console.error('Menu not found for episode:', episodeId);
+                return;
+            }
+
+            const allMenus = document.querySelectorAll('.episode-dropdown');
+
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+
+            // Toggle current menu
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.episode-menu-btn')) {
+                document.querySelectorAll('.episode-dropdown').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+
+        function filterSeries() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const cards = document.querySelectorAll('.series-card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const subtitle = card.querySelector('.card-subtitle').textContent.toLowerCase();
+                const episodes = card.querySelectorAll('.episode-label');
+
+                let matchFound = title.includes(searchTerm) || subtitle.includes(searchTerm);
+
+                if (!matchFound) {
+                    episodes.forEach(ep => {
+                        if (ep.textContent.toLowerCase().includes(searchTerm)) {
+                            matchFound = true;
+                        }
+                    });
+                }
+
+                card.style.display = matchFound ? '' : 'none';
+            });
+        }
+
+
+        async function logout() {
+            try {
+                const response = await fetch('/admin/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        async function previewSubtitle(url) {
+            const modal = document.getElementById('subtitlePreviewModal');
+            const loadingDiv = document.getElementById('subtitlePreviewLoading');
+            const textDiv = document.getElementById('subtitlePreviewText');
+
+            modal.style.display = 'flex';
+            loadingDiv.style.display = 'block';
+            textDiv.textContent = '';
+
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+
+                const lines = text.split('\n');
+                const preview = lines.slice(0, 100).join('\n');
+
+                loadingDiv.style.display = 'none';
+                textDiv.textContent = preview + (lines.length > 100 ? '\n\n... (preview limited to first 100 lines)' : '');
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                textDiv.textContent = 'Error loading subtitle preview: ' + error.message;
+                console.error('Preview error:', error);
+            }
+        }
+
+        function closeSubtitlePreview() {
+            document.getElementById('subtitlePreviewModal').style.display = 'none';
+        }
+
+
+        async function reprocess(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
+            if (!confirm('Reprocess this failed translation?')) return;
+
+            try {
+                const response = await fetch('/admin/reprocess', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+
+                if (response.ok) {
+                    showToast('Translation queued for reprocessing!', 'success');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
+                }
+            } catch (error) {
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        async function downloadSubtitle(id) {
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
+            try {
+                window.location.href = '/api/download-subtitle/' + id;
+                showToast('Downloading subtitle...', 'success');
+            } catch (error) {
+                showToast('Error downloading subtitle', 'error');
+            }
+        }
+
+        let currentIdentifyId = null;
+
+        function openIdentifyModal(id) {
+            currentIdentifyId = id;
+            resetAddSubtitleModal();
+            document.getElementById('addSubtitleModal').style.display = 'block';
+            document.getElementById('searchContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalTitle').textContent = 'Identify Content';
+        }
+
+        async function identifyContent(imdbId, name, poster) {
+            try {
+                const response = await fetch('/api/identify-content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentIdentifyId,
+                        imdbId: imdbId,
+                        name: name,
+                        poster: poster
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Content identified successfully!', 'success');
+                    closeAddSubtitleModal();
+                    currentIdentifyId = null;
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    showToast('Error: ' + (data.error || 'Failed to identify content'), 'error');
+                }
+            } catch (error) {
+                console.error('Identify error:', error);
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        async function deleteTranslation(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
+            if (!confirm('Delete this translation? This cannot be undone.')) return;
+
+            try {
+                const response = await fetch('/admin/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+
+                if (response.ok) {
+                    showToast('Translation deleted successfully!', 'success');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    showToast('Error: ' + (data.error || 'Failed to delete'), 'error');
+                }
+            } catch (error) {
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        let currentReprocessId = null;
+        const availableLanguages = <%- JSON.stringify(languages) %>;
+
+        function openReprocessModal(id) {
+            currentReprocessId = id;
+
+            const languageSelect = document.getElementById('modalLanguage');
+            languageSelect.innerHTML = '';
+            availableLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = lang;
+                languageSelect.appendChild(option);
+            });
+
+            populateProviderDropdownWithCredentials('modalProvider');
+
+            document.getElementById('reprocessModal').style.display = 'block';
+            updateModalFields();
+        }
+
+        function closeReprocessModal() {
+            document.getElementById('reprocessModal').style.display = 'none';
+            currentReprocessId = null;
+        }
+
+        function updateModalFields() {
+            const provider = document.getElementById('modalProvider').value;
+            const config = PROVIDER_CONFIGS[provider];
+            const modelGroup = document.getElementById('modalModelGroup');
+            const apiKeyGroup = document.getElementById('modalApiKeyGroup');
+            const baseUrlGroup = document.getElementById('modalBaseUrlGroup');
+            const modelNameGroup = document.getElementById('modalModelNameGroup');
+            const modelSelect = document.getElementById('modalModel');
+
+            if (!config.requiresApiKey) {
+                apiKeyGroup.style.display = 'none';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'none';
+                modelNameGroup.style.display = 'none';
+            } else if (provider === 'Custom') {
+                apiKeyGroup.style.display = 'block';
+                modelGroup.style.display = 'none';
+                baseUrlGroup.style.display = 'block';
+                modelNameGroup.style.display = 'block';
+            } else {
+                apiKeyGroup.style.display = 'block';
+
+                if (config.requiresModel) {
+                    modelGroup.style.display = 'block';
+                    modelSelect.innerHTML = '';
+                    config.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                } else {
+                    modelGroup.style.display = 'none';
+                }
+
+                if (config.requiresBaseUrl) {
+                    baseUrlGroup.style.display = 'block';
+                } else {
+                    baseUrlGroup.style.display = 'none';
+                }
+
+                modelNameGroup.style.display = 'none';
+            }
+        }
+
+        document.getElementById('modalProvider').addEventListener('change', function() {
+            handleProviderChange('modal');
+        });
+
+        async function submitReprocess() {
+            if (!currentReprocessId) return;
+
+            const language = document.getElementById('modalLanguage').value;
+            const provider = document.getElementById('modalProvider').value;
+            let apikey = '', base_url = '', model_name = '';
+
+            const config = PROVIDER_CONFIGS[provider];
+            if (config.requiresApiKey) {
+                if (provider === 'Custom') {
+                    apikey = document.getElementById('modalApiKey').value;
+                    base_url = document.getElementById('modalBaseUrl').value;
+                    model_name = document.getElementById('modalModelName').value;
+                } else {
+                    apikey = document.getElementById('modalApiKey').value;
+                    base_url = config.defaultBaseUrl;
+                    model_name = document.getElementById('modalModel').value;
+                }
+            }
+
+            try {
+                const response = await fetch('/admin/reprocess-with-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentReprocessId,
+                        language,
+                        provider,
+                        apikey,
+                        base_url,
+                        model_name
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Translation queued for reprocessing!', 'success');
+                    closeReprocessModal();
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
+                }
+            } catch (error) {
+                showToast('Connection error. Please try again.', 'error');
+            }
+        }
+
+        window.addEventListener('click', function(event) {
+            const modals = [
+                { id: 'addSubtitleModal', closeFunc: closeAddSubtitleModal },
+                { id: 'episodesModal', closeFunc: closeEpisodesModal },
+                { id: 'subtitlePreviewModal', closeFunc: closeSubtitlePreview },
+                { id: 'reprocessModal', closeFunc: closeReprocessModal },
+                { id: 'masterPasswordModal', closeFunc: closeMasterPasswordModal }
+            ];
+
+            modals.forEach(modal => {
+                const modalElement = document.getElementById(modal.id);
+                if (modalElement && event.target === modalElement) {
+                    modal.closeFunc();
+                }
+            });
+        });
+
+        function updateMigrationCountdown() {
+            const deadline = new Date('<%= migrationDeadline %>');
+            const now = new Date();
+            const diff = deadline - now;
+            const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+            const badge = document.getElementById('daysRemaining');
+            if (badge) {
+                if (daysRemaining > 0) {
+                    badge.textContent = `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`;
+                } else {
+                    badge.textContent = 'Deadline passed';
+                    badge.style.background = '#f44336';
+                    badge.style.color = 'white';
+                }
+            }
+        }
+
+        function dismissMigrationAlert() {
+            const alert = document.getElementById('migrationAlert');
+            if (alert) {
+                alert.style.display = 'none';
+                localStorage.setItem('migrationAlertDismissed', Date.now());
+            }
+        }
+
+        function openMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'block';
+        }
+
+        function closeMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'none';
+            document.getElementById('migrationForm').reset();
+            document.getElementById('migrationError').style.display = 'none';
+        }
+
+        document.getElementById('migrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('migrationUsername').value.trim();
+            const password = document.getElementById('migrationPassword').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('migrationError');
+            const errorText = document.getElementById('migrationErrorText');
+
+            if (!username || !password) {
+                errorText.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Migrating...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/migrate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    submitBtn.innerHTML = '✓ Success! Redirecting...';
+                    submitBtn.style.background = '#4caf50';
+
+                    showToast('Account upgraded successfully! Please log in with your new credentials.', 'success');
+
+                    setTimeout(async () => {
+                        try {
+                            const logoutResponse = await fetch('/admin/logout', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            const logoutData = await logoutResponse.json();
+                            if (logoutData.success && logoutData.redirect) {
+                                window.location.href = logoutData.redirect;
+                            } else {
+                                window.location.href = '/admin/login';
+                            }
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            window.location.href = '/admin/login';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Migration failed');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                errorText.textContent = error.message || 'Failed to migrate account. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '✓ Upgrade Account';
+            }
+        });
+
+        <% if (userInfo && userInfo.isOldUser) { %>
+        updateMigrationCountdown();
+        setInterval(updateMigrationCountdown, 60000);
+
+        const dismissed = localStorage.getItem('migrationAlertDismissed');
+        if (dismissed) {
+            const dismissTime = parseInt(dismissed);
+            const hoursSinceDismiss = (Date.now() - dismissTime) / (1000 * 60 * 60);
+            if (hoursSinceDismiss < 24) {
+                const alert = document.getElementById('migrationAlert');
+                if (alert) alert.style.display = 'none';
+            } else {
+                localStorage.removeItem('migrationAlertDismissed');
+            }
+        }
+        <% } %>
+    </script>
+    </div>
+</body>
+</html>

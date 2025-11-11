@@ -6,6 +6,9 @@ const connection = require("./connection");
 const fs = require("fs").promises;
 const { translateText } = require("./translateProvider");
 const { createOrUpdateMessageSub } = require("./subtitles");
+const { encryptCredential } = require("./utils/crypto");
+const { getMetadata } = require("./utils/metadata");
+const crypto = require("crypto");
 
 class SubtitleProcessor {
   constructor() {
@@ -14,6 +17,7 @@ class SubtitleProcessor {
     this.texts = [];
     this.translatedSubtitle = [];
     this.count = 0;
+    this.totalTokens = 0;
   }
 
   async processSubtitles(
@@ -28,6 +32,8 @@ class SubtitleProcessor {
     model_name
   ) {
     try {
+      this.totalTokens = 0;
+
       const originalSubtitleFilePath = filepath[0];
       const originalSubtitleContent = await fs.readFile(
         originalSubtitleFilePath,
@@ -61,7 +67,7 @@ class SubtitleProcessor {
           // Translate when batch size is reached
           if (subtitleBatch.length === batchSize) {
             try {
-              await this.translateBatch(
+              const tokens = await this.translateBatch(
                 subtitleBatch,
                 oldisocode,
                 provider,
@@ -69,6 +75,7 @@ class SubtitleProcessor {
                 base_url,
                 model_name
               );
+              this.totalTokens += tokens;
               subtitleBatch = [];
             } catch (error) {
               console.error("Batch translation error: ", error);
@@ -114,7 +121,7 @@ class SubtitleProcessor {
       if (subtitleBatch.length > 0) {
         try {
           subtitleBatch.push(this.texts[this.texts.length - 1]);
-          await this.translateBatch(
+          const tokens = await this.translateBatch(
             subtitleBatch,
             oldisocode,
             provider,
@@ -122,6 +129,7 @@ class SubtitleProcessor {
             base_url,
             model_name
           );
+          this.totalTokens += tokens;
         } catch (error) {
           console.log("Subtitle batch error: ", error);
           throw error;
@@ -137,7 +145,8 @@ class SubtitleProcessor {
           oldisocode,
           provider
         );
-        console.log("Subtitles saved successfully");
+        console.log(`Subtitles saved successfully. Total tokens used: ${this.totalTokens}`);
+        return this.totalTokens;
       } catch (error) {
         console.error("Error saving translated subtitles:", error);
         throw error;
@@ -157,7 +166,7 @@ class SubtitleProcessor {
     model_name
   ) {
     try {
-      const translations = await translateText(
+      const result = await translateText(
         subtitleBatch,
         oldisocode,
         provider,
@@ -166,11 +175,15 @@ class SubtitleProcessor {
         model_name
       );
 
+      const translations = result.translatedText;
+      const tokenUsage = result.tokenUsage || 0;
+
       translations.forEach((translatedText) => {
         this.translatedSubtitle.push(translatedText);
       });
 
-      console.log("Batch translation completed");
+      console.log(`Batch translation completed. Tokens used: ${tokenUsage}`);
+      return tokenUsage;
     } catch (error) {
       console.error("Batch translation error:", error);
       throw error;
@@ -188,8 +201,8 @@ class SubtitleProcessor {
       // Define directory path based on content type and provider
       const dirPath =
         season !== null && episode !== null
-          ? `subtitles/${provider}/${oldisocode}/${imdbid}/season${season}`
-          : `subtitles/${provider}/${oldisocode}/${imdbid}`;
+          ? `subtitles/${provider}/${imdbid}/season${season}`
+          : `subtitles/${provider}/${imdbid}`;
 
       // Create directory if it doesn't exist
       await fs.mkdir(dirPath, { recursive: true });
@@ -247,10 +260,82 @@ async function startTranslation(
   provider,
   apikey,
   base_url,
-  model_name
+  model_name,
+  password = null,
+  saveCredentials = true
 ) {
   let filepaths = [];
+  let success = false;
+
   try {
+    let password_hash = null;
+    let apikey_encrypted = null;
+    let base_url_encrypted = null;
+    let model_name_encrypted = null;
+
+    if (password) {
+      const encryptionKey = process.env.ENCRYPTION_KEY;
+      if (encryptionKey && encryptionKey.length === 32) {
+        password_hash = crypto.createHash('sha256').update(password).digest('hex');
+
+        if (saveCredentials) {
+          if (apikey) apikey_encrypted = encryptCredential(apikey, encryptionKey);
+          if (base_url) base_url_encrypted = encryptCredential(base_url, encryptionKey);
+          if (model_name) model_name_encrypted = encryptCredential(model_name, encryptionKey);
+          console.log('Credentials encrypted and will be saved');
+        } else {
+          console.log('Password saved, credentials NOT saved (Save Access Only mode)');
+        }
+      }
+    }
+
+    const existingStatus = await connection.checkForTranslation(
+      imdbid,
+      season,
+      episode,
+      oldisocode
+    );
+
+    let series_name = null;
+    let poster = null;
+    if (!existingStatus) {
+      try {
+        const type = season && episode ? "series" : "movie";
+        const metadata = await getMetadata(imdbid, type);
+        series_name = metadata.name;
+        poster = metadata.poster;
+        console.log(`Fetched metadata: ${series_name}`);
+      } catch (metaError) {
+        console.error("Failed to fetch series metadata:", metaError.message);
+        series_name = imdbid;
+      }
+
+      await connection.addToTranslationQueue(
+        imdbid,
+        season,
+        episode,
+        0,
+        oldisocode,
+        password_hash,
+        apikey_encrypted,
+        base_url_encrypted,
+        model_name_encrypted,
+        series_name,
+        poster
+      );
+    } else if (password_hash) {
+      await connection.updateTranslationCredentials(
+        imdbid,
+        season,
+        episode,
+        oldisocode,
+        password_hash,
+        apikey_encrypted,
+        base_url_encrypted,
+        model_name_encrypted
+      );
+    }
+
     const processor = new SubtitleProcessor();
     filepaths = await opensubtitles.downloadSubtitles(
       subtitles,
@@ -261,16 +346,7 @@ async function startTranslation(
     );
 
     if (filepaths && filepaths.length > 0) {
-      await connection.addToTranslationQueue(
-        imdbid,
-        season,
-        episode,
-        filepaths.length,
-        oldisocode,
-        provider,
-        apikey
-      );
-      await processor.processSubtitles(
+      const totalTokens = await processor.processSubtitles(
         filepaths,
         imdbid,
         season,
@@ -281,14 +357,49 @@ async function startTranslation(
         base_url,
         model_name
       );
+
+      if (totalTokens > 0) {
+        try {
+          await connection.updateTokenUsage(
+            imdbid,
+            season,
+            episode,
+            oldisocode,
+            totalTokens
+          );
+          console.log(`Token usage updated: ${totalTokens} tokens`);
+        } catch (tokenError) {
+          console.error("Failed to update token usage:", tokenError);
+        }
+      }
+
+      console.log("Translation process completed successfully");
+      success = true;
       return true;
     }
+
+    console.error("No subtitle files to process");
+    success = false;
     return false;
   } catch (error) {
     console.error("General catch error:", error);
+    success = false;
+
+    try {
+      await createOrUpdateMessageSub(
+        "An error occurred while generating your subtitle. We will try again.",
+        imdbid,
+        season,
+        episode,
+        oldisocode,
+        provider
+      );
+    } catch (subError) {
+      console.error("Error creating error subtitle:", subError);
+    }
+
     return false;
   } finally {
-    // Cleanup: Delete downloaded original subtitle files
     for (const fp of filepaths) {
       try {
         await fs.unlink(fp);
@@ -297,17 +408,19 @@ async function startTranslation(
         console.error(`Error cleaning up file ${fp}:`, unlinkError);
       }
     }
-    // Cleanup: Delete entry from translation queue in DB
+
     try {
-      await connection.deletetranslationQueue(
+      const finalStatus = success ? 'completed' : 'failed';
+      await connection.updateTranslationStatus(
         imdbid,
         season,
         episode,
-        oldisocode
+        oldisocode,
+        finalStatus
       );
-      console.log("Cleaned up translation queue entry in DB.");
-    } catch (dbCleanupError) {
-      console.error("Error cleaning up DB translation queue entry:", dbCleanupError);
+      console.log(`Updated translation queue status to: ${finalStatus}`);
+    } catch (dbUpdateError) {
+      console.error("Error updating translation queue status:", dbUpdateError);
     }
   }
 }
