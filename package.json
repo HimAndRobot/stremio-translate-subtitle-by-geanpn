@@ -23,6 +23,7 @@
     "@bull-board/api": "^5.0.0",
     "@bull-board/express": "^5.0.0",
     "@bull-board/ui": "^5.0.0",
+    "@toon-format/toon": "^1.0.0",
     "axios": "^1.6.1",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.3",

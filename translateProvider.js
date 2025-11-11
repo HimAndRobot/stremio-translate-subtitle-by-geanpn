@@ -2,6 +2,7 @@ const googleTranslate = require("google-translate-api-browser");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
+const { encode, decode } = require('@toon-format/toon');
 require("dotenv").config();
 
 const limiters = new Map();
@@ -271,37 +272,95 @@ async function translateTextWithRetry(
         });
 
         let prompt;
-        let jsonInput;
+        let toonInput;
+        let useTOON = true;
 
         if (partialResults && partialResults.length > 0) {
           // Recovery prompt: use partial results to complete the translation
-          jsonInput = {
+          const recoveryData = {
             originalTexts: texts.map((text, index) => ({ index, text })),
             partialTranslations: partialResults.map((text, index) => ({ index, text }))
           };
 
-          prompt = `You are a professional movie subtitle translator.\n\nI asked you to translate ${texts.length} subtitle texts to "${targetLanguage}", but you returned only ${partialResults.length} translations.\n\nPlease return a COMPLETE array with exactly ${texts.length} translations:\n- Keep the translations that are correct from the partial results\n- Complete the missing translations\n- Fix any incorrect translations\n\n**Strict Requirements:**\n- Output must be a JSON object with a "texts" array\n- The "texts" array must contain EXACTLY ${texts.length} elements\n- Each element must have "index" (0 to ${texts.length - 1}) and "text" (translated)\n- Preserve line breaks and formatting\n- Do not combine or split texts\n\nOriginal texts:\n${JSON.stringify(jsonInput.originalTexts)}\n\nPartial translations received:\n${JSON.stringify(jsonInput.partialTranslations)}\n`;
+          toonInput = encode(recoveryData);
+          const inputSize = JSON.stringify(recoveryData).length;
+          const toonSize = toonInput.length;
+          console.log(`[TOON Recovery] Size reduction: ${inputSize} → ${toonSize} chars (${Math.round((1 - toonSize/inputSize) * 100)}% saved)`);
+
+          prompt = `Translate subtitle texts to "${targetLanguage}". Return ONLY TOON format, NO explanations.
+
+CRITICAL: You returned only ${partialResults.length} of ${texts.length} translations. Return ALL ${texts.length}.
+
+Rules:
+- Keep correct translations from partial results
+- Complete missing translations
+- Output EXACTLY ${texts.length} items in "texts" array
+- Preserve line breaks
+- Return ONLY TOON format (no markdown, no explanations)
+
+Input:
+${toonInput}
+`;
         } else {
-          // Normal prompt
-          jsonInput = {
+          // Normal prompt with TOON
+          const inputData = {
             texts: texts.map((text, index) => ({ index, text })),
           };
 
-          prompt = `You are a professional movie subtitle translator.\nTranslate each subtitle text in the "texts" array of the following JSON object into the specified language "${targetLanguage}".\n\nThe output must be a JSON object with the same structure as the input. The "texts" array should contain the translated texts corresponding to their original indices.\n\n**Strict Requirements:**\n- Strictly preserve line breaks and original formatting for each subtitle.\n- Do not combine or split texts during translation.\n- The number of elements in the output array must exactly match the input array.\n- Ensure the final JSON is valid and retains the complete structure.\n\nInput:\n${JSON.stringify(
-            jsonInput
-          )}\n`;
+          toonInput = encode(inputData);
+          const inputSize = JSON.stringify(inputData).length;
+          const toonSize = toonInput.length;
+          console.log(`[TOON] Size reduction: ${inputSize} → ${toonSize} chars (${Math.round((1 - toonSize/inputSize) * 100)}% saved)`);
+
+          prompt = `Translate subtitles to "${targetLanguage}". Return ONLY TOON format, NO markdown, NO explanations.
+
+Rules:
+- Translate each text in "texts" array
+- Output EXACTLY ${texts.length} items
+- Preserve line breaks
+- Keep same structure
+- Return ONLY raw TOON format
+
+Input:
+${toonInput}
+`;
         }
 
         const completion = await openai.chat.completions.create({
           messages: [{ role: "user", content: prompt }],
           model: model_name,
-          response_format: { type: "json_object" },
           temperature: 0.3,
         });
 
-        const translatedJson = JSON.parse(
-          completion.choices[0].message.content
-        );
+        let responseContent = completion.choices[0].message.content;
+        let translatedJson;
+
+        // Clean markdown code blocks and extract TOON/JSON content
+        responseContent = responseContent.trim();
+
+        // Remove markdown code blocks (```toon ... ```)
+        const codeBlockMatch = responseContent.match(/```(?:toon|TOON|json|JSON)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          responseContent = codeBlockMatch[1].trim();
+        }
+
+        // Remove any leading explanatory text before TOON data
+        // TOON format starts with a key followed by array declaration
+        const toonStartMatch = responseContent.match(/(?:^|\n)(\w+\[\d+\]\{[\s\S]+)/);
+        if (toonStartMatch) {
+          responseContent = toonStartMatch[1].trim();
+        }
+
+        // Parse TOON response (no fallback)
+        try {
+          translatedJson = decode(responseContent);
+          console.log('[TOON] ✓ Successfully parsed TOON response');
+        } catch (toonError) {
+          console.error('[TOON] ✗ Failed to parse TOON response');
+          console.error('[TOON] Error:', toonError.message);
+          console.error('[TOON] Response preview:', responseContent.substring(0, 300));
+          throw new Error(`Failed to parse TOON response: ${toonError.message}`);
+        }
 
         resultArray = translatedJson.texts
           .sort((a, b) => a.index - b.index)
