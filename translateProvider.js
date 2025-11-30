@@ -235,21 +235,30 @@ async function translateTextWithRetry(
 
     switch (provider) {
       case "Google Translate": {
-        const textToTranslate = texts.join(" ||| ");
-        result = await googleTranslate.translate(textToTranslate, {
-          to: targetLanguage,
-          corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/",
-        });
-        resultArray = result.text.split("|||");
-        if (texts.length !== resultArray.length && resultArray.length > 0) {
-          const diff = texts.length - resultArray.length;
-          if (diff > 0) {
-            // Attempt to correct by splitting the first element if translation was merged
-            const splitted = resultArray[0].split(" ");
-            if (splitted.length === diff + 1) {
-              resultArray = [...splitted, ...resultArray.slice(1)];
+        try {
+          const textToTranslate = texts.join(" ||| ");
+          result = await googleTranslate.translate(textToTranslate, {
+            to: targetLanguage,
+            corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/",
+          });
+
+          if (!result || !result.text) {
+            throw new Error("Google Translate returned empty response");
+          }
+
+          resultArray = result.text.split("|||");
+          if (texts.length !== resultArray.length && resultArray.length > 0) {
+            const diff = texts.length - resultArray.length;
+            if (diff > 0) {
+              const splitted = resultArray[0].split(" ");
+              if (splitted.length === diff + 1) {
+                resultArray = [...splitted, ...resultArray.slice(1)];
+              }
             }
           }
+        } catch (googleError) {
+          console.error(`Google Translate API error: ${googleError.message}`);
+          throw new Error(`Google Translate temporarily unavailable: ${googleError.message}`);
         }
         break;
       }
