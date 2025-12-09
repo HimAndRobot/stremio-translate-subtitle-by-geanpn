@@ -1,12 +1,4 @@
 services:
-  stremio-translate:
-    build: .
-    volumes:
-      - subtitles-data:/app/subtitles
-    restart: unless-stopped
-    networks:
-      - coolify
-
   stremio-worker:
     build: .
     command: node worker.js
@@ -22,3 +14,4 @@ networks:
 
 volumes:
   subtitles-data:
+    external: true
