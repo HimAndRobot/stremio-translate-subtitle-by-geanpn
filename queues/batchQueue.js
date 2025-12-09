@@ -146,6 +146,8 @@ const worker = new Worker(
   {
     connection: redisConnection.duplicate(),
     concurrency: parseInt(process.env.BATCH_QUEUE_CONCURRENCY) || 20,
+    lockDuration: 15000,
+    stalledInterval: 10000,
   }
 );
 

@@ -1316,3 +1316,15 @@ async function gracefulShutdown(signal) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (error) => {
+  console.error('[CRITICAL] Uncaught Exception:', error);
+  console.error('[CRITICAL] Stack:', error.stack);
+  console.error('[CRITICAL] Server continuing to run...');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Promise Rejection at:', promise);
+  console.error('[CRITICAL] Reason:', reason);
+  console.error('[CRITICAL] Server continuing to run...');
+});

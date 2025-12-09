@@ -1,3 +1,4 @@
+const googleTranslate = require("google-translate-api-browser");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
@@ -234,11 +235,9 @@ async function translateTextWithRetry(
 
     switch (provider) {
       case "Google Translate": {
-        const googleTranslate = require("google-translate-api-browser");
-
         try {
           const textToTranslate = texts.join(" ||| ");
-          const result = await googleTranslate.translate(textToTranslate, {
+          result = await googleTranslate.translate(textToTranslate, {
             to: targetLanguage,
             corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/",
           });
@@ -248,7 +247,6 @@ async function translateTextWithRetry(
           }
 
           resultArray = result.text.split("|||");
-
           if (texts.length !== resultArray.length && resultArray.length > 0) {
             const diff = texts.length - resultArray.length;
             if (diff > 0) {
