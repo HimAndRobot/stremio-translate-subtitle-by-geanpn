@@ -1,12 +1,54 @@
-const googleTranslate = require("google-translate-api-browser");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
+const { fork } = require("child_process");
+const path = require("path");
 require("dotenv").config();
 
 const limiters = new Map();
 
 const DOCUMENT_TRANSLATION_PROVIDERS = ['DeepL'];
+
+async function translateWithGoogleInChildProcess(texts, targetLanguage) {
+  return new Promise((resolve, reject) => {
+    const workerPath = path.join(__dirname, 'workers', 'googleTranslateWorker.js');
+    const child = fork(workerPath, [], { silent: false });
+
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error('Google Translate timeout after 30s'));
+    }, 30000);
+
+    child.on('message', (message) => {
+      clearTimeout(timeout);
+      child.kill();
+      if (message.success) {
+        resolve(message.resultArray);
+      } else {
+        reject(new Error(message.error));
+      }
+    });
+
+    child.on('error', (error) => {
+      clearTimeout(timeout);
+      child.kill();
+      reject(new Error(`Worker process error: ${error.message}`));
+    });
+
+    child.on('exit', (code, signal) => {
+      clearTimeout(timeout);
+      if (code !== 0 && code !== null) {
+        reject(new Error(`Worker crashed with code ${code}`));
+      }
+    });
+
+    child.send({
+      texts,
+      targetLanguage,
+      corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/"
+    });
+  });
+}
 
 async function translateWithDeepLText(texts, targetLang, apiKey) {
   const translatedTexts = [];
@@ -236,17 +278,8 @@ async function translateTextWithRetry(
     switch (provider) {
       case "Google Translate": {
         try {
-          const textToTranslate = texts.join(" ||| ");
-          result = await googleTranslate.translate(textToTranslate, {
-            to: targetLanguage,
-            corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/",
-          });
+          resultArray = await translateWithGoogleInChildProcess(texts, targetLanguage);
 
-          if (!result || !result.text) {
-            throw new Error("Google Translate returned empty response");
-          }
-
-          resultArray = result.text.split("|||");
           if (texts.length !== resultArray.length && resultArray.length > 0) {
             const diff = texts.length - resultArray.length;
             if (diff > 0) {
