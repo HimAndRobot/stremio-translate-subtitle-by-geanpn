@@ -12,9 +12,12 @@ const DOCUMENT_TRANSLATION_PROVIDERS = ['DeepL'];
 async function translateWithGoogleTranslateWorker(texts, targetLanguage) {
   return new Promise((resolve, reject) => {
     const workerPath = path.join(__dirname, 'workers', 'googleTranslateWorker.js');
+    console.log(`[PARENT] Forking worker at: ${workerPath}`);
     const child = fork(workerPath);
+    console.log(`[PARENT] Worker forked with PID: ${child.pid}`);
 
     const timeout = setTimeout(() => {
+      console.log(`[PARENT] Worker timeout - killing PID ${child.pid}`);
       child.kill();
       reject(new Error('Google Translate worker timeout after 30s'));
     }, 30000);
@@ -35,16 +38,19 @@ async function translateWithGoogleTranslateWorker(texts, targetLanguage) {
 
     child.on('exit', (code) => {
       clearTimeout(timeout);
+      console.log(`[PARENT] Worker exited with code ${code}`);
       if (code !== 0 && code !== null) {
         reject(new Error(`Worker crashed with code ${code}`));
       }
     });
 
+    console.log(`[PARENT] Sending message to worker...`);
     child.send({
       texts,
       targetLanguage,
       corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/"
     });
+    console.log(`[PARENT] Message sent to worker`);
   });
 }
 
