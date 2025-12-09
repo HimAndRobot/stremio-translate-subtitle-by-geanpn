@@ -7,15 +7,6 @@ services:
     networks:
       - coolify
 
-  stremio-worker:
-    build: .
-    command: node worker.js
-    volumes:
-      - subtitles-data:/app/subtitles
-    restart: unless-stopped
-    networks:
-      - coolify
-
 networks:
   coolify:
     external: true
