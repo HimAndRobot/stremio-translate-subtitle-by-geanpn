@@ -1,8 +1,45 @@
-const googleTranslate = require("google-translate-api-browser");
+const { fork } = require("child_process");
+const path = require("path");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
 require("dotenv").config();
+
+// Translate using isolated child process to prevent uncaught exceptions from affecting BullMQ
+function translateWithGoogleWorker(texts, targetLanguage, corsUrl) {
+  return new Promise((resolve, reject) => {
+    const workerPath = path.join(__dirname, "workers", "googleTranslateWorker.js");
+    const child = fork(workerPath, [], { silent: false });
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      reject(new Error("Google Translate worker timeout after 60 seconds"));
+    }, 60000);
+
+    child.on("message", (response) => {
+      clearTimeout(timeout);
+      if (response.success) {
+        resolve(response.resultArray);
+      } else {
+        reject(new Error(response.error || "Worker failed"));
+      }
+    });
+
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(new Error(`Worker error: ${error.message}`));
+    });
+
+    child.on("exit", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0 && code !== null) {
+        reject(new Error(`Worker exited with code ${code}`));
+      }
+    });
+
+    child.send({ texts, targetLanguage, corsUrl });
+  });
+}
 
 const limiters = new Map();
 
@@ -236,17 +273,13 @@ async function translateTextWithRetry(
     switch (provider) {
       case "Google Translate": {
         try {
-          const textToTranslate = texts.join(" ||| ");
-          result = await googleTranslate.translate(textToTranslate, {
-            to: targetLanguage,
-            corsUrl: process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/",
-          });
+          const corsUrl = process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/";
+          resultArray = await translateWithGoogleWorker(texts, targetLanguage, corsUrl);
 
-          if (!result || !result.text) {
+          if (!resultArray || resultArray.length === 0) {
             throw new Error("Google Translate returned empty response");
           }
 
-          resultArray = result.text.split("|||");
           if (texts.length !== resultArray.length && resultArray.length > 0) {
             const diff = texts.length - resultArray.length;
             if (diff > 0) {

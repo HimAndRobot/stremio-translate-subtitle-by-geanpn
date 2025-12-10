@@ -1,5 +1,26 @@
 const googleTranslate = require("google-translate-api-browser");
 
+// Capture uncaught exceptions from the library (isolated in this child process)
+process.on('uncaughtException', (error) => {
+  console.error(`[WORKER] Uncaught Exception: ${error.message}`);
+  try {
+    process.send({ success: false, error: `Uncaught: ${error.message}` });
+  } catch (e) {
+    // Ignore if we can't send
+  }
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error(`[WORKER] Unhandled Rejection: ${reason}`);
+  try {
+    process.send({ success: false, error: `Unhandled: ${reason}` });
+  } catch (e) {
+    // Ignore if we can't send
+  }
+  process.exit(1);
+});
+
 process.on('message', async (message) => {
   const { texts, targetLanguage, corsUrl } = message;
 
