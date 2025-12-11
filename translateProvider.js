@@ -1,45 +1,7 @@
-const { fork } = require("child_process");
-const path = require("path");
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
 require("dotenv").config();
-
-// Translate using isolated child process to prevent uncaught exceptions from affecting BullMQ
-function translateWithGoogleWorker(texts, targetLanguage, corsUrl) {
-  return new Promise((resolve, reject) => {
-    const workerPath = path.join(__dirname, "workers", "googleTranslateWorker.js");
-    const child = fork(workerPath, [], { silent: false });
-
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(new Error("Google Translate worker timeout after 60 seconds"));
-    }, 60000);
-
-    child.on("message", (response) => {
-      clearTimeout(timeout);
-      if (response.success) {
-        resolve(response.resultArray);
-      } else {
-        reject(new Error(response.error || "Worker failed"));
-      }
-    });
-
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      reject(new Error(`Worker error: ${error.message}`));
-    });
-
-    child.on("exit", (code) => {
-      clearTimeout(timeout);
-      if (code !== 0 && code !== null) {
-        reject(new Error(`Worker exited with code ${code}`));
-      }
-    });
-
-    child.send({ texts, targetLanguage, corsUrl });
-  });
-}
 
 const limiters = new Map();
 
@@ -216,6 +178,58 @@ async function translateWithDeepLDocument(srtContent, targetLang, apiKey) {
   return await downloadResponse.text();
 }
 
+async function translateWithCloudflareWorker(texts, targetLanguage, batchEntries = null) {
+  const workerUrl = "https://google-translate-worker.contaxandera.workers.dev";
+
+  let srtContent;
+
+  if (batchEntries && batchEntries.length > 0) {
+    const srtBlocks = batchEntries.map(entry =>
+      `${entry.counter}\n${entry.timecode}\n${entry.text}`
+    );
+    srtContent = srtBlocks.join("\n\n");
+  } else {
+    srtContent = texts.join("\n\n");
+  }
+
+  try {
+    const response = await fetch(workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: srtContent,
+        target: targetLanguage,
+        format: 'srt'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Translation failed');
+    }
+
+    const translatedBlocks = result.text.trim().split(/\n\s*\n/);
+
+    const translatedTexts = translatedBlocks.map(block => {
+      const lines = block.split('\n');
+      if (lines.length >= 3) {
+        return lines.slice(2).join('\n');
+      }
+      return block;
+    });
+
+    return translatedTexts;
+
+  } catch (error) {
+    throw new Error(`Google Translate worker failed: ${error.message}`);
+  }
+}
+
 function getLimiter(provider, apikey) {
   const key = `${provider}:${apikey || 'no-key'}`;
 
@@ -263,7 +277,8 @@ async function translateTextWithRetry(
   model_name,
   attempt = 1,
   maxRetries = 3,
-  partialResults = null
+  partialResults = null,
+  batchEntries = null
 ) {
   try {
     let result = null;
@@ -273,21 +288,14 @@ async function translateTextWithRetry(
     switch (provider) {
       case "Google Translate": {
         try {
-          const corsUrl = process.env.CORS_URL || "http://cors-anywhere.herokuapp.com/";
-          resultArray = await translateWithGoogleWorker(texts, targetLanguage, corsUrl);
+          resultArray = await translateWithCloudflareWorker(texts, targetLanguage, batchEntries);
 
           if (!resultArray || resultArray.length === 0) {
             throw new Error("Google Translate returned empty response");
           }
 
-          if (texts.length !== resultArray.length && resultArray.length > 0) {
-            const diff = texts.length - resultArray.length;
-            if (diff > 0) {
-              const splitted = resultArray[0].split(" ");
-              if (splitted.length === diff + 1) {
-                resultArray = [...splitted, ...resultArray.slice(1)];
-              }
-            }
+          if (texts.length !== resultArray.length) {
+            console.warn(`[Google Translate] Length mismatch: requested ${texts.length}, got ${resultArray.length}`);
           }
         } catch (googleError) {
           console.error(`Google Translate API error: ${googleError.message}`);
@@ -381,7 +389,8 @@ async function translateTextWithRetry(
           model_name,
           attempt + 1,
           maxRetries,
-          resultArray // Pass partial results for recovery
+          resultArray,
+          batchEntries
         );
       }
 
@@ -395,7 +404,9 @@ async function translateTextWithRetry(
         base_url,
         model_name,
         attempt + 1,
-        maxRetries
+        maxRetries,
+        null,
+        batchEntries
       );
     }
 
@@ -431,7 +442,8 @@ async function translateText(
   provider,
   apikey,
   base_url,
-  model_name
+  model_name,
+  batchEntries = null
 ) {
   const limiter = getLimiter(provider, apikey);
 
@@ -442,7 +454,11 @@ async function translateText(
       provider,
       apikey,
       base_url,
-      model_name
+      model_name,
+      1,
+      3,
+      null,
+      batchEntries
     )
   );
 }

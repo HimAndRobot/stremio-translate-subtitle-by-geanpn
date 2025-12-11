@@ -59,7 +59,8 @@ const worker = new Worker(
         provider,
         apikey,
         base_url,
-        model_name
+        model_name,
+        batch.subtitle_entries
       );
     } catch (error) {
       // Extract mismatch info from error message if present

@@ -23,31 +23,37 @@ process.on('unhandledRejection', (reason) => {
 
 process.on('message', async (message) => {
   const { texts, targetLanguage, corsUrl } = message;
+  const startTime = Date.now();
 
   try {
-    console.log(`[WORKER] Starting translation of ${texts.length} texts to ${targetLanguage}`);
-    console.log(`[WORKER] Using CORS URL: ${corsUrl}`);
-
     const textToTranslate = texts.join(" ||| ");
+    const textSize = Buffer.byteLength(textToTranslate, "utf8");
+
+    // Log first 200 chars to help debug corrupted responses
+    const preview = textToTranslate.substring(0, 200).replace(/\n/g, '\\n');
+    console.log(`[WORKER] texts=${texts.length} | size=${textSize} bytes | lang=${targetLanguage} | preview="${preview}"`);
+
     const result = await googleTranslate.translate(textToTranslate, {
       to: targetLanguage,
       corsUrl: corsUrl,
     });
 
+    const elapsed = Date.now() - startTime;
+
     if (!result || !result.text) {
-      console.error('[WORKER] Google Translate returned empty response');
+      console.error(`[WORKER] FAIL empty response | time=${elapsed}ms`);
       process.send({ success: false, error: "Google Translate returned empty response" });
-      process.exit(0);
+      process.exit(1);
       return;
     }
 
-    const resultArray = result.text.split("|||");
-    console.log(`[WORKER] Translation successful - received ${resultArray.length} results`);
+    const resultArray = result.text.split("|||").map(s => s.trim());
+    console.log(`[WORKER] OK results=${resultArray.length} | time=${elapsed}ms`);
     process.send({ success: true, resultArray });
     process.exit(0);
   } catch (error) {
-    console.error(`[WORKER] Translation error: ${error.message}`);
-    console.error(`[WORKER] Error stack: ${error.stack}`);
+    const elapsed = Date.now() - startTime;
+    console.error(`[WORKER] FAIL ${error.message} | time=${elapsed}ms`);
     process.send({ success: false, error: error.message });
     process.exit(1);
   }
