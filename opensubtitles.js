@@ -52,6 +52,34 @@ const downloadSubtitles = async (
   return filepaths;
 };
 
+const processSubtitlesResponse = (responseData, newisocode) => {
+  if (responseData.subtitles.length === 0) {
+    return null;
+  }
+
+  const subtitles = responseData.subtitles;
+
+  const findSubtitle = (langCode) => {
+    return subtitles.find((subtitle) => {
+      const mappedLang = isoCodeMapping[subtitle.lang] || subtitle.lang;
+      return mappedLang === langCode;
+    });
+  };
+
+  const targetLangSubtitle = findSubtitle(newisocode);
+  if (targetLangSubtitle !== undefined && targetLangSubtitle !== null) {
+    return [{ url: targetLangSubtitle.url, lang: targetLangSubtitle.lang }];
+  }
+
+  const englishSubtitle = findSubtitle('en');
+  if (englishSubtitle) {
+    return [{ url: englishSubtitle.url, lang: englishSubtitle.lang }];
+  }
+
+  const firstAvailableSubtitle = subtitles[0];
+  return [{ url: firstAvailableSubtitle.url, lang: firstAvailableSubtitle.lang }];
+};
+
 const getsubtitles = async (
   type,
   imdbid,
@@ -69,43 +97,15 @@ const getsubtitles = async (
 
   try {
     const response = await axios.get(url);
-    
-
-    if (response.data.subtitles.length === 0) {
-      return null;
-    }
-
-    const subtitles = response.data.subtitles;
-
-    // Helper to find subtitle by language
-    const findSubtitle = (langCode) => {
-      return subtitles.find((subtitle) => {
-        const mappedLang = isoCodeMapping[subtitle.lang] || subtitle.lang;
-        
-        return mappedLang === langCode;
-      });
-    };
-
-    // 1. Prioritize newisocode (targetLanguage)
-    const targetLangSubtitle = findSubtitle(newisocode);
-    
-    if (targetLangSubtitle !== undefined && targetLangSubtitle !== null) {
-      return [{ url: targetLangSubtitle.url, lang: targetLangSubtitle.lang }];
-    }
-
-    // 2. If targetLanguage subtitle not found, try to find an English subtitle
-    const englishSubtitle = findSubtitle('en');
-    if (englishSubtitle) {
-      
-      return [{ url: englishSubtitle.url, lang: englishSubtitle.lang }];
-    }
-
-    // 3. If no English subtitle found, return the first available subtitle of any language
-    const firstAvailableSubtitle = subtitles[0];
-
-    return [{ url: firstAvailableSubtitle.url, lang: firstAvailableSubtitle.lang }];
-
+    return processSubtitlesResponse(response.data, newisocode);
   } catch (error) {
+    if (error.response && error.response.status === 520) {
+      console.log("Got 520, retrying after 2 seconds...");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const retryResponse = await axios.get(url);
+      return processSubtitlesResponse(retryResponse.data, newisocode);
+    }
+
     console.error("Subtitle URL error:", error);
     throw error;
   }
