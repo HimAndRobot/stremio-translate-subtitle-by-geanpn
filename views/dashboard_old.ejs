@@ -1,59 +1,253 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Series.Pro - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>My Translations - Auto Subtitle Translate</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/public/translation-config.js"></script>
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
         }
-
-        .card-shadow {
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
         }
-
-        .card-shadow:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
-            border-color: #cbd5e1;
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        .content-area-fixed {
-            height: 135px;
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-sm {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: visible;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             display: flex;
             flex-direction: column;
         }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.15);
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
+        .card-poster {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+        .card-poster-placeholder {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 64px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .status-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10;
+        }
+        .card-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .card-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .card-subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        .series-total-tokens {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
         }
-
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .series-total-tokens .tokens-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .animate-pulse-soft {
-            animation: pulse-soft 2s infinite;
+        .series-total-tokens .tokens-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
         }
-
-        /* Keep all existing modal styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .stat-value.tokens {
+            color: #667eea;
+        }
+        .stat-value.retries {
+            color: #ff9800;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-processing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .status-failed {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status-manual_search {
+            background: #fff9e6;
+            color: #f57f17;
+        }
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .empty-state h2 {
+            color: #666;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .empty-state p {
+            color: #999;
+            font-size: 16px;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -142,7 +336,198 @@
         .hidden {
             display: none !important;
         }
-
+        .episodes-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .episodes-modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .episodes-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .episodes-modal-header h2 {
+            font-size: 24px;
+            color: #1a1a1a;
+        }
+        .episodes-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .episodes-modal-close:hover {
+            color: #333;
+        }
+        .episodes-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        .episode-item {
+            padding: 10px 12px;
+            background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 10px;
+            border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .episode-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        .episode-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .episode-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: #667eea;
+            min-width: 60px;
+        }
+        .episode-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #888;
+        }
+        .episode-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .episode-actions {
+            position: relative;
+        }
+        .episode-menu-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .episode-menu-btn:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+        .episode-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 5px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            min-width: 150px;
+        }
+        .episode-dropdown.show {
+            display: block;
+        }
+        .episode-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+            border-radius: 0;
+        }
+        .episode-dropdown button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        .episode-dropdown button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        .episode-dropdown button:hover {
+            background: #f5f5f5;
+        }
+        .episode-dropdown button.danger {
+            color: #f44336;
+        }
+        .episode-dropdown button.danger:hover {
+            background: #ffebee;
+        }
+        .episode-dropdown button.warning {
+            color: #ff9800;
+        }
+        .episode-dropdown button.warning:hover {
+            background: #fff3e0;
+        }
+        .view-more-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        .view-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .search-container {
+            margin: 20px auto 30px auto;
+            max-width: 100%;
+        }
+        .search-box {
+            width: 100%;
+            padding: 14px 20px;
+            padding-left: 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 15px center;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .search-box::placeholder {
+            color: #999;
+        }
         .add-subtitle-modal {
             display: none;
             position: fixed;
@@ -414,347 +799,540 @@
         .preview-btn:hover {
             background: #5568d3;
         }
+        .migration-alert {
+            background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.25);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .migration-alert-icon {
+            font-size: 42px;
+            flex-shrink: 0;
+        }
+        .migration-alert-content {
+            flex: 1;
+        }
+        .migration-alert-content h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        .migration-alert-content p {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .migration-countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 193, 7, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+        .migration-alert-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .migration-alert-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #856404;
+            cursor: pointer;
+            padding: 0 10px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .migration-alert-close:hover {
+            color: #533f03;
+            transform: scale(1.1);
+        }
     </style>
 </head>
-<body class="text-slate-900 antialiased flex flex-col min-h-screen">
-
-    <!-- CABEÇALHO -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shrink-0">
-        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
-                    </div>
-                    <span class="text-lg font-bold tracking-tight text-slate-800">Series.Pro</span>
-                </div>
-
-                <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
-                    <a href="#" class="text-slate-900 font-bold border-b-2 border-slate-900 h-16 flex items-center">Dashboard</a>
-                    <a href="#" class="hover:text-slate-900 transition-colors h-16 flex items-center">Histórico</a>
-                    <a href="/admin/settings" class="hover:text-slate-900 transition-colors h-16 flex items-center">Configurações</a>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="hidden sm:flex flex-col text-right">
-                    <span class="text-xs font-bold text-slate-700 leading-none"><%= userInfo && userInfo.username ? userInfo.username : 'User' %></span>
-                </div>
-                <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>My Translations</h1>
+            <div class="header-actions">
+                <button onclick="openAddSubtitleModal()" class="btn btn-secondary">Add Subtitle</button>
+                <a href="/admin/settings" class="btn btn-secondary">Settings</a>
+                <button onclick="logout()" class="btn btn-secondary">Logout</button>
             </div>
         </div>
-    </nav>
 
-    <!-- CONTEÚDO PRINCIPAL -->
-    <main class="max-w-7xl mx-auto px-6 py-10 w-full flex-1">
-
-        <!-- BARRA DE FERRAMENTAS -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
-            <div class="relative flex-1 group">
-                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors"></i>
-                <input type="text" id="searchBox" placeholder="Procurar conteúdo..." onkeyup="filterSeries()" autocomplete="off" autocapitalize="off" spellcheck="false"
-                    class="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-indigo-400 transition-all shadow-sm">
+        <% if (userInfo && userInfo.isOldUser) { %>
+        <div class="migration-alert" id="migrationAlert">
+            <div class="migration-alert-icon">⚠️</div>
+            <div class="migration-alert-content">
+                <div class="migration-countdown" id="countdownBadge">
+                    <span>⏱️</span>
+                    <span id="daysRemaining">...</span>
+                </div>
+                <h3>Account Upgrade Required</h3>
+                <p>You're using legacy password-only authentication. Please upgrade to a username+password account to continue using the service after <strong>November 17, 2025</strong>.</p>
+                <div class="migration-alert-actions">
+                    <button onclick="openMigrationModal()" class="btn btn-primary btn-sm">🔐 Upgrade Now</button>
+                    <a href="/admin/migrate" class="btn btn-secondary btn-sm">Learn More</a>
+                </div>
             </div>
-
-            <button onclick="openAddSubtitleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 shrink-0">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                Nova Tradução
-            </button>
+            <button class="migration-alert-close" onclick="dismissMigrationAlert()">&times;</button>
         </div>
+        <% } %>
+
+        <% if (userInfo && userInfo.needsAddonReconfiguration) { %>
+        <div class="migration-alert" id="reconfigAlert" style="background: #fff3cd; border-left-color: #ffc107;">
+            <div class="migration-alert-icon">🔌</div>
+            <div class="migration-alert-content">
+                <h3>Addon Reconfiguration Required</h3>
+                <p>You've successfully migrated your account! Now you need to <strong>reinstall your Stremio addon</strong> with your new username and password to complete the process.</p>
+                <div class="migration-alert-actions">
+                    <a href="/configure" class="btn btn-primary btn-sm">🔧 Reinstall Addon</a>
+                </div>
+            </div>
+        </div>
+        <% } %>
 
         <% if (translations.length === 0) { %>
-        <div class="text-center py-20 bg-white rounded-3xl card-shadow">
-            <div class="flex flex-col items-center gap-4">
-                <i data-lucide="inbox" class="w-16 h-16 text-slate-300"></i>
-                <h2 class="text-2xl font-bold text-slate-600">Nenhuma Tradução Ainda</h2>
-                <p class="text-slate-400">Suas traduções aparecerão aqui assim que você começar a usar o addon</p>
-            </div>
+        <div class="empty-state">
+            <h2>No Translations Yet</h2>
+            <p>Your translations will appear here once you start using the addon</p>
         </div>
-        <% } else { %>
-
-        <!-- GRELHA DE CONTEÚDO -->
-        <div id="seriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
+    <% } else { %>
+        <div class="search-container">
+            <form autocomplete="off" style="margin: 0; padding: 0;">
+                <input type="text" id="searchBox" class="search-box" placeholder="Search by title, IMDB ID, season, episode..." onkeyup="filterSeries()" autocomplete="off" autocapitalize="off" spellcheck="false" name="search-box-unique">
+            </form>
+        </div>
+        <div class="grid-container" id="seriesGrid">
             <% groupedSeries.forEach(series => { %>
-                <div class="card-shadow bg-white rounded-3xl overflow-hidden flex flex-col transition-all series-card">
-                    <div class="relative h-44 bg-slate-100">
+                <div class="card series-card">
+                    <div style="position: relative;">
+                        <span class="status-badge" style="background: <%= series.type === 'movie' ? '#ff6b6b' : '#4ecdc4' %>; color: white; font-size: 10px; padding: 4px 10px; border-radius: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <%= series.type === 'movie' ? '🎬 MOVIE' : '📺 SERIES' %>
+                        </span>
                         <% if (series.poster && series.poster !== null && series.poster !== '') { %>
-                            <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="w-full h-full hidden items-center justify-center text-slate-300">
-                                <i data-lucide="film" class="w-12 h-12"></i>
+                            <img src="<%= series.poster %>" alt="<%= series.series_name || 'Poster' %>" class="card-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="card-poster-placeholder" style="display:none;">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
                             </div>
                         <% } else { %>
-                            <div class="w-full h-full flex items-center justify-center text-slate-300">
-                                <i data-lucide="film" class="w-12 h-12"></i>
+                            <div class="card-poster-placeholder">
+                                <%= (series.series_name || 'N/A').charAt(0).toUpperCase() %>
                             </div>
                         <% } %>
-                        <div class="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
-                            <%= series.type === 'movie' ? '🎬 Filme' : '📺 Série' %>
-                        </div>
                     </div>
 
-                    <div class="p-6 flex flex-col flex-1">
-                        <div class="flex justify-between items-start mb-1">
-                            <h3 class="text-lg font-bold text-slate-900 leading-tight line-clamp-1"><%= series.series_name || series.series_imdbid %></h3>
-                            <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 uppercase shrink-0"><%= series.series_imdbid %></span>
-                        </div>
-                        <p class="text-[11px] font-semibold text-slate-400 mb-4 uppercase tracking-widest"><%= series.languages %></p>
-
-                        <% if (!series.isMovie && series.episodes.length >= 1) { %>
-                            <div class="content-area-fixed">
-                                <div class="space-y-1">
-                                    <% const firstTwo = series.episodes.slice(0, 2); %>
-                                    <% firstTwo.forEach(episode => { %>
-                                        <%
-                                            const isEpisodeMovie = episode.type === 'movie';
-                                            const episodeLabel = isEpisodeMovie ? 'Movie' : `S${String(episode.series_seasonno).padStart(2, '0')}E${String(episode.series_episodeno).padStart(2, '0')}`;
-                                            const isProcessingTooLong = episode.status === 'processing' && (new Date() - new Date(episode.created_at) > 10 * 60 * 1000);
-                                            const showReprocess = episode.status === 'failed' || isProcessingTooLong;
-                                            const isManualSearch = episode.status === 'manual_search';
-                                        %>
-
-                                        <% if (episode.status === 'completed') { %>
-                                            <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 transition-all">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                                    <span class="text-[11px] font-semibold text-slate-700 uppercase"><%= episodeLabel %></span>
-                                                </div>
-                                                <div class="flex items-center gap-3">
-                                                    <span class="text-[10px] font-bold text-slate-400"><%= (episode.token_usage_total || 0).toLocaleString() %> tokens</span>
-                                                    <div class="flex items-center gap-1">
-                                                        <button onclick="downloadSubtitle(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-indigo-600" title="Download"><i data-lucide="download" class="w-3.5 h-3.5"></i></button>
-                                                        <button onclick="deleteTranslation(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-red-500" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <% } else if (episode.status === 'processing') { %>
-                                            <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50/30 space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center gap-3">
-                                                        <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></div>
-                                                        <span class="text-[11px] font-semibold text-slate-700 uppercase"><%= episodeLabel %></span>
-                                                    </div>
-                                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                        <% if (episode.batches_total > 0) { %>
-                                                            <%= episode.batches_completed %>/<%= episode.batches_total %>
-                                                        <% } else { %>
-                                                            Processing
-                                                        <% } %>
-                                                    </span>
-                                                </div>
-                                                <% if (episode.batches_total > 0) { %>
-                                                    <div class="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                                                        <div class="bg-amber-400 h-full rounded-full transition-all duration-700" style="width: <%= Math.round((episode.batches_completed / episode.batches_total) * 100) %>%"></div>
-                                                    </div>
-                                                <% } %>
-                                            </div>
-                                        <% } else if (showReprocess) { %>
-                                            <div class="flex items-center justify-between p-2.5 rounded-xl border border-red-100 bg-red-50/10 transition-all">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]"></div>
-                                                    <span class="text-[11px] font-semibold text-slate-700 uppercase"><%= episodeLabel %></span>
-                                                </div>
-                                                <div class="flex items-center gap-1">
-                                                    <% if (episode.apikey_encrypted) { %>
-                                                        <button onclick="reprocess(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-amber-600" title="Reprocess"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
-                                                    <% } else { %>
-                                                        <button onclick="openReprocessModal(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-amber-600" title="Reprocess"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
-                                                    <% } %>
-                                                    <button onclick="deleteTranslation(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-red-500" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                                </div>
-                                            </div>
-                                        <% } else if (isManualSearch) { %>
-                                            <div class="p-2.5 rounded-xl border border-amber-100 bg-amber-50/30 space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center gap-3">
-                                                        <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                                                        <span class="text-[11px] font-semibold text-slate-700 uppercase"><%= episodeLabel %></span>
-                                                    </div>
-                                                    <span class="text-[9px] font-bold text-amber-600 uppercase tracking-tighter">Waiting</span>
-                                                </div>
-                                            </div>
-                                        <% } %>
-                                    <% }); %>
-                                </div>
-
-                                <% if (series.episodes.length > 2) { %>
-                                    <button onclick="openEpisodesModal('<%= series.series_imdbid %>')" class="w-full py-2 mt-2 text-[10px] font-bold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 rounded-lg transition-colors uppercase tracking-widest border border-dashed border-indigo-200 mt-auto">
-                                        + <%= series.episodes.length - 2 %> more episodes
-                                    </button>
+                    <div class="card-content">
+                        <div style="flex-grow: 1;">
+                            <div class="card-title"><%= series.series_name || series.series_imdbid %></div>
+                            <div class="card-subtitle">
+                                <% if (series.isMovie) { %>
+                                    <%= series.languages %>
+                                <% } else { %>
+                                    <%= series.episodes.length %> Episode<%= series.episodes.length > 1 ? 's' : '' %> • <%= series.languages %>
                                 <% } %>
                             </div>
 
-                            <div class="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                                <div class="flex flex-col leading-none">
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Total Usage</span>
-                                    <span class="text-xs font-black text-slate-800 uppercase"><%= series.total_tokens.toLocaleString() %></span>
-                                </div>
-                                <button class="p-2 text-slate-300 hover:text-indigo-600 transition-colors" title="Content Settings">
-                                    <i data-lucide="settings-2" class="w-4 h-4"></i>
-                                </button>
+                            <div class="series-total-tokens">
+                                <span class="tokens-label">Total Tokens</span>
+                                <span class="tokens-value">🪙 <%= series.total_tokens.toLocaleString() %></span>
                             </div>
 
-                            <div class="mt-4 flex gap-2">
-                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="flex-1 bg-slate-900 hover:bg-black text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-sm">
-                                    <i data-lucide="plus-square" class="w-4 h-4"></i> Download More
-                                </button>
-                            </div>
-                        <% } else { %>
-                            <% const item = series.episodes[0]; %>
-                            <% const isManualSearch = item.status === 'manual_search'; %>
-                            <% const isProcessingTooLong = item.status === 'processing' && (new Date() - new Date(item.created_at) > 10 * 60 * 1000); %>
-                            <% const showReprocess = item.status === 'failed' || isProcessingTooLong; %>
-
-                            <% if (isManualSearch) { %>
-                                <!-- Manual Search Card -->
-                                <div class="content-area-fixed border-2 border-dashed border-amber-200 rounded-xl bg-amber-50/20 p-4">
-                                    <div class="flex flex-col items-center justify-center h-full text-center space-y-3">
-                                        <div class="bg-amber-100 p-3 rounded-2xl border border-amber-200 text-amber-700">
-                                            <i data-lucide="alert-circle" class="w-6 h-6 mx-auto mb-2"></i>
-                                            <p class="text-[10px] font-bold leading-tight uppercase">Conteúdo não identificado automaticamente</p>
-                                        </div>
-                                        <p class="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">
-                                            <%= new Date(item.created_at).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                                    <div class="flex flex-col leading-none">
-                                        <span class="text-[9px] font-bold text-slate-300 uppercase tracking-tighter mb-1">Total Tokens</span>
-                                        <span class="text-xs font-black text-slate-300 uppercase">0</span>
-                                    </div>
-                                    <span class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pending</span>
-                                </div>
-
-                                <div class="mt-4 flex gap-2">
-                                    <button onclick="openIdentifyModal(<%= item.id %>)" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-indigo-100">
-                                        <i data-lucide="search" class="w-4 h-4"></i> Identify Content
-                                    </button>
-                                    <button onclick="deleteTranslation(<%= item.id %>)" class="p-2.5 text-slate-300 hover:text-red-500 border border-slate-200 rounded-xl transition-colors">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </div>
-                            <% } else { %>
-                                <!-- Normal Single Item Card -->
-                                <div class="content-area-fixed">
-                                    <div class="space-y-1.5">
-                                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-2 h-2 rounded-full <%= item.status === 'completed' ? 'bg-emerald-500' : item.status === 'processing' ? 'bg-amber-400 animate-pulse-soft' : 'bg-red-500' %>"></div>
-                                                <span class="text-[11px] font-semibold text-slate-700 uppercase tracking-tight">Status</span>
+                            <% if (!series.isMovie && series.episodes.length > 1) { %>
+                                <div class="episodes-list">
+                                    <% const firstThree = series.episodes.slice(0, 3); %>
+                                    <% firstThree.forEach(episode => { %>
+                                    <div class="episode-item">
+                                        <div class="episode-info">
+                                            <%
+                                                const isEpisodeMovie = episode.type === 'movie';
+                                                const episodeLabel = isEpisodeMovie ? 'Movie' : `S${String(episode.series_seasonno).padStart(2, '0')}E${String(episode.series_episodeno).padStart(2, '0')}`;
+                                            %>
+                                            <span class="episode-label"><%= episodeLabel %></span>
+                                            <span class="status status-<%= episode.status %>">
+                                                <%= episode.status %><% if (episode.status === 'manual_search') { %>
+                                                • <%= new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
+                                            </span>
+                                            <div class="episode-stats">
+                                                <span>🌐 <%= episode.langcode %></span>
+                                                <span>🪙 <%= (episode.token_usage_total || 0).toLocaleString() %></span>
+                                                <% if (episode.batches_total > 0) { %>
+                                                    <span>📦 <%= episode.batches_completed %>/<%= episode.batches_total %></span>
+                                                <% } %>
                                             </div>
-                                            <span class="text-[10px] font-black <%= item.status === 'completed' ? 'text-emerald-600' : item.status === 'processing' ? 'text-amber-600' : 'text-red-600' %> uppercase tracking-widest">
-                                                <%= item.status === 'completed' ? 'Completed' : item.status === 'processing' ? 'Processing' : 'Failed' %>
+                                        </div>
+                                        <%
+                                            const isProcessingTooLong = episode.status === 'processing' && (new Date() - new Date(episode.created_at) > 10 * 60 * 1000);
+                                            const showReprocess = episode.status === 'failed' || isProcessingTooLong;
+                                        %>
+                                        <div class="episode-actions">
+                                            <button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, <%= episode.id %>)">⋮</button>
+                                            <div id="menu-<%= episode.id %>" class="episode-dropdown">
+                                                <% if (episode.status === 'completed') { %>
+                                                    <button onclick="downloadSubtitle(<%= episode.id %>)">📥 Download</button>
+                                                <% } %>
+                                                <% if (showReprocess) { %>
+                                                    <% if (episode.apikey_encrypted) { %>
+                                                        <button class="warning" onclick="reprocess(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } else { %>
+                                                        <button class="warning" onclick="openReprocessModal(<%= episode.id %>)">🔄 Reprocess</button>
+                                                    <% } %>
+                                                <% } %>
+                                                <button class="danger" onclick="deleteTranslation(<%= episode.id %>)">🗑️ Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+
+                                <% if (series.episodes.length > 3) { %>
+                                    <button class="view-more-btn" onclick="openEpisodesModal('<%= series.series_imdbid %>')">
+                                        + <%= series.episodes.length - 3 %> more episodes
+                                    </button>
+                                <% } %>
+                            <% } else { %>
+                            <% const item = series.episodes[0]; %>
+                                <div class="stats-grid">
+                                    <div class="stat-box">
+                                        <div class="stat-label">Status</div>
+                                        <div class="stat-value">
+                                            <span class="status status-<%= item.status %>">
+                                                <%= item.status %><% if (item.status === 'manual_search') { %>
+                                                • <%= new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                                                <% } %>
                                             </span>
                                         </div>
-
-                                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/30">
-                                            <div class="flex items-center gap-3">
-                                                <i data-lucide="zap" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                <span class="text-[11px] font-semibold text-slate-700 uppercase tracking-tight">Token Usage</span>
-                                            </div>
-                                            <span class="text-[10px] font-black text-slate-800 uppercase tracking-tighter"><%= (item.token_usage_total || 0).toLocaleString() %></span>
+                                    </div>
+                                    <div class="stat-box">
+                                        <div class="stat-label">Tokens</div>
+                                        <div class="stat-value tokens"><%= (item.token_usage_total || 0).toLocaleString() %></div>
+                                    </div>
+                                    <% if (item.batches_total > 0) { %>
+                                        <div class="stat-box">
+                                            <div class="stat-label">Batches</div>
+                                            <div class="stat-value batches"><%= item.batches_completed %>/<%= item.batches_total %></div>
                                         </div>
-
-                                        <% if (item.batches_total > 0) { %>
-                                            <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/30">
-                                                <div class="flex items-center gap-3">
-                                                    <i data-lucide="package" class="w-3.5 h-3.5 text-slate-400"></i>
-                                                    <span class="text-[11px] font-semibold text-slate-700 uppercase tracking-tight">Batches</span>
-                                                </div>
-                                                <span class="text-[10px] font-black text-slate-800 uppercase tracking-tighter"><%= item.batches_completed %>/<%= item.batches_total %></span>
-                                            </div>
-                                        <% } %>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                                    <div class="flex flex-col leading-none">
-                                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Total Usage</span>
-                                        <span class="text-xs font-black text-slate-800 uppercase"><%= (item.token_usage_total || 0).toLocaleString() %></span>
-                                    </div>
-                                    <button class="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
-                                        <i data-lucide="settings-2" class="w-4 h-4"></i>
-                                    </button>
-                                </div>
-
-                                <div class="mt-4 flex gap-2">
-                                    <% if (item.status === 'completed') { %>
-                                        <button onclick="downloadSubtitle(<%= item.id %>)" class="flex-1 bg-slate-900 hover:bg-black text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-sm">
-                                            <i data-lucide="download" class="w-4 h-4"></i> Baixar Legenda
-                                        </button>
-                                        <button onclick="deleteTranslation(<%= item.id %>)" class="p-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-xl transition-colors">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    <% } else if (showReprocess) { %>
-                                        <% if (item.apikey_encrypted) { %>
-                                            <button onclick="reprocess(<%= item.id %>)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-sm">
-                                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reprocessar
-                                            </button>
-                                        <% } else { %>
-                                            <button onclick="openReprocessModal(<%= item.id %>)" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-sm">
-                                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reprocessar
-                                            </button>
-                                        <% } %>
-                                        <button onclick="deleteTranslation(<%= item.id %>)" class="p-2.5 text-slate-400 hover:text-red-500 border border-slate-200 rounded-xl transition-colors">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    <% } else { %>
-                                        <button onclick="deleteTranslation(<%= item.id %>)" class="flex-1 bg-slate-900 hover:bg-black text-white text-[10px] font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-sm">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
-                                        </button>
                                     <% } %>
                                 </div>
-                            <% } %>
                         <% } %>
+                        </div>
+
+                        <% if (series.episodes.length === 1) { %>
+                            <% const item = series.episodes[0]; %>
+                            <div class="card-actions" style="margin-top: auto;">
+                                <%
+                                    const showReprocess = item.status === 'failed' ||
+                                        (item.status === 'processing' &&
+                                         new Date() - new Date(item.created_at) > 10 * 60 * 1000);
+                                %>
+                                <% if (item.status === 'manual_search') { %>
+                                    <button onclick="openIdentifyModal(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">🔍 Identify Content</button>
+                                <% } %>
+                                <% if (item.status === 'completed') { %>
+                                    <button onclick="downloadSubtitle(<%= item.id %>)" class="btn btn-primary btn-sm" style="flex: 1;">📥 Download</button>
+                                <% } %>
+                                <% if (showReprocess) { %>
+                                    <% if (item.apikey_encrypted) { %>
+                                        <button onclick="reprocess(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
+                                    <% } else { %>
+                                        <button onclick="openReprocessModal(<%= item.id %>)" class="btn btn-warning btn-sm" style="flex: 1;">Reprocess</button>
+                                    <% } %>
+                                <% } %>
+                                <button onclick="deleteTranslation(<%= item.id %>)" class="btn btn-danger btn-sm" style="flex: 1;">Delete</button>
+                            </div>
+                        <% } %>
+
+                        <div class="card-actions" style="margin-top: auto; padding-top: 15px; border-top: 1px solid #f0f0f0; gap: 10px;">
+                            <% if (!series.isMovie) { %>
+                                <button onclick="openDownloadMoreModal('<%= series.series_imdbid %>', '<%= series.series_name || series.series_imdbid %>')" class="btn btn-primary btn-sm" style="flex: 1;">
+                                    📥 Download More Subtitles
+                                </button>
+                            <% } %>
+                            <% if (series.episodes.length !== 1) { %>
+                                <% const firstEpisode = series.episodes[0]; %>
+                                <button onclick="deleteTranslation(<%= firstEpisode.id %>)" class="btn btn-danger btn-sm" style="<%= series.isMovie ? 'width: 100%;' : 'flex: 1;' %>">
+                                    🗑️ Delete
+                                </button>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
             <% }); %>
-
         </div>
-        <% } %>
-    </main>
+    <% } %>
 
-    <!-- RODAPÉ -->
-    <footer class="mt-auto py-10 border-t border-slate-200 bg-white shrink-0">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-2 text-slate-400">
-                <i data-lucide="code" class="w-4 h-4"></i>
-                <span class="text-[10px] font-bold uppercase tracking-[0.2em]">Open Source para Stremio</span>
+    <div id="addSubtitleModal" class="add-subtitle-modal">
+        <div class="add-subtitle-modal-content">
+            <div class="add-subtitle-modal-header">
+                <h2 id="addSubtitleModalTitle">Add Subtitle</h2>
+                <button class="add-subtitle-modal-close" onclick="closeAddSubtitleModal()">&times;</button>
             </div>
 
-            <div class="flex items-center gap-6">
-                <a href="https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn" target="_blank" class="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-xs font-bold uppercase tracking-widest">
-                    <i data-lucide="github" class="w-5 h-5"></i>
-                    GitHub
-                </a>
-                <a href="#" class="flex items-center gap-2 bg-amber-100 text-amber-700 px-5 py-2.5 rounded-2xl hover:bg-amber-200 transition-all text-xs font-black uppercase tracking-tighter">
-                    <i data-lucide="coffee" class="w-4 h-4 fill-current"></i>
-                    Pagar um café
-                </a>
+            <div id="searchContainer">
+                <input type="text" id="searchModalInput" class="search-modal-input" placeholder="Search for series or movies..." onkeyup="handleSearchInput()">
+                <div id="searchLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Searching...</p>
+                </div>
+                <div id="searchResultsGrid" class="search-results-grid"></div>
+            </div>
+
+            <div id="episodesSelectionContainer" class="episodes-selection-container">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToSearch()">←</button>
+                    <div>
+                        <h3 id="selectedSeriesTitle" style="margin: 0; font-size: 18px; color: #1a1a1a;"></h3>
+                        <p id="selectedSeriesMeta" style="margin: 5px 0 0 0; font-size: 12px; color: #888;"></p>
+                    </div>
+                </div>
+                <div id="episodesLoadingState" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading episodes...</p>
+                </div>
+                <div id="episodesGrid" class="episodes-grid"></div>
+                <button class="confirm-selection-btn" onclick="confirmSelection()" disabled>Confirm Selection</button>
+            </div>
+
+            <div id="modeSelectionContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToEpisodesFromMode()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Choose Translation Mode</h3>
+                </div>
+
+                <div style="display: flex; gap: 20px; margin-top: 20px;">
+                    <div class="mode-card" onclick="selectAutomaticMode()">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a;">Automatic Mode</h4>
+                        <p style="margin: 0; font-size: 14px; color: #666;">Use best available subtitles from OpenSubtitles automatically</p>
+                    </div>
+                    <div class="mode-card" onclick="selectCustomMode()">
+                        <div style="font-size: 48px; margin-bottom: 15px;">⚙️</div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #1a1a1a;">Custom Mode</h4>
+                        <p style="margin: 0; font-size: 14px; color: #666;">Select specific subtitles or upload your own .srt files</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subtitleCustomizationContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToModeSelection()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Customize Subtitles</h3>
+                </div>
+                <div id="subtitleCustomizationContent" style="margin-top: 20px;"></div>
+                <button class="confirm-selection-btn" onclick="proceedToTranslationOptions()" disabled>Continue to Translation Options</button>
+            </div>
+
+            <div id="translationOptionsContainer" class="episodes-selection-container" style="display: none;">
+                <div class="episodes-selection-header">
+                    <button class="back-button" onclick="backToEpisodes()">←</button>
+                    <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">Translation Options</h3>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadLanguage">Target Language</label>
+                    <select id="downloadLanguage"></select>
+                </div>
+
+                <div class="modal-form-group">
+                    <label for="downloadProvider">Provider</label>
+                    <select id="downloadProvider"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadApiKeyGroup">
+                    <label for="downloadApiKey">API Key</label>
+                    <input type="text" id="downloadApiKey" placeholder="Enter your API key">
+                </div>
+
+                <div class="modal-form-group" id="downloadModelGroup">
+                    <label for="downloadModel">Model Name</label>
+                    <select id="downloadModel"></select>
+                </div>
+
+                <div class="modal-form-group" id="downloadBaseUrlGroup">
+                    <label for="downloadBaseUrl">Base URL</label>
+                    <input type="text" id="downloadBaseUrl" placeholder="e.g., https://api.openai.com/v1">
+                </div>
+
+                <button class="confirm-selection-btn" onclick="startTranslation()">Start Translation</button>
             </div>
         </div>
-    </footer>
+    </div>
 
-    <!-- ALL MODALS -->
-    <%- include('partials/modals') %>
+    <div id="episodesModal" class="episodes-modal">
+        <div class="episodes-modal-content">
+            <div class="episodes-modal-header">
+                <h2 id="episodesModalTitle">All Episodes</h2>
+                <button class="episodes-modal-close" onclick="closeEpisodesModal()">&times;</button>
+            </div>
+            <div id="episodesModalBody"></div>
+        </div>
+    </div>
+
+    <div id="reprocessModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reprocess Translation</h2>
+                <p>Provide credentials to reprocess this failed translation</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="modalLanguage">Target Language</label>
+                <select id="modalLanguage">
+                    <!-- Languages will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="modalProvider">Provider</label>
+                <select id="modalProvider">
+                </select>
+            </div>
+
+            <div class="modal-form-group" id="modalApiKeyGroup">
+                <label for="modalApiKey">API Key</label>
+                <input type="text" id="modalApiKey" placeholder="Enter your API key">
+            </div>
+
+            <div class="modal-form-group" id="modalModelGroup">
+                <label for="modalModel">Model</label>
+                <select id="modalModel"></select>
+            </div>
+
+            <div class="modal-form-group hidden" id="modalBaseUrlGroup">
+                <label for="modalBaseUrl">API Base URL</label>
+                <input type="text" id="modalBaseUrl" placeholder="https://api.example.com/v1">
+            </div>
+
+            <div class="modal-form-group hidden" id="modalModelNameGroup">
+                <label for="modalModelName">Model Name</label>
+                <input type="text" id="modalModelName" placeholder="model-name">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeReprocessModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitReprocess()">Reprocess</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="masterPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Enter Master Password</h2>
+                <p>Enter your master password to decrypt the saved credential</p>
+            </div>
+
+            <div class="modal-form-group">
+                <label for="masterPasswordInput">Master Password</label>
+                <input type="password" id="masterPasswordInput" placeholder="Enter master password" onkeypress="if(event.key === 'Enter') submitMasterPassword()">
+            </div>
+
+            <div id="masterPasswordError" style="color: #f44336; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none;"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="submitMasterPassword()">Decrypt</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="accountMigrationModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">
+                <h2 style="margin: 0 0 10px 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+                    <span>🔐</span>
+                    <span>Upgrade Your Account</span>
+                </h2>
+                <p style="margin: 0; opacity: 0.95; font-size: 14px;">Create a username to secure your account and continue using the service</p>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6;">
+                        <strong>⚠️ Important:</strong> After migration, all your translations will be transferred to the new account. You'll be logged out automatically and must log in with your new credentials.
+                    </p>
+                </div>
+
+                <form id="migrationForm" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <label for="migrationUsername" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Username</label>
+                        <input type="text" id="migrationUsername" name="username" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Choose a unique username"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">This will be your login username</small>
+                    </div>
+
+                    <div>
+                        <label for="migrationPassword" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Password</label>
+                        <input type="password" id="migrationPassword" name="password" required
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                               placeholder="Your current password"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">Use your existing password</small>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px 24px; font-weight: 600;">
+                            ✓ Upgrade Account
+                        </button>
+                        <button type="button" onclick="closeMigrationModal()" class="btn btn-secondary" style="padding: 12px 24px;">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+
+                <div id="migrationError" style="display: none; background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                    <p style="margin: 0; color: #c62828; font-size: 14px;" id="migrationErrorText"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="subtitlePreviewModal" class="subtitle-preview-modal">
+        <div class="subtitle-preview-content">
+            <div class="subtitle-preview-header">
+                <h3 style="margin: 0; font-size: 18px;">Subtitle Preview</h3>
+                <button class="add-subtitle-modal-close" onclick="closeSubtitlePreview()">&times;</button>
+            </div>
+            <div class="subtitle-preview-body">
+                <div id="subtitlePreviewLoading" class="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading preview...</p>
+                </div>
+                <div id="subtitlePreviewText" class="subtitle-preview-text"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Re-initialize icons after dynamic content changes
-        const originalOpenEpisodesModal = window.openEpisodesModal;
-        window.openEpisodesModal = function(...args) {
-            const result = originalOpenEpisodesModal.apply(this, args);
-            setTimeout(() => lucide.createIcons(), 100);
-            return result;
-        };
-
-        // Keep ALL existing JavaScript from original dashboard.ejs
         const seriesData = <%- JSON.stringify(groupedSeries) %>;
 
         let searchTimeout;
@@ -762,30 +1340,6 @@
         let currentSelectedSeries = null;
         let currentCredentialContext = null;
         let pendingDecryptedCredential = null;
-
-        // Helper functions for Tailwind modals
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            console.log('Opening modal:', modalId, modal);
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                setTimeout(() => lucide.createIcons(), 50);
-            } else {
-                console.error('Modal not found:', modalId);
-            }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            console.log('Closing modal:', modalId, modal);
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            } else {
-                console.error('Modal not found:', modalId);
-            }
-        }
 
         function showToast(message, type = 'info') {
             const colors = {
@@ -901,13 +1455,13 @@
             currentCredentialContext = { context, credentialIndex };
             document.getElementById('masterPasswordInput').value = '';
             document.getElementById('masterPasswordError').style.display = 'none';
-            openModal('masterPasswordModal');
+            document.getElementById('masterPasswordModal').style.display = 'block';
         }
 
         function closeMasterPasswordModal(resetSelect = true) {
             const context = currentCredentialContext ? currentCredentialContext.context : null;
 
-            closeModal('masterPasswordModal');
+            document.getElementById('masterPasswordModal').style.display = 'none';
             currentCredentialContext = null;
             pendingDecryptedCredential = null;
 
@@ -965,7 +1519,7 @@
                     name: credential.name
                 };
 
-                closeModal('masterPasswordModal');
+                document.getElementById('masterPasswordModal').style.display = 'none';
                 currentCredentialContext = null;
 
                 applyDecryptedCredential(context);
@@ -1060,10 +1614,6 @@
             document.getElementById('searchResultsGrid').innerHTML = '';
             document.getElementById('episodesGrid').innerHTML = '';
 
-            document.getElementById('addSubtitleModalTitle').textContent = 'Add Subtitle';
-            document.getElementById('addSubtitleModalSubtitle').textContent = 'Translation Configuration';
-            document.getElementById('addSubtitleModalBackBtn').style.display = 'none';
-
             selectedEpisodes = [];
             currentSelectedSeries = null;
             customSubtitles = {};
@@ -1072,12 +1622,12 @@
 
         function openAddSubtitleModal() {
             resetAddSubtitleModal();
-            openModal('addSubtitleModal');
+            document.getElementById('addSubtitleModal').style.display = 'block';
             document.getElementById('searchContainer').style.display = 'block';
         }
 
         function closeAddSubtitleModal() {
-            closeModal('addSubtitleModal');
+            document.getElementById('addSubtitleModal').style.display = 'none';
         }
 
         async function openDownloadMoreModal(imdbId, seriesName) {
@@ -1091,20 +1641,19 @@
                 year: ''
             };
 
-            openModal('addSubtitleModal');
+            document.getElementById('addSubtitleModal').style.display = 'block';
             document.getElementById('episodesSelectionContainer').style.display = 'block';
-            document.getElementById('addSubtitleModalTitle').textContent = seriesName;
-            document.getElementById('addSubtitleModalSubtitle').textContent = 'SERIES';
-            document.getElementById('addSubtitleModalBackBtn').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = seriesName;
+            document.getElementById('selectedSeriesMeta').textContent = 'series';
 
             const loadingState = document.getElementById('episodesLoadingState');
             const episodesGrid = document.getElementById('episodesGrid');
-            const confirmBtn = document.querySelector('#episodesSelectionContainer button[onclick="confirmSelection()"]');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
 
             loadingState.style.display = 'block';
             episodesGrid.innerHTML = '';
             selectedEpisodes = [];
-            if (confirmBtn) confirmBtn.disabled = true;
+            confirmBtn.disabled = true;
 
             try {
                 const response = await fetch('/api/episodes/' + imdbId);
@@ -1205,18 +1754,17 @@
 
             document.getElementById('searchContainer').style.display = 'none';
             document.getElementById('episodesSelectionContainer').style.display = 'block';
-            document.getElementById('addSubtitleModalTitle').textContent = name;
-            document.getElementById('addSubtitleModalSubtitle').textContent = ((year ? year + ' • ' : '') + type).toUpperCase();
-            document.getElementById('addSubtitleModalBackBtn').style.display = 'block';
+            document.getElementById('selectedSeriesTitle').textContent = name;
+            document.getElementById('selectedSeriesMeta').textContent = (year ? year + ' • ' : '') + type;
 
             const loadingState = document.getElementById('episodesLoadingState');
             const episodesGrid = document.getElementById('episodesGrid');
-            const confirmBtn = document.querySelector('#episodesSelectionContainer button[onclick="confirmSelection()"]');
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
 
             loadingState.style.display = 'block';
             episodesGrid.innerHTML = '';
             selectedEpisodes = [];
-            if (confirmBtn) confirmBtn.disabled = true;
+            confirmBtn.disabled = true;
 
             if (type === 'movie') {
                 loadingState.style.display = 'none';
@@ -1274,8 +1822,8 @@
                 });
             });
 
-            const confirmBtn = document.querySelector('#episodesSelectionContainer button[onclick="confirmSelection()"]');
-            if (confirmBtn) confirmBtn.disabled = selectedEpisodes.length === 0;
+            const confirmBtn = document.querySelector('.confirm-selection-btn');
+            confirmBtn.disabled = selectedEpisodes.length === 0;
         }
 
         function backToSearch() {
@@ -1364,8 +1912,7 @@
                 await loadSubtitleOptions(ep.season, ep.episode);
             }
 
-            const customBtn = document.querySelector('#subtitleCustomizationContainer button[onclick="proceedToTranslationOptions()"]');
-            if (customBtn) customBtn.disabled = false;
+            document.querySelector('#subtitleCustomizationContainer .confirm-selection-btn').disabled = false;
         }
 
         async function loadSubtitleOptions(season, episode) {
@@ -1630,7 +2177,7 @@
             const modalTitle = document.getElementById('episodesModalTitle');
             const modalBody = document.getElementById('episodesModalBody');
 
-            modalTitle.textContent = `${series.series_name || series.series_imdbid} - Todos os Episódios`;
+            modalTitle.textContent = `${series.series_name || series.series_imdbid} - All Episodes`;
 
             const sortedEpisodes = [...series.episodes].sort((a, b) => {
                 const dateA = new Date(a.created_at);
@@ -1638,7 +2185,7 @@
                 return dateB - dateA;
             });
 
-            let html = '';
+            let html = '<div class="episodes-list">';
             sortedEpisodes.forEach(episode => {
                 const now = new Date();
                 const created = new Date(episode.created_at);
@@ -1646,102 +2193,107 @@
                 const isProcessingTooLong = (episode.status === 'processing') ? (timeDiff > 600000) : false;
                 const showReprocess = (episode.status === 'failed') ? true : isProcessingTooLong;
 
-                const isEpisodeMovie = episode.type === 'movie';
-                const episodeLabel = isEpisodeMovie ? 'Movie' : 'Episódio ' + String(episode.series_seasonno).padStart(2, '0') + 'x' + String(episode.series_episodeno).padStart(2, '0');
-
-                if (episode.status === 'completed') {
-                    html += `
-                        <div class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white hover:border-indigo-100 transition-all group">
-                            <div class="flex items-center gap-4">
-                                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                <span class="text-xs font-bold text-slate-700 uppercase">${episodeLabel}</span>
-                                <span class="text-[10px] font-bold text-slate-400">${(episode.token_usage_total || 0).toLocaleString()} tokens</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="downloadSubtitle(${episode.id})" class="p-1.5 text-slate-400 hover:text-indigo-600"><i data-lucide="download" class="w-4 h-4"></i></button>
-                                <button onclick="deleteTranslation(${episode.id})" class="p-1.5 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                    `;
-                } else if (episode.status === 'processing') {
-                    const progress = episode.batches_total > 0 ? Math.round((episode.batches_completed / episode.batches_total) * 100) : 50;
-                    html += `
-                        <div class="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2.5">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></div>
-                                    <span class="text-xs font-bold text-slate-700 uppercase">${episodeLabel}</span>
-                                </div>
-                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Processando</span>
-                            </div>
-                            <div class="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
-                                <div class="bg-amber-400 h-full rounded-full transition-all duration-700" style="width: ${progress}%"></div>
-                            </div>
-                        </div>
-                    `;
-                } else if (showReprocess || episode.status === 'failed') {
-                    const reprocessBtn = episode.apikey_encrypted
-                        ? `<button onclick="reprocess(${episode.id})" class="p-1.5 text-slate-400 hover:text-amber-600"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>`
-                        : `<button onclick="openReprocessModal(${episode.id})" class="p-1.5 text-slate-400 hover:text-amber-600"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>`;
-
-                    html += `
-                        <div class="flex items-center justify-between p-3.5 rounded-2xl border border-red-100 bg-red-50/10 transition-all">
-                            <div class="flex items-center gap-4">
-                                <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                                <span class="text-xs font-bold text-slate-700 uppercase">${episodeLabel}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                ${reprocessBtn}
-                                <button onclick="deleteTranslation(${episode.id})" class="p-1.5 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                    `;
-                } else if (episode.status === 'manual_search') {
-                    const dateStr = new Date(episode.created_at).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                    html += `
-                        <div class="flex items-center justify-between p-3.5 rounded-2xl border border-amber-100 bg-amber-50/30 transition-all">
-                            <div class="flex items-center gap-4">
-                                <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-                                <span class="text-xs font-bold text-slate-700 uppercase">${episodeLabel}</span>
-                                <span class="text-[9px] font-bold text-amber-600 uppercase">${dateStr}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="openIdentifyModal(${episode.id})" class="p-1.5 text-slate-400 hover:text-indigo-600"><i data-lucide="search" class="w-4 h-4"></i></button>
-                                <button onclick="deleteTranslation(${episode.id})" class="p-1.5 text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                    `;
+                let reprocessBtn = '';
+                if (showReprocess) {
+                    if (episode.apikey_encrypted) {
+                        reprocessBtn = '<button class="warning" onclick="reprocess(' + episode.id + ')">🔄 Reprocess</button>';
+                    } else {
+                        reprocessBtn = '<button class="warning" onclick="openReprocessModal(' + episode.id + ')">🔄 Reprocess</button>';
+                    }
                 }
+
+                const downloadBtn = (episode.status === 'completed') ? '<button onclick="downloadSubtitle(' + episode.id + ')">📥 Download</button>' : '';
+
+                const isEpisodeMovie = episode.type === 'movie';
+                const episodeLabel = isEpisodeMovie ? 'Movie' : 'S' + String(episode.series_seasonno).padStart(2, '0') + 'E' + String(episode.series_episodeno).padStart(2, '0');
+
+                const statusText = episode.status === 'manual_search'
+                    ? episode.status + ' • ' + new Date(episode.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : episode.status;
+
+                html += '<div class="episode-item">' +
+                    '<div class="episode-info">' +
+                        '<span class="episode-label">' + episodeLabel + '</span>' +
+                        '<span class="status status-' + episode.status + '">' + statusText + '</span>' +
+                        '<div class="episode-stats">' +
+                            '<span>🌐 ' + episode.langcode + '</span>' +
+                            '<span>🪙 ' + (episode.token_usage_total || 0).toLocaleString() + '</span>' +
+                            (episode.batches_total > 0 ? '<span>📦 ' + episode.batches_completed + '/' + episode.batches_total + '</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="episode-actions">' +
+                        '<button class="episode-menu-btn" onclick="toggleEpisodeMenu(event, ' + episode.id + ')">⋮</button>' +
+                        '<div id="menu-' + episode.id + '" class="episode-dropdown">' +
+                            downloadBtn +
+                            reprocessBtn +
+                            '<button class="danger" onclick="deleteTranslation(' + episode.id + ')">🗑️ Delete</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             });
+            html += '</div>';
 
             modalBody.innerHTML = html;
-            document.getElementById('episodesModalCount').textContent = `${sortedEpisodes.length} Episódios no Total`;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            setTimeout(() => lucide.createIcons(), 50);
+            modal.style.display = 'block';
         }
 
         function closeEpisodesModal() {
-            const modal = document.getElementById('episodesModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            document.getElementById('episodesModal').style.display = 'none';
         }
+
+        function toggleEpisodeMenu(event, episodeId) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const menu = document.getElementById(`menu-${episodeId}`);
+            if (!menu) {
+                console.error('Menu not found for episode:', episodeId);
+                return;
+            }
+
+            const allMenus = document.querySelectorAll('.episode-dropdown');
+
+            // Close all other menus
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+
+            // Toggle current menu
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.episode-menu-btn')) {
+                document.querySelectorAll('.episode-dropdown').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
 
         function filterSeries() {
             const searchTerm = document.getElementById('searchBox').value.toLowerCase();
             const cards = document.querySelectorAll('.series-card');
 
             cards.forEach(card => {
-                const title = card.querySelector('h3').textContent.toLowerCase();
-                const imdbId = card.querySelector('.text-\\[10px\\]').textContent.toLowerCase();
-                const languages = card.querySelector('.text-\\[11px\\]').textContent.toLowerCase();
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const subtitle = card.querySelector('.card-subtitle').textContent.toLowerCase();
+                const episodes = card.querySelectorAll('.episode-label');
 
-                const matchFound = title.includes(searchTerm) || imdbId.includes(searchTerm) || languages.includes(searchTerm);
+                let matchFound = title.includes(searchTerm) || subtitle.includes(searchTerm);
+
+                if (!matchFound) {
+                    episodes.forEach(ep => {
+                        if (ep.textContent.toLowerCase().includes(searchTerm)) {
+                            matchFound = true;
+                        }
+                    });
+                }
 
                 card.style.display = matchFound ? '' : 'none';
             });
         }
+
 
         async function logout() {
             try {
@@ -1763,7 +2315,7 @@
             const loadingDiv = document.getElementById('subtitlePreviewLoading');
             const textDiv = document.getElementById('subtitlePreviewText');
 
-            openModal('subtitlePreviewModal');
+            modal.style.display = 'flex';
             loadingDiv.style.display = 'block';
             textDiv.textContent = '';
 
@@ -1784,10 +2336,14 @@
         }
 
         function closeSubtitlePreview() {
-            closeModal('subtitlePreviewModal');
+            document.getElementById('subtitlePreviewModal').style.display = 'none';
         }
 
+
         async function reprocess(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
             if (!confirm('Reprocess this failed translation?')) return;
 
             try {
@@ -1810,6 +2366,8 @@
         }
 
         async function downloadSubtitle(id) {
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
             try {
                 window.location.href = '/api/download-subtitle/' + id;
                 showToast('Downloading subtitle...', 'success');
@@ -1823,7 +2381,7 @@
         function openIdentifyModal(id) {
             currentIdentifyId = id;
             resetAddSubtitleModal();
-            openModal('addSubtitleModal');
+            document.getElementById('addSubtitleModal').style.display = 'block';
             document.getElementById('searchContainer').style.display = 'block';
             document.getElementById('addSubtitleModalTitle').textContent = 'Identify Content';
         }
@@ -1857,6 +2415,9 @@
         }
 
         async function deleteTranslation(id) {
+            // Close all menus
+            document.querySelectorAll('.episode-dropdown').forEach(menu => menu.classList.remove('show'));
+
             if (!confirm('Delete this translation? This cannot be undone.')) return;
 
             try {
@@ -1895,12 +2456,12 @@
 
             populateProviderDropdownWithCredentials('modalProvider');
 
-            openModal('reprocessModal');
+            document.getElementById('reprocessModal').style.display = 'block';
             updateModalFields();
         }
 
         function closeReprocessModal() {
-            closeModal('reprocessModal');
+            document.getElementById('reprocessModal').style.display = 'none';
             currentReprocessId = null;
         }
 
@@ -2001,22 +2562,142 @@
         }
 
         window.addEventListener('click', function(event) {
-            if (event.target.id === 'addSubtitleModal') {
-                closeAddSubtitleModal();
+            const modals = [
+                { id: 'addSubtitleModal', closeFunc: closeAddSubtitleModal },
+                { id: 'episodesModal', closeFunc: closeEpisodesModal },
+                { id: 'subtitlePreviewModal', closeFunc: closeSubtitlePreview },
+                { id: 'reprocessModal', closeFunc: closeReprocessModal },
+                { id: 'masterPasswordModal', closeFunc: closeMasterPasswordModal }
+            ];
+
+            modals.forEach(modal => {
+                const modalElement = document.getElementById(modal.id);
+                if (modalElement && event.target === modalElement) {
+                    modal.closeFunc();
+                }
+            });
+        });
+
+        function updateMigrationCountdown() {
+            const deadline = new Date('<%= migrationDeadline %>');
+            const now = new Date();
+            const diff = deadline - now;
+            const daysRemaining = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+            const badge = document.getElementById('daysRemaining');
+            if (badge) {
+                if (daysRemaining > 0) {
+                    badge.textContent = `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`;
+                } else {
+                    badge.textContent = 'Deadline passed';
+                    badge.style.background = '#f44336';
+                    badge.style.color = 'white';
+                }
             }
-            if (event.target.id === 'episodesModal') {
-                closeEpisodesModal();
+        }
+
+        function dismissMigrationAlert() {
+            const alert = document.getElementById('migrationAlert');
+            if (alert) {
+                alert.style.display = 'none';
+                localStorage.setItem('migrationAlertDismissed', Date.now());
             }
-            if (event.target.id === 'subtitlePreviewModal') {
-                closeSubtitlePreview();
+        }
+
+        function openMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'block';
+        }
+
+        function closeMigrationModal() {
+            document.getElementById('accountMigrationModal').style.display = 'none';
+            document.getElementById('migrationForm').reset();
+            document.getElementById('migrationError').style.display = 'none';
+        }
+
+        document.getElementById('migrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('migrationUsername').value.trim();
+            const password = document.getElementById('migrationPassword').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const errorDiv = document.getElementById('migrationError');
+            const errorText = document.getElementById('migrationErrorText');
+
+            if (!username || !password) {
+                errorText.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
             }
-            if (event.target.id === 'reprocessModal') {
-                closeReprocessModal();
-            }
-            if (event.target.id === 'masterPasswordModal') {
-                closeMasterPasswordModal();
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> Migrating...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/migrate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    submitBtn.innerHTML = '✓ Success! Redirecting...';
+                    submitBtn.style.background = '#4caf50';
+
+                    showToast('Account upgraded successfully! Please log in with your new credentials.', 'success');
+
+                    setTimeout(async () => {
+                        try {
+                            const logoutResponse = await fetch('/admin/logout', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            const logoutData = await logoutResponse.json();
+                            if (logoutData.success && logoutData.redirect) {
+                                window.location.href = logoutData.redirect;
+                            } else {
+                                window.location.href = '/admin/login';
+                            }
+                        } catch (error) {
+                            console.error('Logout error:', error);
+                            window.location.href = '/admin/login';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Migration failed');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                errorText.textContent = error.message || 'Failed to migrate account. Please try again.';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '✓ Upgrade Account';
             }
         });
+
+        <% if (userInfo && userInfo.isOldUser) { %>
+        updateMigrationCountdown();
+        setInterval(updateMigrationCountdown, 60000);
+
+        const dismissed = localStorage.getItem('migrationAlertDismissed');
+        if (dismissed) {
+            const dismissTime = parseInt(dismissed);
+            const hoursSinceDismiss = (Date.now() - dismissTime) / (1000 * 60 * 60);
+            if (hoursSinceDismiss < 24) {
+                const alert = document.getElementById('migrationAlert');
+                if (alert) alert.style.display = 'none';
+            } else {
+                localStorage.removeItem('migrationAlertDismissed');
+            }
+        }
+        <% } %>
     </script>
+    </div>
 </body>
 </html>

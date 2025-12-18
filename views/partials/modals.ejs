@@ -1,0 +1,295 @@
+<!-- EPISODES MODAL -->
+<div id="episodesModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h2 id="episodesModalTitle" class="text-xl font-bold text-slate-900">Episodes</h2>
+                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mt-0.5">Complete Translation List</p>
+            </div>
+            <button onclick="closeEpisodesModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="episodesModalBody" class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-6">
+            <span id="episodesModalCount" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">0 Episodes in total</span>
+            <button onclick="closeEpisodesModal()" class="text-xs font-bold text-indigo-600 uppercase tracking-widest">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADD SUBTITLE MODAL -->
+<div id="addSubtitleModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div class="flex items-center gap-3 flex-1">
+                <button id="addSubtitleModalBackBtn" onclick="backToSearch()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500" style="display: none;">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <div class="flex-1">
+                    <h2 id="addSubtitleModalTitle" class="text-xl font-bold text-slate-900 tracking-tight">Add Subtitle</h2>
+                    <p id="addSubtitleModalSubtitle" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Translation Configuration</p>
+                </div>
+            </div>
+            <button onclick="closeAddSubtitleModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-8">
+            <!-- STEP 1: SEARCH -->
+            <div id="searchContainer" style="display: none;">
+                <input type="text" style="display:none" autocomplete="off">
+                <input type="password" style="display:none" autocomplete="new-password">
+                <div class="relative group mb-6">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors w-5 h-5"></i>
+                    <input type="text" id="searchModalInput" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-6 text-base outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all" placeholder="Search for series or movies..." onkeyup="handleSearchInput()" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')">
+                </div>
+                <div id="searchLoadingState" class="text-center py-8" style="display: none;">
+                    <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p class="text-sm text-slate-400 mt-3 font-medium">Searching...</p>
+                </div>
+                <div id="searchResultsGrid" class="grid grid-cols-2 gap-4 max-h-[350px] overflow-y-auto custom-scrollbar"></div>
+            </div>
+
+            <!-- STEP 2: EPISODES SELECTION -->
+            <div id="episodesSelectionContainer" style="display: none;">
+                <div id="episodesLoadingState" class="text-center py-8" style="display: none;">
+                    <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p class="text-sm text-slate-400 mt-3 font-medium">Loading episodes...</p>
+                </div>
+                <div id="episodesGrid" class="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6"></div>
+                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all disabled:opacity-30 shadow-lg" onclick="confirmSelection()" disabled>Confirm Selection</button>
+            </div>
+
+            <!-- STEP 3: MODE SELECTION -->
+            <div id="modeSelectionContainer" style="display: none;">
+                <div class="flex items-center gap-4 mb-8">
+                    <button onclick="backToEpisodesFromMode()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <h3 class="font-bold text-slate-900">Choose Translation Mode</h3>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="mode-card p-6 rounded-3xl cursor-pointer text-center group" onclick="selectAutomaticMode()">
+                        <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">🤖</div>
+                        <h4 class="font-bold text-slate-900 mb-2">Automatic Mode</h4>
+                        <p class="text-[11px] text-slate-400 font-medium">Use best available subtitles from OpenSubtitles automatically</p>
+                    </div>
+                    <div class="mode-card p-6 rounded-3xl cursor-pointer text-center group" onclick="selectCustomMode()">
+                        <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">⚙️</div>
+                        <h4 class="font-bold text-slate-900 mb-2">Custom Mode</h4>
+                        <p class="text-[11px] text-slate-400 font-medium">Select specific subtitles or upload your own .srt files</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: SUBTITLE CUSTOMIZATION -->
+            <div id="subtitleCustomizationContainer" style="display: none;">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="backToModeSelection()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <h3 class="font-bold text-slate-900">Customize Subtitles</h3>
+                </div>
+                <div id="subtitleCustomizationContent" class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6"></div>
+                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all disabled:opacity-30 shadow-lg shadow-indigo-100" onclick="proceedToTranslationOptions()" disabled>Continue to Translation Options</button>
+            </div>
+
+            <!-- STEP 5: TRANSLATION OPTIONS -->
+            <div id="translationOptionsContainer" style="display: none;">
+                <div class="flex items-center gap-4 mb-8">
+                    <button onclick="backToEpisodes()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <h3 class="font-bold text-slate-900">Translation Options</h3>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label for="downloadLanguage" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Target Language</label>
+                        <select id="downloadLanguage" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label for="downloadProvider" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Provider</label>
+                            <select id="downloadProvider" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"></select>
+                        </div>
+                        <div class="space-y-1.5" id="downloadModelGroup">
+                            <label for="downloadModel" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model Name</label>
+                            <select id="downloadModel" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"></select>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5" id="downloadApiKeyGroup">
+                        <label for="downloadApiKey" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">API Key</label>
+                        <input type="password" id="downloadApiKey" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="Enter your API key">
+                    </div>
+                    <div class="space-y-1.5" id="downloadBaseUrlGroup">
+                        <label for="downloadBaseUrl" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Base URL</label>
+                        <input type="text" id="downloadBaseUrl" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g., https://api.openai.com/v1">
+                    </div>
+                </div>
+
+                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all shadow-lg mt-8 active:scale-95" onclick="startTranslation()">Start Translation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REPROCESS MODAL -->
+<div id="reprocessModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 tracking-tight">Reprocess Translation</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Provide Credentials</p>
+            </div>
+            <button onclick="closeReprocessModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-8 space-y-4">
+            <div class="space-y-1.5">
+                <label for="modalLanguage" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Target Language</label>
+                <select id="modalLanguage" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    <!-- Languages will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="modalProvider" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Provider</label>
+                <select id="modalProvider" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20">
+                </select>
+            </div>
+
+            <div class="space-y-1.5" id="modalApiKeyGroup">
+                <label for="modalApiKey" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">API Key</label>
+                <input type="text" id="modalApiKey" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="Enter your API key">
+            </div>
+
+            <div class="space-y-1.5" id="modalModelGroup">
+                <label for="modalModel" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model</label>
+                <select id="modalModel" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"></select>
+            </div>
+
+            <div class="space-y-1.5 hidden" id="modalBaseUrlGroup">
+                <label for="modalBaseUrl" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">API Base URL</label>
+                <input type="text" id="modalBaseUrl" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="https://api.example.com/v1">
+            </div>
+
+            <div class="space-y-1.5 hidden" id="modalModelNameGroup">
+                <label for="modalModelName" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Model Name</label>
+                <input type="text" id="modalModelName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="model-name">
+            </div>
+
+            <div class="flex gap-3 mt-8">
+                <button class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition-all" onclick="closeReprocessModal()">Cancel</button>
+                <button class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg" onclick="submitReprocess()">Reprocess</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MASTER PASSWORD MODAL -->
+<div id="masterPasswordModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>🔐</span>
+                    <span>Enter Master Password</span>
+                </h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Decrypt Saved Credential</p>
+            </div>
+            <button onclick="closeMasterPasswordModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-8">
+            <div class="space-y-1.5 mb-4">
+                <label for="masterPasswordInput" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Master Password</label>
+                <input type="password" id="masterPasswordInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="Enter master password" onkeypress="if(event.key === 'Enter') submitMasterPassword()">
+            </div>
+
+            <div id="masterPasswordError" class="text-red-500 text-xs font-medium px-1 mb-4 hidden"></div>
+
+            <div class="flex gap-3">
+                <button class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition-all" onclick="closeMasterPasswordModal()">Cancel</button>
+                <button class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg" onclick="submitMasterPassword()">Decrypt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ACCOUNT MIGRATION MODAL -->
+<div id="accountMigrationModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-100 bg-gradient-to-br from-indigo-500 to-purple-600">
+            <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-3 mb-2">
+                <span>🔐</span>
+                <span>Upgrade Your Account</span>
+            </h2>
+            <p class="text-white/90 text-sm">Create a username to secure your account and continue using the service</p>
+        </div>
+
+        <div class="p-8">
+            <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg mb-6">
+                <p class="text-sm text-amber-900 leading-relaxed">
+                    <strong class="font-bold">⚠️ Important:</strong> After migration, all your translations will be transferred to the new account. You'll be logged out automatically and must log in with your new credentials.
+                </p>
+            </div>
+
+            <form id="migrationForm" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label for="migrationUsername" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Username</label>
+                    <input type="text" id="migrationUsername" name="username" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="Choose a unique username">
+                    <small class="block text-xs text-slate-500 pl-1 mt-1">This will be your login username</small>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="migrationPassword" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Password</label>
+                    <input type="password" id="migrationPassword" name="password" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="Your current password">
+                    <small class="block text-xs text-slate-500 pl-1 mt-1">Use your existing password</small>
+                </div>
+
+                <div class="flex gap-3 mt-8">
+                    <button type="button" onclick="closeMigrationModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg">
+                        ✓ Upgrade Account
+                    </button>
+                </div>
+            </form>
+
+            <div id="migrationError" class="hidden bg-red-50 border-l-4 border-red-400 p-4 rounded-lg mt-6">
+                <p id="migrationErrorText" class="text-sm text-red-900"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SUBTITLE PREVIEW MODAL -->
+<div id="subtitlePreviewModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 tracking-tight">Subtitle Preview</h3>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Preview Content</p>
+            </div>
+            <button onclick="closeSubtitlePreview()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-8 overflow-y-auto custom-scrollbar flex-1">
+            <div id="subtitlePreviewLoading" class="text-center py-8 hidden">
+                <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p class="text-sm text-slate-400 mt-3 font-medium">Loading preview...</p>
+            </div>
+            <div id="subtitlePreviewText" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-mono"></div>
+        </div>
+    </div>
+</div>
