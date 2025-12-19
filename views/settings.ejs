@@ -3,380 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Auto Subtitle Translate</title>
+    <title>Settings - Stremio Translate Subtitle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/public/translation-config.js?v=<%= Date.now() %>"></script>
+
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f7fa;
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
         }
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
         }
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
         }
-        h1 {
-            color: #1a1a1a;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .header-actions {
-            display: flex;
-            gap: 15px;
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .btn-secondary {
-            background: #e9ecef;
-            color: #495057;
-        }
-        .btn-secondary:hover {
-            background: #dee2e6;
-        }
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        .settings-layout {
-            display: flex;
-            gap: 20px;
-        }
-        .settings-sidebar {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            min-width: 200px;
-        }
-        .settings-tab {
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .settings-tab:hover {
-            background: #f8f9fa;
-        }
-        .settings-tab.active {
-            background: #007bff;
-            color: white;
-        }
-        .settings-content {
-            flex: 1;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .tab-pane {
-            display: none;
-        }
-        .tab-pane.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
-        }
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-        .credentials-list {
-            margin-top: 30px;
-        }
-        .credential-item {
-            padding: 15px;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .credential-info {
-            flex: 1;
-        }
-        .credential-name {
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 4px;
-        }
-        .credential-provider {
-            font-size: 13px;
-            color: #6c757d;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.show {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 400px;
-            width: 90%;
-        }
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #1a1a1a;
-        }
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-        h2 {
-            font-size: 22px;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-        }
-        .info-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 30px;
-            color: white;
-        }
-        .info-box h3 {
-            font-size: 18px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-        .info-box p {
-            font-size: 14px;
-            line-height: 1.6;
-            opacity: 0.95;
-        }
-        .info-box ul {
-            margin-top: 12px;
-            padding-left: 20px;
-            font-size: 14px;
-            line-height: 1.8;
-        }
-        .info-box ul li {
-            margin-bottom: 6px;
-        }
-        .form-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 30px;
-        }
-        .form-card h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-        }
-        .credential-item {
-            background: white;
-            padding: 20px;
-            border: 2px solid #e9ecef;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
             border-radius: 10px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s;
         }
-        .credential-item:hover {
-            border-color: #007bff;
-            box-shadow: 0 4px 12px rgba(0,123,255,0.1);
-        }
-        .credential-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 20px;
-            margin-right: 16px;
-        }
-        .credential-details {
-            display: flex;
-            align-items: center;
-            flex: 1;
-        }
-        .btn-sm {
-            padding: 6px 14px;
-            font-size: 13px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6c757d;
-        }
-        .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.3;
+
+        .tab-active {
+            background-color: #6366f1 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Settings</h1>
-            <div class="header-actions">
-                <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
-                <button onclick="logout()" class="btn btn-secondary">Logout</button>
+<body class="text-slate-900 antialiased flex flex-col min-h-screen">
+
+    <%- include('partials/settings/header') %>
+
+    <main class="max-w-7xl mx-auto px-6 py-10 w-full flex-1">
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <%- include('partials/settings/sidebar') %>
+
+            <div class="flex-1">
+                <%- include('partials/settings/credentials') %>
             </div>
+
         </div>
+    </main>
 
-        <div class="settings-layout">
-            <div class="settings-sidebar">
-                <div class="settings-tab active" onclick="switchTab('credentials')">Credentials</div>
-            </div>
+    <%- include('partials/settings/master-password-modal') %>
 
-            <div class="settings-content">
-                <div id="credentials-tab" class="tab-pane active">
-                    <h2>API Credentials</h2>
-
-                    <div class="info-box">
-                        <h3>🔐 Client-Side Encryption</h3>
-                        <p>Your credentials are secured with military-grade encryption before being stored in your browser:</p>
-                        <ul>
-                            <li><strong>AES-256-GCM</strong> encryption (same standard used by governments)</li>
-                            <li><strong>PBKDF2</strong> with 100,000 iterations to derive encryption key from your master password</li>
-                            <li><strong>Random salt & IV</strong> generated for each credential</li>
-                            <li><strong>Zero server storage</strong> - credentials never leave your browser</li>
-                            <li><strong>Master password</strong> is never stored anywhere</li>
-                        </ul>
-                    </div>
-
-                    <div class="form-card">
-                        <h3>Add New Credential</h3>
-                        <form id="credential-form" onsubmit="saveCredential(event)">
-                            <div class="form-group">
-                                <label>Name (Identifier)</label>
-                                <input type="text" id="cred-name" placeholder="e.g., My OpenAI Account" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Provider</label>
-                                <select id="cred-provider" required onchange="updateProviderFields()">
-                                    <option value="">Select Provider</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group" id="apikey-group" style="display: none;">
-                                <label>API Key</label>
-                                <input type="password" id="cred-apikey" placeholder="Enter your API key">
-                            </div>
-
-                            <div class="form-group" id="baseurl-group" style="display: none;">
-                                <label>Base URL</label>
-                                <input type="text" id="cred-baseurl" placeholder="https://api.example.com/v1">
-                            </div>
-
-                            <div class="form-group" id="model-group" style="display: none;">
-                                <label>Model Name</label>
-                                <select id="cred-model">
-                                    <option value="">Select or enter custom model</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary">💾 Save Credential</button>
-                        </form>
-                    </div>
-
-                    <div class="credentials-list">
-                        <h2>Saved Credentials</h2>
-                        <div id="credentials-container"></div>
-                    </div>
-                </div>
-            </div>
+    <footer class="mt-auto py-10 border-t border-slate-200 bg-white shrink-0">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400">
+            <span class="text-[10px] font-bold uppercase tracking-[0.2em]">Secure Settings - Stremio Translate Subtitle</span>
+            <a href="https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn" target="_blank" class="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-xs font-bold uppercase tracking-widest">
+                <i data-lucide="github" class="w-5 h-5"></i> GitHub
+            </a>
         </div>
-    </div>
-
-    <div id="master-password-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">Enter Master Password</div>
-            <p style="color: #6c757d; margin-bottom: 20px; font-size: 14px;">
-                This password will be used to encrypt your credentials. Choose a strong password and remember it.
-            </p>
-            <div class="form-group">
-                <label>Master Password</label>
-                <input type="password" id="master-password-input" placeholder="Enter master password">
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeMasterPasswordModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmMasterPassword()">Confirm</button>
-            </div>
-        </div>
-    </div>
+    </footer>
 
     <script>
+        lucide.createIcons();
+
         let pendingCredential = null;
 
         function initializeProviders() {
@@ -394,18 +81,17 @@
         function updateProviderFields() {
             const provider = document.getElementById('cred-provider').value;
             if (!provider) {
-                document.getElementById('apikey-group').style.display = 'none';
-                document.getElementById('baseurl-group').style.display = 'none';
-                document.getElementById('model-group').style.display = 'none';
+                document.getElementById('apikey-group').classList.add('hidden');
+                document.getElementById('baseurl-group').classList.add('hidden');
+                document.getElementById('model-group').classList.add('hidden');
                 return;
             }
 
             const config = PROVIDER_CONFIGS[provider];
-            console.log('Provider:', provider, 'Config:', config);
 
-            document.getElementById('apikey-group').style.display = config.requiresApiKey ? 'block' : 'none';
-            document.getElementById('baseurl-group').style.display = config.requiresBaseUrl ? 'block' : 'none';
-            document.getElementById('model-group').style.display = config.requiresModel ? 'block' : 'none';
+            document.getElementById('apikey-group').classList.toggle('hidden', !config.requiresApiKey);
+            document.getElementById('baseurl-group').classList.toggle('hidden', !config.requiresBaseUrl);
+            document.getElementById('model-group').classList.toggle('hidden', !config.requiresModel);
 
             document.getElementById('cred-apikey').required = config.requiresApiKey;
             document.getElementById('cred-baseurl').required = false;
@@ -432,11 +118,16 @@
         }
 
         function switchTab(tabName) {
-            document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-slate-500');
+            });
 
-            event.target.classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
+            const activeTab = document.getElementById('tab-' + tabName);
+            if (activeTab) {
+                activeTab.classList.add('tab-active');
+                activeTab.classList.remove('text-slate-500');
+            }
         }
 
         function logout() {
@@ -535,13 +226,15 @@
                 model: model
             };
 
-            document.getElementById('master-password-modal').classList.add('show');
+            document.getElementById('master-password-modal').classList.remove('hidden');
+            document.getElementById('master-password-modal').classList.add('flex');
             document.getElementById('master-password-input').value = '';
             document.getElementById('master-password-input').focus();
         }
 
         function closeMasterPasswordModal() {
-            document.getElementById('master-password-modal').classList.remove('show');
+            document.getElementById('master-password-modal').classList.remove('flex');
+            document.getElementById('master-password-modal').classList.add('hidden');
             pendingCredential = null;
         }
 
@@ -576,6 +269,7 @@
 
                 closeMasterPasswordModal();
                 document.getElementById('credential-form').reset();
+                updateProviderFields();
                 loadCredentials();
 
                 alert('Credential saved successfully!');
@@ -588,33 +282,42 @@
         function loadCredentials() {
             const credentials = JSON.parse(localStorage.getItem('user_credentials') || '[]');
             const container = document.getElementById('credentials-container');
+            const badge = document.getElementById('cred-count-badge');
+
+            badge.innerText = credentials.length + ' Items';
 
             if (credentials.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🔑</div>
-                        <h3>No credentials saved yet</h3>
-                        <p>Add your first API credential using the form above</p>
+                    <div class="col-span-full py-12 text-center text-slate-300 border-2 border-dashed border-slate-100 rounded-[32px]">
+                        <i data-lucide="key" class="w-12 h-12 mx-auto mb-3 opacity-20"></i>
+                        <p class="text-sm font-bold uppercase tracking-widest">No credentials saved yet</p>
+                        <p class="text-xs text-slate-400 mt-1">Add your first API credential using the form above</p>
                     </div>
                 `;
+                lucide.createIcons();
                 return;
             }
 
             container.innerHTML = credentials.map((cred, index) => {
-                const initials = cred.name.substring(0, 2).toUpperCase();
+                const initials = cred.provider.substring(0, 2).toUpperCase();
                 return `
-                    <div class="credential-item">
-                        <div class="credential-details">
-                            <div class="credential-icon">${initials}</div>
-                            <div class="credential-info">
-                                <div class="credential-name">${cred.name}</div>
-                                <div class="credential-provider">${cred.provider}</div>
+                    <div class="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100 flex items-center justify-between group transition-all hover:shadow-md hover:border-slate-200">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-lg">
+                                ${initials}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-800">${cred.name}</h4>
+                                <span class="text-[10px] font-black text-indigo-500 uppercase tracking-tighter">${cred.provider}</span>
                             </div>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="deleteCredential(${index})">🗑 Delete</button>
+                        <button onclick="deleteCredential(${index})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Delete">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 `;
             }).join('');
+            lucide.createIcons();
         }
 
         function deleteCredential(index) {

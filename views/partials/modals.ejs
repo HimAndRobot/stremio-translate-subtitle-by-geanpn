@@ -10,7 +10,7 @@
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
-        <div id="episodesModalBody" class="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+        <div id="episodesModalBody" class="p-6 max-h-[60vh] overflow-y-auto overscroll-contain custom-scrollbar space-y-2">
         </div>
         <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-6">
             <span id="episodesModalCount" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">0 Episodes in total</span>
@@ -21,7 +21,7 @@
 
 <!-- ADD SUBTITLE MODAL -->
 <div id="addSubtitleModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
-    <div class="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden">
+    <div class="bg-white w-full max-w-6xl rounded-[32px] shadow-2xl overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div class="flex items-center gap-3 flex-1">
                 <button id="addSubtitleModalBackBtn" onclick="backToSearch()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500" style="display: none;">
@@ -50,7 +50,14 @@
                     <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
                     <p class="text-sm text-slate-400 mt-3 font-medium">Searching...</p>
                 </div>
-                <div id="searchResultsGrid" class="grid grid-cols-2 gap-4 max-h-[350px] overflow-y-auto custom-scrollbar"></div>
+                <div id="searchEmptyState" class="text-center py-16">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-full mb-4">
+                        <i data-lucide="search" class="w-8 h-8 text-indigo-400"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Search for Content</h3>
+                    <p class="text-sm text-slate-500 max-w-md mx-auto">Type the name of a series or movie in the search box above to find and add subtitles</p>
+                </div>
+                <div id="searchResultsGrid" class="grid grid-cols-3 gap-4 max-h-[500px] overflow-y-auto overscroll-contain custom-scrollbar"></div>
             </div>
 
             <!-- STEP 2: EPISODES SELECTION -->
@@ -59,18 +66,12 @@
                     <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
                     <p class="text-sm text-slate-400 mt-3 font-medium">Loading episodes...</p>
                 </div>
-                <div id="episodesGrid" class="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6"></div>
+                <div id="episodesGrid" class="grid grid-cols-1 gap-2 max-h-[450px] overflow-y-auto overscroll-contain custom-scrollbar pr-2 mb-6"></div>
                 <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all disabled:opacity-30 shadow-lg" onclick="confirmSelection()" disabled>Confirm Selection</button>
             </div>
 
             <!-- STEP 3: MODE SELECTION -->
             <div id="modeSelectionContainer" style="display: none;">
-                <div class="flex items-center gap-4 mb-8">
-                    <button onclick="backToEpisodesFromMode()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </button>
-                    <h3 class="font-bold text-slate-900">Choose Translation Mode</h3>
-                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="mode-card p-6 rounded-3xl cursor-pointer text-center group" onclick="selectAutomaticMode()">
                         <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">🤖</div>
@@ -87,25 +88,12 @@
 
             <!-- STEP 4: SUBTITLE CUSTOMIZATION -->
             <div id="subtitleCustomizationContainer" style="display: none;">
-                <div class="flex items-center gap-4 mb-6">
-                    <button onclick="backToModeSelection()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </button>
-                    <h3 class="font-bold text-slate-900">Customize Subtitles</h3>
-                </div>
-                <div id="subtitleCustomizationContent" class="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6"></div>
+                <div id="subtitleCustomizationContent" class="space-y-3 max-h-[450px] overflow-y-auto overscroll-contain custom-scrollbar pr-2 mb-6"></div>
                 <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all disabled:opacity-30 shadow-lg shadow-indigo-100" onclick="proceedToTranslationOptions()" disabled>Continue to Translation Options</button>
             </div>
 
             <!-- STEP 5: TRANSLATION OPTIONS -->
             <div id="translationOptionsContainer" style="display: none;">
-                <div class="flex items-center gap-4 mb-8">
-                    <button onclick="backToEpisodes()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </button>
-                    <h3 class="font-bold text-slate-900">Translation Options</h3>
-                </div>
-
                 <div class="space-y-4">
                     <div class="space-y-1.5">
                         <label for="downloadLanguage" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Target Language</label>
@@ -138,7 +126,7 @@
 </div>
 
 <!-- REPROCESS MODAL -->
-<div id="reprocessModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+<div id="reprocessModal" class="fixed inset-0 z-[150] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
     <div class="bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div>
@@ -273,7 +261,7 @@
 </div>
 
 <!-- SUBTITLE PREVIEW MODAL -->
-<div id="subtitlePreviewModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+<div id="subtitlePreviewModal" class="fixed inset-0 z-[150] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
     <div class="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div>
@@ -284,7 +272,7 @@
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
-        <div class="p-8 overflow-y-auto custom-scrollbar flex-1">
+        <div class="p-8 overflow-y-auto overscroll-contain custom-scrollbar flex-1">
             <div id="subtitlePreviewLoading" class="text-center py-8 hidden">
                 <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
                 <p class="text-sm text-slate-400 mt-3 font-medium">Loading preview...</p>

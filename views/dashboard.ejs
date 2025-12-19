@@ -421,26 +421,21 @@
     <!-- CABEÇALHO -->
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shrink-0">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
-                    </div>
-                    <span class="text-lg font-bold tracking-tight text-slate-800">Series.Pro</span>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                 </div>
-
-                <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
-                    <a href="#" class="text-slate-900 font-bold border-b-2 border-slate-900 h-16 flex items-center">Dashboard</a>
-                    <a href="#" class="hover:text-slate-900 transition-colors h-16 flex items-center">Histórico</a>
-                    <a href="/admin/settings" class="hover:text-slate-900 transition-colors h-16 flex items-center">Configurações</a>
-                </div>
+                <span class="text-lg font-bold tracking-tight text-slate-800">Series.Pro</span>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <div class="hidden sm:flex flex-col text-right">
                     <span class="text-xs font-bold text-slate-700 leading-none"><%= userInfo && userInfo.username ? userInfo.username : 'User' %></span>
                 </div>
-                <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                <a href="/admin/settings" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Settings">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </a>
+                <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Logout">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -762,28 +757,23 @@
         let currentSelectedSeries = null;
         let currentCredentialContext = null;
         let pendingDecryptedCredential = null;
+        let isDownloadMoreMode = false;
 
         // Helper functions for Tailwind modals
         function openModal(modalId) {
             const modal = document.getElementById(modalId);
-            console.log('Opening modal:', modalId, modal);
             if (modal) {
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
                 setTimeout(() => lucide.createIcons(), 50);
-            } else {
-                console.error('Modal not found:', modalId);
             }
         }
 
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
-            console.log('Closing modal:', modalId, modal);
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-            } else {
-                console.error('Modal not found:', modalId);
             }
         }
 
@@ -1059,6 +1049,7 @@
             document.getElementById('searchModalInput').value = '';
             document.getElementById('searchResultsGrid').innerHTML = '';
             document.getElementById('episodesGrid').innerHTML = '';
+            document.getElementById('searchEmptyState').style.display = 'block';
 
             document.getElementById('addSubtitleModalTitle').textContent = 'Add Subtitle';
             document.getElementById('addSubtitleModalSubtitle').textContent = 'Translation Configuration';
@@ -1068,10 +1059,12 @@
             currentSelectedSeries = null;
             customSubtitles = {};
             isAutomaticMode = true;
+            isDownloadMoreMode = false;
         }
 
         function openAddSubtitleModal() {
             resetAddSubtitleModal();
+            isDownloadMoreMode = false;
             openModal('addSubtitleModal');
             document.getElementById('searchContainer').style.display = 'block';
         }
@@ -1082,6 +1075,7 @@
 
         async function openDownloadMoreModal(imdbId, seriesName) {
             resetAddSubtitleModal();
+            isDownloadMoreMode = true;
 
             currentSelectedSeries = {
                 imdbId: imdbId,
@@ -1113,19 +1107,36 @@
                 loadingState.style.display = 'none';
 
                 if (data.episodes && data.episodes.length > 0) {
-                    let html = '';
-                    data.episodes.forEach((episode, index) => {
+                    // Find existing episodes for this series
+                    const existingSeries = seriesData.find(s => s.series_imdbid === imdbId);
+                    const existingEpisodes = existingSeries ? existingSeries.episodes : [];
+
+                    // Filter out episodes that already exist
+                    const availableEpisodes = data.episodes.filter(episode => {
                         const season = episode.season || 0;
                         const episodeNum = episode.episode || 0;
-                        const title = episode.title || 'Episode ' + episodeNum;
-                        const checkboxId = 'ep-' + index;
-
-                        html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
-                        html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
-                        html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
-                        html += '</div>';
+                        return !existingEpisodes.some(existing =>
+                            existing.series_seasonno === season && existing.series_episodeno === episodeNum
+                        );
                     });
-                    episodesGrid.innerHTML = html;
+
+                    if (availableEpisodes.length > 0) {
+                        let html = '';
+                        availableEpisodes.forEach((episode, index) => {
+                            const season = episode.season || 0;
+                            const episodeNum = episode.episode || 0;
+                            const title = episode.title || 'Episode ' + episodeNum;
+                            const checkboxId = 'ep-' + index;
+
+                            html += '<div class="episode-checkbox-item" onclick="toggleEpisodeCheckbox(\'' + checkboxId + '\')">';
+                            html += '<input type="checkbox" id="' + checkboxId + '" data-season="' + season + '" data-episode="' + episodeNum + '" onchange="updateSelectedEpisodes()">';
+                            html += '<label class="episode-checkbox-label" for="' + checkboxId + '">S' + String(season).padStart(2, '0') + 'E' + String(episodeNum).padStart(2, '0') + ' - ' + title + '</label>';
+                            html += '</div>';
+                        });
+                        episodesGrid.innerHTML = html;
+                    } else {
+                        episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">All episodes already translated</p>';
+                    }
                 } else {
                     episodesGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No episodes found</p>';
                 }
@@ -1138,13 +1149,18 @@
 
         function handleSearchInput() {
             const query = document.getElementById('searchModalInput').value.trim();
+            const emptyState = document.getElementById('searchEmptyState');
+            const resultsGrid = document.getElementById('searchResultsGrid');
 
             clearTimeout(searchTimeout);
 
             if (query.length < 2) {
-                document.getElementById('searchResultsGrid').innerHTML = '';
+                resultsGrid.innerHTML = '';
+                emptyState.style.display = 'block';
                 return;
             }
+
+            emptyState.style.display = 'none';
 
             searchTimeout = setTimeout(() => {
                 searchContent(query);
@@ -1154,7 +1170,9 @@
         async function searchContent(query) {
             const loadingState = document.getElementById('searchLoadingState');
             const resultsGrid = document.getElementById('searchResultsGrid');
+            const emptyState = document.getElementById('searchEmptyState');
 
+            emptyState.style.display = 'none';
             loadingState.style.display = 'block';
             resultsGrid.innerHTML = '';
 
@@ -1186,11 +1204,29 @@
                     });
                     resultsGrid.innerHTML = html;
                 } else {
-                    resultsGrid.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No results found</p>';
+                    resultsGrid.innerHTML = `
+                        <div class="col-span-3 text-center py-16">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-50 rounded-full mb-4">
+                                <i data-lucide="search-x" class="w-8 h-8 text-slate-400"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-900 mb-2">No Results Found</h3>
+                            <p class="text-sm text-slate-500">Try searching with a different title or keyword</p>
+                        </div>
+                    `;
+                    setTimeout(() => lucide.createIcons(), 50);
                 }
             } catch (error) {
                 loadingState.style.display = 'none';
-                resultsGrid.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading results</p>';
+                resultsGrid.innerHTML = `
+                    <div class="col-span-3 text-center py-16">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-4">
+                            <i data-lucide="alert-circle" class="w-8 h-8 text-red-400"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2">Error Loading Results</h3>
+                        <p class="text-sm text-slate-500">Please try again later</p>
+                    </div>
+                `;
+                setTimeout(() => lucide.createIcons(), 50);
                 console.error('Search error:', error);
             }
         }
@@ -1279,8 +1315,23 @@
         }
 
         function backToSearch() {
+            if (isDownloadMoreMode) {
+                closeAddSubtitleModal();
+                isDownloadMoreMode = false;
+                return;
+            }
+
             document.getElementById('searchContainer').style.display = 'block';
             document.getElementById('episodesSelectionContainer').style.display = 'none';
+            document.getElementById('addSubtitleModalTitle').textContent = 'Add Subtitle';
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'Translation Configuration';
+            document.getElementById('addSubtitleModalBackBtn').style.display = 'none';
+
+            const searchInput = document.getElementById('searchModalInput');
+            if (!searchInput.value.trim()) {
+                document.getElementById('searchEmptyState').style.display = 'block';
+            }
+
             selectedEpisodes = [];
             currentSelectedSeries = null;
         }
@@ -1301,6 +1352,8 @@
             document.getElementById('searchContainer').style.display = 'none';
             document.getElementById('episodesSelectionContainer').style.display = 'none';
             document.getElementById('modeSelectionContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalBackBtn').onclick = backToEpisodesFromMode;
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'CHOOSE TRANSLATION MODE';
         }
 
         function backToEpisodesFromMode() {
@@ -1309,6 +1362,10 @@
                 backToSearch();
             } else {
                 document.getElementById('episodesSelectionContainer').style.display = 'block';
+                document.getElementById('addSubtitleModalBackBtn').onclick = backToSearch;
+                const type = currentSelectedSeries.type;
+                const year = currentSelectedSeries.year;
+                document.getElementById('addSubtitleModalSubtitle').textContent = ((year ? year + ' • ' : '') + type).toUpperCase();
             }
         }
 
@@ -1327,14 +1384,23 @@
             document.getElementById('subtitleCustomizationContainer').style.display = 'none';
             document.getElementById('translationOptionsContainer').style.display = 'none';
             document.getElementById('modeSelectionContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalBackBtn').onclick = backToEpisodesFromMode;
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'CHOOSE TRANSLATION MODE';
         }
 
         async function showSubtitleCustomization() {
             document.getElementById('modeSelectionContainer').style.display = 'none';
             document.getElementById('subtitleCustomizationContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalBackBtn').onclick = backToModeSelection;
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'CUSTOMIZE SUBTITLES';
 
             const content = document.getElementById('subtitleCustomizationContent');
-            content.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Loading subtitle options...</p></div>';
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="inline-block w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p class="text-sm text-slate-400 mt-3 font-medium">Loading subtitle options...</p>
+                </div>
+            `;
 
             const episodes = currentSelectedSeries.type === 'movie'
                 ? [{ season: null, episode: null }]
@@ -1478,6 +1544,8 @@
             document.getElementById('modeSelectionContainer').style.display = 'none';
             document.getElementById('subtitleCustomizationContainer').style.display = 'none';
             document.getElementById('translationOptionsContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalBackBtn').onclick = backToEpisodes;
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'TRANSLATION OPTIONS';
 
             const langSelect = document.getElementById('downloadLanguage');
             langSelect.innerHTML = '';
@@ -1562,6 +1630,8 @@
         function backToEpisodes() {
             document.getElementById('translationOptionsContainer').style.display = 'none';
             document.getElementById('modeSelectionContainer').style.display = 'block';
+            document.getElementById('addSubtitleModalBackBtn').onclick = backToEpisodesFromMode;
+            document.getElementById('addSubtitleModalSubtitle').textContent = 'CHOOSE TRANSLATION MODE';
         }
 
         async function startTranslation() {
@@ -1764,7 +1834,7 @@
             const textDiv = document.getElementById('subtitlePreviewText');
 
             openModal('subtitlePreviewModal');
-            loadingDiv.style.display = 'block';
+            loadingDiv.classList.remove('hidden');
             textDiv.textContent = '';
 
             try {
@@ -1774,10 +1844,10 @@
                 const lines = text.split('\n');
                 const preview = lines.slice(0, 100).join('\n');
 
-                loadingDiv.style.display = 'none';
+                loadingDiv.classList.add('hidden');
                 textDiv.textContent = preview + (lines.length > 100 ? '\n\n... (preview limited to first 100 lines)' : '');
             } catch (error) {
-                loadingDiv.style.display = 'none';
+                loadingDiv.classList.add('hidden');
                 textDiv.textContent = 'Error loading subtitle preview: ' + error.message;
                 console.error('Preview error:', error);
             }
