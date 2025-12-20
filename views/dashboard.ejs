@@ -531,13 +531,16 @@
                                                         <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></div>
                                                         <span class="text-[11px] font-semibold text-slate-700 uppercase"><%= episodeLabel %></span>
                                                     </div>
-                                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                        <% if (episode.batches_total > 0) { %>
-                                                            <%= episode.batches_completed %>/<%= episode.batches_total %>
-                                                        <% } else { %>
-                                                            Processing
-                                                        <% } %>
-                                                    </span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                            <% if (episode.batches_total > 0) { %>
+                                                                <%= episode.batches_completed %>/<%= episode.batches_total %>
+                                                            <% } else { %>
+                                                                Processing
+                                                            <% } %>
+                                                        </span>
+                                                        <button onclick="deleteTranslation(<%= episode.id %>)" class="p-1 text-slate-400 hover:text-red-500" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                                    </div>
                                                 </div>
                                                 <% if (episode.batches_total > 0) { %>
                                                     <div class="w-full bg-slate-200 h-1 rounded-full overflow-hidden">

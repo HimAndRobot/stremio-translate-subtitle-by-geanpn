@@ -639,28 +639,48 @@ app.get("/admin/dashboard", requireAuth, attachUserInfo, async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
     const offset = (page - 1) * limit;
 
-    const translations = await adapter.query(
-      `SELECT id, series_imdbid, series_seasonno, series_episodeno, langcode, status,
-              series_name, poster, retry_attempts, token_usage_total, created_at, type
+    const totalSeriesResult = await adapter.query(
+      `SELECT COUNT(DISTINCT series_imdbid) as total
        FROM translation_queue
-       WHERE password_hash = ?
-       ORDER BY created_at DESC`,
+       WHERE password_hash = ?`,
       [req.session.userPasswordHash]
     );
+    const totalSeries = totalSeriesResult[0].total;
+    const totalPages = Math.max(1, Math.ceil(totalSeries / limit));
 
-    for (const translation of translations) {
-      const batchStats = await adapter.query(
-        `SELECT COUNT(*) as total,
-                COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed,
-                COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0) as failed
-         FROM subtitle_batches
-         WHERE translation_queue_id = ?`,
-        [translation.id]
+    const distinctSeries = await adapter.query(
+      `SELECT series_imdbid,
+              MAX(series_name) as series_name,
+              MAX(poster) as poster,
+              MAX(type) as type,
+              MAX(created_at) as latest_created
+       FROM translation_queue
+       WHERE password_hash = ?
+       GROUP BY series_imdbid
+       ORDER BY latest_created DESC
+       LIMIT ? OFFSET ?`,
+      [req.session.userPasswordHash, limit, offset]
+    );
+
+    const seriesImdbIds = distinctSeries.map(s => s.series_imdbid);
+
+    let translations = [];
+    if (seriesImdbIds.length > 0) {
+      const placeholders = seriesImdbIds.map(() => '?').join(',');
+      translations = await adapter.query(
+        `SELECT tq.id, tq.series_imdbid, tq.series_seasonno, tq.series_episodeno,
+                tq.langcode, tq.status, tq.series_name, tq.poster, tq.retry_attempts,
+                tq.token_usage_total, tq.created_at, tq.type,
+                COUNT(sb.id) as batches_total,
+                COALESCE(SUM(CASE WHEN sb.status = 'completed' THEN 1 ELSE 0 END), 0) as batches_completed,
+                COALESCE(SUM(CASE WHEN sb.status = 'failed' THEN 1 ELSE 0 END), 0) as batches_failed
+         FROM translation_queue tq
+         LEFT JOIN subtitle_batches sb ON sb.translation_queue_id = tq.id
+         WHERE tq.password_hash = ? AND tq.series_imdbid IN (${placeholders})
+         GROUP BY tq.id
+         ORDER BY tq.created_at DESC`,
+        [req.session.userPasswordHash, ...seriesImdbIds]
       );
-
-      translation.batches_total = Number(batchStats[0]?.total) || 0;
-      translation.batches_completed = Number(batchStats[0]?.completed) || 0;
-      translation.batches_failed = Number(batchStats[0]?.failed) || 0;
     }
 
     const groupedSeries = new Map();
@@ -700,10 +720,7 @@ app.get("/admin/dashboard", requireAuth, attachUserInfo, async (req, res) => {
       seriesGroup.languages = uniqueLangs.join(', ');
     }
 
-    const allGroupedSeries = Array.from(groupedSeries.values());
-    const totalSeries = allGroupedSeries.length;
-    const totalPages = Math.max(1, Math.ceil(totalSeries / limit));
-    const paginatedSeries = allGroupedSeries.slice(offset, offset + limit);
+    const paginatedSeries = Array.from(groupedSeries.values());
 
     const corsProxy = process.env.CORS_URL || '';
     const migrationDeadline = new Date('2025-11-17T23:59:59');
