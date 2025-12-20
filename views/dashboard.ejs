@@ -1918,19 +1918,28 @@
             });
         }
 
-        async function logout() {
-            try {
-                const response = await fetch('/admin/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    window.location.href = data.redirect;
-                }
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
+        function logout() {
+            showConfirmation(
+                'Logout',
+                'Are you sure you want to logout from your account?',
+                async () => {
+                    try {
+                        const response = await fetch('/admin/logout', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            window.location.href = data.redirect;
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        showToast('Error logging out', 'error');
+                    }
+                },
+                'indigo',
+                'Yes, Logout'
+            );
         }
 
         async function previewSubtitle(url) {
