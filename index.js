@@ -635,6 +635,10 @@ app.post("/api/migrate-account", requireAuth, async (req, res) => {
 app.get("/admin/dashboard", requireAuth, attachUserInfo, async (req, res) => {
   try {
     const adapter = await connection.getAdapter();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const offset = (page - 1) * limit;
+
     const translations = await adapter.query(
       `SELECT id, series_imdbid, series_seasonno, series_episodeno, langcode, status,
               series_name, poster, retry_attempts, token_usage_total, created_at, type
@@ -696,16 +700,29 @@ app.get("/admin/dashboard", requireAuth, attachUserInfo, async (req, res) => {
       seriesGroup.languages = uniqueLangs.join(', ');
     }
 
+    const allGroupedSeries = Array.from(groupedSeries.values());
+    const totalSeries = allGroupedSeries.length;
+    const totalPages = Math.max(1, Math.ceil(totalSeries / limit));
+    const paginatedSeries = allGroupedSeries.slice(offset, offset + limit);
+
     const corsProxy = process.env.CORS_URL || '';
     const migrationDeadline = new Date('2025-11-17T23:59:59');
 
     res.render('dashboard', {
       translations,
-      groupedSeries: Array.from(groupedSeries.values()),
+      groupedSeries: paginatedSeries,
       corsProxy,
       languages: baseLanguages,
       userInfo: req.userInfo,
-      migrationDeadline: migrationDeadline.toISOString()
+      migrationDeadline: migrationDeadline.toISOString(),
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalSeries: totalSeries,
+        limit: limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
     });
   } catch (error) {
     console.error('Dashboard error:', error);

@@ -710,6 +710,82 @@
             <% }); %>
 
         </div>
+
+        <!-- Pagination Controls -->
+        <% if (pagination.totalPages > 1) { %>
+        <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 bg-white p-6 rounded-3xl card-shadow">
+            <!-- Page Info -->
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-slate-700">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></span>
+                <span class="text-xs text-slate-400">·</span>
+                <span class="text-xs font-medium text-slate-500"><%= pagination.totalSeries %> total series</span>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex items-center gap-3">
+                <!-- First Page -->
+                <% if (pagination.currentPage > 1) { %>
+                <a href="/admin/dashboard?page=1&limit=<%= pagination.limit %>" class="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-200" title="First page">
+                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                </a>
+                <% } else { %>
+                <button disabled class="p-2.5 text-slate-200 rounded-xl border border-slate-100 cursor-not-allowed">
+                    <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                </button>
+                <% } %>
+
+                <!-- Previous Page -->
+                <% if (pagination.hasPrev) { %>
+                <a href="/admin/dashboard?page=<%= pagination.currentPage - 1 %>&limit=<%= pagination.limit %>" class="px-4 py-2.5 text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-200 uppercase tracking-widest">
+                    Previous
+                </a>
+                <% } else { %>
+                <button disabled class="px-4 py-2.5 text-sm font-bold text-slate-200 rounded-xl border border-slate-100 cursor-not-allowed uppercase tracking-widest">
+                    Previous
+                </button>
+                <% } %>
+
+                <!-- Page Numbers -->
+                <div class="flex items-center gap-2">
+                    <%
+                    const startPage = Math.max(1, pagination.currentPage - 2);
+                    const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+                    for (let i = startPage; i <= endPage; i++) {
+                    %>
+                        <% if (i === pagination.currentPage) { %>
+                        <span class="w-10 h-10 flex items-center justify-center bg-indigo-600 text-white rounded-xl font-black text-sm shadow-lg shadow-indigo-100"><%= i %></span>
+                        <% } else { %>
+                        <a href="/admin/dashboard?page=<%= i %>&limit=<%= pagination.limit %>" class="w-10 h-10 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl font-bold text-sm transition-all border border-slate-200"><%= i %></a>
+                        <% } %>
+                    <% } %>
+                </div>
+
+                <!-- Next Page -->
+                <% if (pagination.hasNext) { %>
+                <a href="/admin/dashboard?page=<%= pagination.currentPage + 1 %>&limit=<%= pagination.limit %>" class="px-4 py-2.5 text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-200 uppercase tracking-widest">
+                    Next
+                </a>
+                <% } else { %>
+                <button disabled class="px-4 py-2.5 text-sm font-bold text-slate-200 rounded-xl border border-slate-100 cursor-not-allowed uppercase tracking-widest">
+                    Next
+                </button>
+                <% } %>
+
+                <!-- Last Page -->
+                <% if (pagination.currentPage < pagination.totalPages) { %>
+                <a href="/admin/dashboard?page=<%= pagination.totalPages %>&limit=<%= pagination.limit %>" class="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-200" title="Last page">
+                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                </a>
+                <% } else { %>
+                <button disabled class="p-2.5 text-slate-200 rounded-xl border border-slate-100 cursor-not-allowed">
+                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                </button>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+
         <% } %>
     </main>
 
@@ -722,13 +798,13 @@
             </div>
 
             <div class="flex items-center gap-6">
-                <a href="https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn" target="_blank" class="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-xs font-bold uppercase tracking-widest">
+                <a href="https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors text-xs font-bold uppercase tracking-widest">
                     <i data-lucide="github" class="w-5 h-5"></i>
                     GitHub
                 </a>
-                <a href="#" class="flex items-center gap-2 bg-amber-100 text-amber-700 px-5 py-2.5 rounded-2xl hover:bg-amber-200 transition-all text-xs font-black uppercase tracking-tighter">
+                <a href="https://ko-fi.com/himandrobot" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 bg-amber-100 text-amber-700 px-5 py-2.5 rounded-2xl hover:bg-amber-200 transition-all text-xs font-black uppercase tracking-tighter shadow-sm">
                     <i data-lucide="coffee" class="w-4 h-4 fill-current"></i>
-                    Pagar um café
+                    Buy me a coffee
                 </a>
             </div>
         </div>
