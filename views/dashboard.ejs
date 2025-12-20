@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Series.Pro - Dashboard</title>
+    <title>Dashboard - Stremio Translate Subtitle</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
@@ -425,7 +425,7 @@
                 <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                     <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                 </div>
-                <span class="text-lg font-bold tracking-tight text-slate-800">Series.Pro</span>
+                <span class="text-lg font-bold tracking-tight text-slate-800">Stremio Translate</span>
             </div>
 
             <div class="flex items-center gap-3">
@@ -736,6 +736,7 @@
 
     <!-- ALL MODALS -->
     <%- include('partials/modals') %>
+    <%- include('partials/dashboard/confirmation-modal') %>
 
     <script>
         // Initialize Lucide icons
@@ -758,6 +759,7 @@
         let currentCredentialContext = null;
         let pendingDecryptedCredential = null;
         let isDownloadMoreMode = false;
+        let confirmationCallback = null;
 
         // Helper functions for Tailwind modals
         function openModal(modalId) {
@@ -774,6 +776,33 @@
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+            }
+        }
+
+        function showConfirmation(title, message, onConfirm, iconColor = 'red', confirmText = 'Confirm') {
+            confirmationCallback = onConfirm;
+            document.getElementById('confirmation-modal-title').textContent = title;
+            document.getElementById('confirmation-modal-text').textContent = message;
+            document.getElementById('confirmation-modal-confirm-btn').textContent = confirmText;
+
+            const iconContainer = document.getElementById('confirmation-modal-icon');
+            iconContainer.className = `w-16 h-16 bg-${iconColor}-50 text-${iconColor}-500 rounded-3xl flex items-center justify-center mx-auto mb-6`;
+
+            const confirmBtn = document.getElementById('confirmation-modal-confirm-btn');
+            confirmBtn.className = `w-full py-4 bg-${iconColor}-500 hover:bg-${iconColor}-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-${iconColor}-100 transition-all`;
+
+            openModal('confirmation-modal');
+        }
+
+        function closeConfirmationModal() {
+            closeModal('confirmation-modal');
+            confirmationCallback = null;
+        }
+
+        function confirmAction() {
+            if (confirmationCallback) {
+                confirmationCallback();
+                closeConfirmationModal();
             }
         }
 
@@ -1858,25 +1887,31 @@
         }
 
         async function reprocess(id) {
-            if (!confirm('Reprocess this failed translation?')) return;
+            showConfirmation(
+                'Reprocess Translation',
+                'Do you want to reprocess this failed translation? This will restart the translation process.',
+                async () => {
+                    try {
+                        const response = await fetch('/admin/reprocess', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id })
+                        });
 
-            try {
-                const response = await fetch('/admin/reprocess', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-
-                if (response.ok) {
-                    showToast('Translation queued for reprocessing!', 'success');
-                    location.reload();
-                } else {
-                    const data = await response.json();
-                    showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
-                }
-            } catch (error) {
-                showToast('Connection error. Please try again.', 'error');
-            }
+                        if (response.ok) {
+                            showToast('Translation queued for reprocessing!', 'success');
+                            location.reload();
+                        } else {
+                            const data = await response.json();
+                            showToast('Error: ' + (data.error || 'Failed to reprocess'), 'error');
+                        }
+                    } catch (error) {
+                        showToast('Connection error. Please try again.', 'error');
+                    }
+                },
+                'indigo',
+                'Yes, Reprocess'
+            );
         }
 
         async function downloadSubtitle(id) {
@@ -1927,25 +1962,31 @@
         }
 
         async function deleteTranslation(id) {
-            if (!confirm('Delete this translation? This cannot be undone.')) return;
+            showConfirmation(
+                'Delete Translation',
+                'Are you sure you want to permanently delete this translation? This action cannot be undone.',
+                async () => {
+                    try {
+                        const response = await fetch('/admin/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id })
+                        });
 
-            try {
-                const response = await fetch('/admin/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-
-                if (response.ok) {
-                    showToast('Translation deleted successfully!', 'success');
-                    location.reload();
-                } else {
-                    const data = await response.json();
-                    showToast('Error: ' + (data.error || 'Failed to delete'), 'error');
-                }
-            } catch (error) {
-                showToast('Connection error. Please try again.', 'error');
-            }
+                        if (response.ok) {
+                            showToast('Translation deleted successfully!', 'success');
+                            location.reload();
+                        } else {
+                            const data = await response.json();
+                            showToast('Error: ' + (data.error || 'Failed to delete'), 'error');
+                        }
+                    } catch (error) {
+                        showToast('Connection error. Please try again.', 'error');
+                    }
+                },
+                'red',
+                'Yes, Delete'
+            );
         }
 
         let currentReprocessId = null;

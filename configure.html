@@ -3,304 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Subtitle Translate - Configuration</title>
+    <title>Addon Configuration - Stremio Translate Subtitle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/public/translation-config.js"></script>
+
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
-        .navbar {
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .config-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
         }
-        .navbar-brand {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
+
+        .input-focus {
+            transition: all 0.2s;
         }
-        .navbar-link {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        .navbar-link:hover {
-            background: #f0f0f0;
-        }
-        .main-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 60px);
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 100%;
-            padding: 40px;
-        }
-        h1 {
-            color: #1a1a1a;
-            margin-bottom: 8px;
-            font-size: 24px;
-            font-weight: 600;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        select, input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-        select:focus, input[type="text"]:focus, input[type="password"]:focus {
+        .input-focus:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
             outline: none;
-            border-color: #555;
         }
-        .help-text {
-            color: #666;
-            font-size: 12px;
-            display: block;
-            margin-top: 5px;
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
         }
-        .hidden {
-            display: none !important;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
         }
-        .chatgpt-fields {
-            background: #fafafa;
-            border-left: 2px solid #999;
-            padding: 20px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .chatgpt-fields h3 {
-            margin: 0 0 15px 0;
-            color: #333;
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background: #333;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn:hover {
-            background: #555;
-        }
-        .btn:active {
-            background: #222;
-        }
-        .btn-secondary {
-            background: #667eea;
-            margin-top: 10px;
-        }
-        .btn-secondary:hover {
-            background: #5568d3;
-        }
-        .btn-secondary:active {
-            background: #4557bb;
-        }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .btn-group .btn {
-            flex: 1;
-        }
-        .info {
-            background: #f9f9f9;
-            border-left: 2px solid #ccc;
-            padding: 12px;
-            margin-top: 20px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #666;
-        }
-        .success-message {
-            background: #d4edda;
-            border-left: 2px solid #28a745;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #155724;
-            display: none;
-        }
-        .success-message.show {
-            display: block;
-        }
-        .password-wrapper {
-            position: relative;
-        }
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-            line-height: 1;
-            color: #666;
-            user-select: none;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .password-toggle:hover {
-            color: #333;
-        }
-        .password-toggle svg {
-            width: 20px;
-            height: 20px;
-        }
-        .password-wrapper input {
-            padding-right: 40px;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
         }
     </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="navbar-brand">Auto Subtitle Translate</div>
-        <a href="/admin/login" class="navbar-link">My Translations</a>
+<body class="text-slate-900 antialiased flex flex-col min-h-screen">
+
+    <!-- HEADER -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shrink-0">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                </div>
+                <span class="text-lg font-bold tracking-tight text-slate-800">Stremio Translate</span>
+            </div>
+
+            <a href="/admin/dashboard" class="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-sm transition-colors">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                My Translations
+            </a>
+        </div>
     </nav>
 
-    <div class="main-content">
-        <div class="container">
-        <h1>Auto Subtitle Translate</h1>
-        <p class="subtitle">Configure your subtitle translation preferences</p>
-
-        <form id="configForm">
-            <div class="form-group">
-                <label for="provider">Translation Provider</label>
-                <select id="provider" name="provider" required>
-                </select>
+    <main class="flex-1 flex flex-col items-center justify-center p-6 py-12">
+        <div class="w-full max-w-xl">
+            <!-- Title and Intro -->
+            <div class="text-center mb-10">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight mb-2 uppercase">Addon Configuration</h1>
+                <p class="text-slate-500 font-medium uppercase text-[10px] tracking-[0.2em]">Customize your translation preferences</p>
             </div>
 
-            <div class="form-group">
-                <label for="translateto">Translate To</label>
-                <select id="translateto" name="translateto" required>
-                </select>
-            </div>
+            <form id="configForm" class="config-card bg-white rounded-[32px] overflow-hidden">
+                <div class="p-10 space-y-8">
 
-            <div id="aiFields" class="chatgpt-fields hidden">
-                <h3 id="aiFieldsTitle">AI Configuration</h3>
+                    <!-- Section: Translation -->
+                    <div class="space-y-5">
+                        <div class="flex items-center gap-2 text-slate-400 mb-2">
+                            <i data-lucide="languages" class="w-4 h-4"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Translation</span>
+                        </div>
 
-                <div class="form-group">
-                    <label for="apikey">API Key</label>
-                    <input type="text" id="apikey" name="apikey" placeholder="Enter your API key">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="space-y-1.5">
+                                <label for="provider" class="text-xs font-bold text-slate-700 pl-1">Translation Provider</label>
+                                <select id="provider" name="provider" required
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus">
+                                </select>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label for="translateto" class="text-xs font-bold text-slate-700 pl-1">Translate To</label>
+                                <select id="translateto" name="translateto" required
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: AI (Conditional) -->
+                    <div id="aiFields" class="hidden p-6 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-5">
+                        <div class="flex items-center justify-between">
+                            <h3 id="aiFieldsTitle" class="text-xs font-black text-indigo-600 uppercase tracking-widest">AI Configuration</h3>
+                            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label for="apikey" class="text-xs font-bold text-slate-700 pl-1">API Key</label>
+                            <div class="relative">
+                                <i data-lucide="key" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4"></i>
+                                <input type="password" id="apikey" name="apikey" placeholder="Enter your API key"
+                                    class="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm input-focus">
+                            </div>
+                        </div>
+
+                        <div id="modelSelectGroup" class="space-y-1.5 hidden">
+                            <label for="model_select" class="text-xs font-bold text-slate-700 pl-1">Model</label>
+                            <select id="model_select" class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus"></select>
+                        </div>
+
+                        <div id="baseUrlGroup" class="hidden space-y-1.5">
+                            <label for="base_url" class="text-xs font-bold text-slate-700 pl-1">API Base URL</label>
+                            <input type="text" id="base_url" name="base_url" placeholder="https://api.example.com/v1"
+                                class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm input-focus">
+                        </div>
+
+                        <div id="modelNameGroup" class="hidden space-y-1.5">
+                            <label for="model_name" class="text-xs font-bold text-slate-700 pl-1">Model Name</label>
+                            <input type="text" id="model_name" name="model_name" placeholder="e.g., gpt-4o"
+                                class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm input-focus">
+                        </div>
+                    </div>
+
+                    <!-- Section: Account -->
+                    <div class="space-y-5">
+                        <div class="flex items-center gap-2 text-slate-400 mb-2">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Account & Sync</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="space-y-1.5">
+                                <label for="username" class="text-xs font-bold text-slate-700 pl-1">Username</label>
+                                <input type="text" id="username" name="username" placeholder="Enter your username" required
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label for="password" class="text-xs font-bold text-slate-700 pl-1">Password</label>
+                                <div class="relative group">
+                                    <input type="password" id="password" name="password" placeholder="Enter your password" required
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 pr-12 text-sm font-medium input-focus">
+                                    <button type="button" id="togglePassword" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors">
+                                        <i data-lucide="eye" id="eyeIcon" class="w-4 h-4"></i>
+                                        <i data-lucide="eye-off" id="eyeOffIcon" class="hidden w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-[10px] text-slate-400 font-medium italic mt-2">Username is required to organize your translations and monitor token usage.</p>
+                    </div>
                 </div>
 
-                <div class="form-group" id="modelSelectGroup">
-                    <label for="model_select">Model</label>
-                    <select id="model_select" class="input">
-                    </select>
-                </div>
-
-                <div class="form-group hidden" id="baseUrlGroup">
-                    <label for="base_url">API Base URL</label>
-                    <input type="text" id="base_url" name="base_url" placeholder="https://api.example.com/v1">
-                </div>
-
-                <div class="form-group hidden" id="modelNameGroup">
-                    <label for="model_name">Model Name</label>
-                    <input type="text" id="model_name" name="model_name" placeholder="model-name">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username" required>
-                <small class="help-text">Username is required to organize your translations and allows you to reprocess failed translations and track token usage</small>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                    <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">
-                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
+                <!-- Card Footer with Buttons -->
+                <div class="bg-slate-50/80 p-8 border-t border-slate-100 space-y-4">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> Install Addon
                     </button>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="openWebBtn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Stremio Web
+                        </button>
+                        <button type="button" id="copyLinkBtn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Link
+                        </button>
+                    </div>
                 </div>
-                <small class="help-text">Choose a strong password for your account</small>
+            </form>
+
+            <div class="mt-8 flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 text-slate-500 shadow-sm">
+                <div class="bg-indigo-50 p-2 rounded-lg text-indigo-500">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </div>
+                <p class="text-[11px] font-medium leading-relaxed">Your configuration is saved securely in Stremio. We only store your username and password for authentication. Your API keys are never stored on our servers.</p>
             </div>
-
-            <!-- Save Credentials checkbox - hidden for now, default is Save Access Only -->
-            <!-- <div class="form-group">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="saveCredentials" name="saveCredentials" style="margin-right: 8px; width: auto;">
-                    <span>Save Credentials (API Key, Provider, Model)</span>
-                </label>
-                <small class="help-text">If unchecked, only password is saved. You'll need to provide credentials again when reprocessing failed translations</small>
-            </div> -->
-
-            <button type="submit" class="btn">Install Addon</button>
-            <button type="button" class="btn btn-secondary" id="openWebBtn">Open in Stremio Web</button>
-            <button type="button" class="btn btn-secondary" id="copyLinkBtn">Copy Link</button>
-
-            <div id="successMessage" class="success-message">
-                Link copied to clipboard!
-            </div>
-
-            <div class="info">
-                Your configuration will be saved securely and used for subtitle translation. Use "Copy Link" to install on Stremio Web.
-            </div>
-        </form>
         </div>
-    </div>
+    </main>
 
-    <script src="/public/translation-config.js"></script>
+    <!-- FOOTER -->
+    <footer class="mt-auto py-8 border-t border-slate-200 bg-white shrink-0">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400">
+            <span class="text-[10px] font-bold uppercase tracking-[0.2em]">Stremio Translate Subtitle Addon</span>
+            <div class="flex items-center gap-6">
+                <a href="https://github.com/HimAndRobot/stremio-translate-subtitle-by-geanpn" target="_blank" class="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors text-xs font-bold uppercase tracking-widest">
+                    <i data-lucide="github" class="w-4 h-4"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </footer>
+
     <script>
+        lucide.createIcons();
+
         const languages = <%= languages %>;
         const baseUrl = '<%= baseUrl %>';
 
@@ -311,7 +212,6 @@
             option.textContent = lang;
             languageSelect.appendChild(option);
         });
-        languageSelect.value = 'English';
 
         const providerSelect = document.getElementById('provider');
         const aiFields = document.getElementById('aiFields');
@@ -328,67 +228,44 @@
             providerSelect.appendChild(option);
         });
 
-        const providerConfig = {};
-        PROVIDERS.forEach(provider => {
-            const config = PROVIDER_CONFIGS[provider];
-            if (!config.requiresApiKey) {
-                providerConfig[provider] = { showFields: false };
-            } else if (provider === 'Custom') {
-                providerConfig[provider] = {
-                    showFields: true,
-                    title: 'Custom Provider Configuration',
-                    showModelSelect: false,
-                    showCustomFields: true
-                };
-            } else {
-                providerConfig[provider] = {
-                    showFields: true,
-                    title: `${provider} Configuration`,
-                    baseUrl: config.defaultBaseUrl,
-                    models: config.models,
-                    showModelSelect: config.requiresModel,
-                    showCustomFields: false
-                };
-            }
-        });
-
         function updateProviderFields() {
             const provider = providerSelect.value;
-            const config = providerConfig[provider];
+            const config = PROVIDER_CONFIGS[provider];
 
-            if (!config.showFields) {
+            if (!config || !config.requiresApiKey) {
                 aiFields.classList.add('hidden');
                 return;
             }
 
             aiFields.classList.remove('hidden');
-            aiFieldsTitle.textContent = config.title;
+            aiFieldsTitle.textContent = `${provider} Configuration`;
 
-            if (config.showModelSelect) {
+            if (provider === 'Custom') {
+                modelSelectGroup.classList.add('hidden');
+                baseUrlGroup.classList.remove('hidden');
+                modelNameGroup.classList.remove('hidden');
+            } else if (config.requiresModel) {
                 modelSelectGroup.classList.remove('hidden');
                 baseUrlGroup.classList.add('hidden');
                 modelNameGroup.classList.add('hidden');
 
                 modelSelect.innerHTML = '';
-                config.models.forEach(model => {
+                (config.models || []).forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
                     modelSelect.appendChild(option);
                 });
-            } else if (config.showCustomFields) {
-                modelSelectGroup.classList.add('hidden');
-                baseUrlGroup.classList.remove('hidden');
-                modelNameGroup.classList.remove('hidden');
             } else {
                 modelSelectGroup.classList.add('hidden');
                 baseUrlGroup.classList.add('hidden');
                 modelNameGroup.classList.add('hidden');
             }
+
+            setTimeout(() => lucide.createIcons(), 50);
         }
 
         providerSelect.addEventListener('change', updateProviderFields);
-        updateProviderFields();
 
         document.getElementById('togglePassword').addEventListener('click', function() {
             const passwordInput = document.getElementById('password');
@@ -397,128 +274,84 @@
 
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
-                eyeIcon.style.display = 'none';
-                eyeOffIcon.style.display = 'block';
+                eyeIcon.classList.add('hidden');
+                eyeOffIcon.classList.remove('hidden');
             } else {
                 passwordInput.type = 'password';
-                eyeIcon.style.display = 'block';
-                eyeOffIcon.style.display = 'none';
+                eyeIcon.classList.remove('hidden');
+                eyeOffIcon.classList.add('hidden');
             }
         });
 
-        function getManifestUrl() {
-            const provider = document.getElementById('provider').value;
-            const providerCfg = providerConfig[provider];
-
-            let base_url = '';
-            let model_name = '';
-
-            if (provider !== 'Google Translate') {
-                if (providerCfg.showModelSelect) {
-                    base_url = providerCfg.baseUrl;
-                    model_name = document.getElementById('model_select').value;
-                } else if (providerCfg.showCustomFields) {
-                    base_url = document.getElementById('base_url').value;
-                    model_name = document.getElementById('model_name').value;
+        function showToast(message, type = 'success') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                style: {
+                    background: type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#6366f1'),
+                    borderRadius: '16px',
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    textTransform: 'uppercase'
                 }
-            }
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const saveCredentials = false;
-
-            const config = {
-                provider: provider,
-                translateto: document.getElementById('translateto').value,
-                apikey: document.getElementById('apikey').value || '',
-                base_url: base_url,
-                model_name: model_name,
-                username: username,
-                password: password,
-                saveCredentials: saveCredentials
-            };
-
-            const configStr = encodeURIComponent(JSON.stringify(config));
-            return `${baseUrl}/${configStr}/manifest.json`;
+            }).showToast();
         }
 
-        async function createUserIfNeeded() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (username && password) {
-                try {
-                    await fetch('/api/create-user', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ username, password })
-                    });
-                } catch (error) {
-                    console.error('Error creating user:', error);
-                }
-            }
-        }
-
-        document.getElementById('configForm').addEventListener('submit', async function(e) {
+        document.getElementById('configForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            await createUserIfNeeded();
+            const formData = new FormData(this);
+            const config = {};
 
-            const provider = document.getElementById('provider').value;
-            const providerCfg = providerConfig[provider];
-
-            let base_url = '';
-            let model_name = '';
-
-            if (provider !== 'Google Translate') {
-                if (providerCfg.showModelSelect) {
-                    base_url = providerCfg.baseUrl;
-                    model_name = document.getElementById('model_select').value;
-                } else if (providerCfg.showCustomFields) {
-                    base_url = document.getElementById('base_url').value;
-                    model_name = document.getElementById('model_name').value;
-                }
+            for (let [key, value] of formData.entries()) {
+                if (value) config[key] = value;
             }
 
-            const host = baseUrl.replace(/^https?:\/\//, '');
-            const installUrl = `stremio://${host}/${encodeURIComponent(JSON.stringify({
-                provider: provider,
-                translateto: document.getElementById('translateto').value,
-                apikey: document.getElementById('apikey').value || '',
-                base_url: base_url,
-                model_name: model_name,
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                saveCredentials: false
-            }))}/manifest.json`;
-            window.location.href = installUrl;
+
+            const configStr = btoa(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
+
+            window.location.href = `stremio://${manifestUrl}`;
+            showToast('Opening Stremio...', 'success');
         });
 
-        document.getElementById('openWebBtn').addEventListener('click', async function() {
-            await createUserIfNeeded();
+        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('configForm'));
+            const config = {};
 
-            const manifestUrl = getManifestUrl();
-            const encodedManifestUrl = encodeURIComponent(manifestUrl);
-            const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodedManifestUrl}`;
-            window.open(stremioWebUrl, '_blank');
-        });
+            for (let [key, value] of formData.entries()) {
+                if (value) config[key] = value;
+            }
 
-        document.getElementById('copyLinkBtn').addEventListener('click', async function() {
-            await createUserIfNeeded();
+            const configStr = btoa(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
 
-            const manifestUrl = getManifestUrl();
-
-            navigator.clipboard.writeText(manifestUrl).then(function() {
-                const successMsg = document.getElementById('successMessage');
-                successMsg.classList.add('show');
-                setTimeout(function() {
-                    successMsg.classList.remove('show');
-                }, 3000);
-            }).catch(function(err) {
-                alert('Failed to copy link: ' + err);
+            navigator.clipboard.writeText(manifestUrl).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy link', 'error');
             });
+        });
+
+        document.getElementById('openWebBtn').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('configForm'));
+            const config = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value) config[key] = value;
+            }
+
+            const configStr = btoa(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
+
+            window.open(`https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`, '_blank');
+            showToast('Opening Stremio Web...', 'info');
+        });
+
+        window.addEventListener('load', function() {
+            updateProviderFields();
         });
     </script>
 </body>

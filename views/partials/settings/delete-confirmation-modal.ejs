@@ -1,0 +1,17 @@
+<!-- Delete Confirmation Modal -->
+<div id="delete-confirmation-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden">
+        <div class="p-10 text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="trash-2" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-xl font-black text-slate-900 tracking-tight uppercase mb-2">Delete Credential</h2>
+            <p id="delete-modal-text" class="text-sm text-slate-400 font-medium leading-relaxed mb-8">Are you sure you want to permanently delete this credential? This action cannot be undone.</p>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="confirmDeletion()" class="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-100 transition-all">Yes, Delete</button>
+                <button onclick="closeDeleteModal()" class="w-full py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
