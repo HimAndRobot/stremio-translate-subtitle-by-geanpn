@@ -220,16 +220,16 @@ builder.defineSubtitlesHandler(async function (args) {
     : `${providerPath}/${imdbid}/S${season}E${episode}.srt`;
 
   try {
-    const queueStatus = await connection.checkForTranslation(
+    const lockResult = await connection.checkAndLockForTranslation(
       imdbid,
       season,
       episode,
       password_hash
     );
 
-    console.log(`[HANDLER] queueStatus="${queueStatus}" | ${imdbid} S${season}E${episode} lang:${targetLanguage}`);
+    console.log(`[HANDLER] lockResult="${JSON.stringify(lockResult)}" | ${imdbid} S${season}E${episode} lang:${targetLanguage}`);
 
-    if (queueStatus) {
+    if (lockResult.alreadyExists) {
       const statusMessages = {
         'completed': 'Subtitle found in database (completed), returning it',
         'processing': 'Translation in progress, returning placeholder',
@@ -237,10 +237,10 @@ builder.defineSubtitlesHandler(async function (args) {
         'manual_search': 'Manual search required, returning help message'
       };
 
-      console.log(`[HANDLER] ${statusMessages[queueStatus.status]}`);
+      console.log(`[HANDLER] ${statusMessages[lockResult.status]}`);
 
-      const subtitleUrl = queueStatus.subtitle_path
-        ? `${process.env.BASE_URL}/subtitles/${queueStatus.subtitle_path}`
+      const subtitleUrl = lockResult.subtitle_path
+        ? `${process.env.BASE_URL}/subtitles/${lockResult.subtitle_path}`
         : `${process.env.BASE_URL}/subtitles/${subtitlePath}`;
 
       return Promise.resolve({

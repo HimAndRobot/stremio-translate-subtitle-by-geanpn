@@ -156,6 +156,47 @@ class MySQLAdapter extends BaseAdapter {
     }
   }
 
+  async checkAndLockForTranslation(imdbid, season = null, episode = null, password_hash = null) {
+    const connection = await this.connection.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      let query, params;
+      if (password_hash) {
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND password_hash = ? LIMIT 1 FOR UPDATE";
+        params = [imdbid, season, episode, password_hash];
+      } else {
+        query = "SELECT status, subtitle_path FROM translation_queue WHERE series_imdbid = ? AND series_seasonno = ? AND series_episodeno = ? AND (password_hash IS NULL OR password_hash = '') LIMIT 1 FOR UPDATE";
+        params = [imdbid, season, episode];
+      }
+
+      console.log(`[DEBUG checkAndLockForTranslation] Locking: IMDB=${imdbid}, S${season}E${episode}, Password=${password_hash ? password_hash.substring(0, 8) + '...' : 'NULL'}`);
+
+      const result = await util.promisify(connection.query).bind(connection)(query, params);
+
+      if (result.length > 0) {
+        console.log(`[DEBUG checkAndLockForTranslation] FOUND: Status=${result[0].status}, Path=${result[0].subtitle_path}`);
+        await connection.commit();
+        return {
+          status: result[0].status,
+          subtitle_path: result[0].subtitle_path,
+          alreadyExists: true
+        };
+      }
+
+      console.log(`[DEBUG checkAndLockForTranslation] NOT FOUND - will insert`);
+      await connection.commit();
+      return { alreadyExists: false };
+    } catch (error) {
+      await connection.rollback();
+      console.error("Translation check and lock error:", error.message);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async checkForTranslation(imdbid, season = null, episode = null, password_hash = null) {
     try {
       let query, params;

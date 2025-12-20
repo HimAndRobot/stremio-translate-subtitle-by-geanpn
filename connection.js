@@ -40,6 +40,11 @@ async function checkForTranslation(imdbid, season = null, episode = null, passwo
     return adapter.checkForTranslation(imdbid, season, episode, password_hash);
 }
 
+async function checkAndLockForTranslation(imdbid, season = null, episode = null, password_hash = null) {
+    const adapter = await getAdapter();
+    return adapter.checkAndLockForTranslation(imdbid, season, episode, password_hash);
+}
+
 async function checkForTranslationByStremioId(stremioId, password_hash = null) {
     const adapter = await getAdapter();
     return adapter.checkForTranslationByStremioId(stremioId, password_hash);
@@ -148,6 +153,7 @@ module.exports = {
     addsubtitle,
     getsubtitles,
     checkForTranslation,
+    checkAndLockForTranslation,
     checkForTranslationByStremioId,
     checksubtitle,
     closeConnection,
