@@ -116,6 +116,11 @@ const worker = new Worker(
 
           await job.log(`[SAVE] Copied to final location: ${targetPath}`);
 
+          await updateDatabaseWithResolvedData(
+            stremioId, imdbid, season, episode, type, oldisocode,
+            jobPasswordHash, apikey_encrypted, base_url_encrypted, model_name_encrypted, job
+          );
+
           await adapter.query(
             `UPDATE translation_queue SET status = ? WHERE stremio_id = ? AND password_hash ${jobPasswordHash ? '= ?' : 'IS NULL'}`,
             jobPasswordHash ? ['completed', stremioId, jobPasswordHash] : ['completed', stremioId]
