@@ -471,8 +471,10 @@ app.get("/", (_, res) => {
 
 app.post("/api/create-user", async (req, res) => {
   const { username, password } = req.body;
+  console.log('[CREATE-USER] Request received:', { username, hasPassword: !!password });
 
   if (!username || !password) {
+    console.log('[CREATE-USER] Missing username or password');
     return res.status(400).json({ error: 'Username and password required' });
   }
 
