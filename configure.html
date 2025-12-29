@@ -313,11 +313,9 @@
                 if (value) config[key] = value;
             }
 
-
-            const configStr = encodeURIComponent(JSON.stringify(config));
-            const manifestUrl = `${baseUrl}/${configStr}/manifest.json`;
-
-            window.location.href = `stremio://${manifestUrl}`;
+            const host = baseUrl.replace(/^https?:\/\//, '');
+            const installUrl = `stremio://${host}/${encodeURIComponent(JSON.stringify(config))}/manifest.json`;
+            window.location.href = installUrl;
             showToast('Opening Stremio...', 'success');
         });
 
