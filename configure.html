@@ -303,8 +303,29 @@
             }).showToast();
         }
 
-        document.getElementById('configForm').addEventListener('submit', function(e) {
+        async function createUserIfNeeded() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username && password) {
+                try {
+                    await fetch('/api/create-user', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                }
+            }
+        }
+
+        document.getElementById('configForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            await createUserIfNeeded();
 
             const formData = new FormData(this);
             const config = {};
@@ -319,7 +340,9 @@
             showToast('Opening Stremio...', 'success');
         });
 
-        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+        document.getElementById('copyLinkBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
             const formData = new FormData(document.getElementById('configForm'));
             const config = {};
 
@@ -337,7 +360,9 @@
             });
         });
 
-        document.getElementById('openWebBtn').addEventListener('click', function() {
+        document.getElementById('openWebBtn').addEventListener('click', async function() {
+            await createUserIfNeeded();
+
             const formData = new FormData(document.getElementById('configForm'));
             const config = {};
 
