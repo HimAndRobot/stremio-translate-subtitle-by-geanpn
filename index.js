@@ -54,6 +54,10 @@ const builder = new addonBuilder({
       type: "text",
     },
     {
+      key: "username",
+      type: "text",
+    },
+    {
       key: "password",
       type: "text",
     },

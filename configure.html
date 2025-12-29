@@ -314,8 +314,8 @@
             }
 
 
-            const configStr = btoa(JSON.stringify(config));
-            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
+            const configStr = encodeURIComponent(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/${configStr}/manifest.json`;
 
             window.location.href = `stremio://${manifestUrl}`;
             showToast('Opening Stremio...', 'success');
@@ -329,8 +329,8 @@
                 if (value) config[key] = value;
             }
 
-            const configStr = btoa(JSON.stringify(config));
-            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
+            const configStr = encodeURIComponent(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/${configStr}/manifest.json`;
 
             navigator.clipboard.writeText(manifestUrl).then(() => {
                 showToast('Link copied to clipboard!', 'success');
@@ -347,8 +347,8 @@
                 if (value) config[key] = value;
             }
 
-            const configStr = btoa(JSON.stringify(config));
-            const manifestUrl = `${baseUrl}/manifest/${configStr}.json`;
+            const configStr = encodeURIComponent(JSON.stringify(config));
+            const manifestUrl = `${baseUrl}/${configStr}/manifest.json`;
 
             window.open(`https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`, '_blank');
             showToast('Opening Stremio Web...', 'info');
