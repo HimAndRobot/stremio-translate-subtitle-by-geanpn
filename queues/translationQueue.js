@@ -118,7 +118,7 @@ const worker = new Worker(
 
           await updateDatabaseWithResolvedData(
             stremioId, imdbid, season, episode, type, oldisocode,
-            jobPasswordHash, apikey_encrypted, base_url_encrypted, model_name_encrypted, job
+            jobPasswordHash, null, null, null, job
           );
 
           await adapter.query(
