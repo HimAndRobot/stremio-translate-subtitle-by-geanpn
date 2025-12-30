@@ -1,26 +1,11 @@
 version: '3.8'
 
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    networks:
-      - stremio-net
-    depends_on:
-      - app
-
   app:
     build: .
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     env_file:
       - .env
     volumes:
@@ -28,6 +13,7 @@ services:
       - /app/node_modules
     networks:
       - stremio-net
+    command: sh -c "npm run migrate && node index.js"
     depends_on:
       redis:
         condition: service_healthy
@@ -50,8 +36,6 @@ services:
 
 volumes:
   redis-data:
-  caddy-data:
-  caddy-config:
 
 networks:
   stremio-net:

@@ -7,3 +7,4 @@
 *.db
 *.db-journal
 migrate-subtitle-paths.js
+data/database.db

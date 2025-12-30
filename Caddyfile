@@ -20,5 +20,5 @@ localhost:443 {
 }
 
 localhost:80 {
-    redir https://localhost{uri}
+    redir https://localhost:8443{uri}
 }

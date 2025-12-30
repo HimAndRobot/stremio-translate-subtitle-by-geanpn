@@ -115,7 +115,7 @@
 
                         <div id="modelSelectGroup" class="space-y-1.5 hidden">
                             <label for="model_select" class="text-xs font-bold text-slate-700 pl-1">Model</label>
-                            <select id="model_select" class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus"></select>
+                            <select id="model_select" name="model_name" class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus"></select>
                         </div>
 
                         <div id="baseUrlGroup" class="hidden space-y-1.5">
@@ -250,14 +250,22 @@
                 modelNameGroup.classList.remove('hidden');
             } else if (config.requiresModel) {
                 modelSelectGroup.classList.remove('hidden');
-                baseUrlGroup.classList.add('hidden');
                 modelNameGroup.classList.add('hidden');
+
+                if (config.requiresBaseUrl) {
+                    baseUrlGroup.classList.remove('hidden');
+                } else {
+                    baseUrlGroup.classList.add('hidden');
+                }
 
                 modelSelect.innerHTML = '';
                 (config.models || []).forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
+                    if (model === config.defaultModel) {
+                        option.selected = true;
+                    }
                     modelSelect.appendChild(option);
                 });
             } else {
