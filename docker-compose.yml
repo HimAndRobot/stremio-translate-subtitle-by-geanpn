@@ -13,7 +13,7 @@ services:
       - /app/node_modules
     networks:
       - stremio-net
-    command: sh -c "mkdir -p data && npm run migrate && node index.js"
+    command: sh -c "npm install && npm update free-google-translate-geanpn && mkdir -p data && npm run migrate && node index.js"
     depends_on:
       redis:
         condition: service_healthy

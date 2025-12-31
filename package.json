@@ -32,6 +32,7 @@
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express-session": "^1.17.3",
+    "free-google-translate-geanpn": "^1.0.0",
     "google-translate-api-browser": "^5.0.0",
     "ioredis": "^5.3.0",
     "multer": "^1.4.5-lts.1",

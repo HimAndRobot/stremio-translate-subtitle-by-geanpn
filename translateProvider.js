@@ -179,8 +179,21 @@ async function translateWithDeepLDocument(srtContent, targetLang, apiKey) {
 }
 
 async function translateWithGoogleTranslateLocal(texts, targetLanguage) {
-  const googleTranslateDirect = require("./helpers/googleTranslateDirect");
-  return await googleTranslateDirect.translateBatch(texts, targetLanguage);
+  const { translateBatch } = require('free-google-translate-geanpn');
+
+  const resultArray = await translateBatch(texts, { to: targetLanguage });
+
+  if (texts.length !== resultArray.length && resultArray.length > 0) {
+    const diff = texts.length - resultArray.length;
+    if (diff > 0) {
+      const splitted = resultArray[0].split(" ");
+      if (splitted.length === diff + 1) {
+        return [...splitted, ...resultArray.slice(1)];
+      }
+    }
+  }
+
+  return resultArray;
 }
 
 async function translateWithCloudflareWorker(texts, targetLanguage, batchEntries = null) {
