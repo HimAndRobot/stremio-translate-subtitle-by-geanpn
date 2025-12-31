@@ -179,21 +179,35 @@ async function translateWithDeepLDocument(srtContent, targetLang, apiKey) {
 }
 
 async function translateWithGoogleTranslateLocal(texts, targetLanguage) {
-  const { translateBatch } = require('free-google-translate-geanpn');
+  const { translate } = require('free-google-translate-geanpn');
 
-  const resultArray = await translateBatch(texts, { to: targetLanguage });
+  const cleanedTexts = texts.map(text => {
+    let cleaned = text.trim();
+    cleaned = cleaned.replace(/\{\\[a-zA-Z0-9]+\}/g, '');
+    cleaned = cleaned.replace(/\n/g, " ");
+    return cleaned;
+  });
 
-  if (texts.length !== resultArray.length && resultArray.length > 0) {
-    const diff = texts.length - resultArray.length;
+  const textToTranslate = cleanedTexts.join(' ||| ');
+  const result = await translate(textToTranslate, { to: targetLanguage });
+
+  if (!result.success) {
+    throw new Error(`Translation failed: ${result.error}`);
+  }
+
+  const translatedTexts = result.text.split('|||').map(s => s.trim());
+
+  if (texts.length !== translatedTexts.length && translatedTexts.length > 0) {
+    const diff = texts.length - translatedTexts.length;
     if (diff > 0) {
-      const splitted = resultArray[0].split(" ");
+      const splitted = translatedTexts[0].split(" ");
       if (splitted.length === diff + 1) {
-        return [...splitted, ...resultArray.slice(1)];
+        return [...splitted, ...translatedTexts.slice(1)];
       }
     }
   }
 
-  return resultArray;
+  return translatedTexts;
 }
 
 async function translateWithCloudflareWorker(texts, targetLanguage, batchEntries = null) {
