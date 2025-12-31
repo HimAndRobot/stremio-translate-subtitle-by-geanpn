@@ -178,6 +178,11 @@ async function translateWithDeepLDocument(srtContent, targetLang, apiKey) {
   return await downloadResponse.text();
 }
 
+async function translateWithGoogleTranslateLocal(texts, targetLanguage) {
+  const googleTranslateDirect = require("./helpers/googleTranslateDirect");
+  return await googleTranslateDirect.translateBatch(texts, targetLanguage);
+}
+
 async function translateWithCloudflareWorker(texts, targetLanguage, batchEntries = null) {
   const workerUrl = "https://google-translate-worker.contaxandera.workers.dev";
 
@@ -288,7 +293,15 @@ async function translateTextWithRetry(
     switch (provider) {
       case "Google Translate": {
         try {
-          resultArray = await translateWithCloudflareWorker(texts, targetLanguage, batchEntries);
+          const useLocalMode = process.env.GOOGLE_TRANSLATE_MODE === 'local';
+
+          if (useLocalMode) {
+            console.log('[Google Translate] Using local mode with google-translate-api-browser');
+            resultArray = await translateWithGoogleTranslateLocal(texts, targetLanguage);
+          } else {
+            console.log('[Google Translate] Using Cloudflare Worker (production mode)');
+            resultArray = await translateWithCloudflareWorker(texts, targetLanguage, batchEntries);
+          }
 
           if (!resultArray || resultArray.length === 0) {
             throw new Error("Google Translate returned empty response");
