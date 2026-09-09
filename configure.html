@@ -116,6 +116,7 @@
                         <div id="modelSelectGroup" class="space-y-1.5 hidden">
                             <label for="model_select" class="text-xs font-bold text-slate-700 pl-1">Model</label>
                             <select id="model_select" name="model_name" class="w-full bg-white border border-slate-200 rounded-2xl p-3.5 text-sm font-medium input-focus"></select>
+                            <p id="modelCostHint" class="text-xs text-slate-500 pl-1 leading-relaxed"></p>
                         </div>
 
                         <div id="baseUrlGroup" class="hidden space-y-1.5">
@@ -222,8 +223,10 @@
         const aiFieldsTitle = document.getElementById('aiFieldsTitle');
         const modelSelectGroup = document.getElementById('modelSelectGroup');
         const modelSelect = document.getElementById('model_select');
+        const modelCostHint = document.getElementById('modelCostHint');
         const baseUrlGroup = document.getElementById('baseUrlGroup');
         const modelNameGroup = document.getElementById('modelNameGroup');
+        const modelNameInput = document.getElementById('model_name');
 
         PROVIDERS.forEach(provider => {
             const option = document.createElement('option');
@@ -244,13 +247,22 @@
             aiFields.classList.remove('hidden');
             aiFieldsTitle.textContent = `${provider} Configuration`;
 
+            // #model_select and #model_name both submit as "model_name", and
+            // hiding them only adds a CSS class - a display:none control is
+            // still submitted. So the inactive one has to be emptied, or a
+            // leftover value silently overrides the visible selection.
             if (provider === 'Custom') {
                 modelSelectGroup.classList.add('hidden');
                 baseUrlGroup.classList.remove('hidden');
                 modelNameGroup.classList.remove('hidden');
+
+                modelSelect.innerHTML = '';
+                updateModelCostHint();
             } else if (config.requiresModel) {
                 modelSelectGroup.classList.remove('hidden');
                 modelNameGroup.classList.add('hidden');
+
+                if (modelNameInput) modelNameInput.value = '';
 
                 if (config.requiresBaseUrl) {
                     baseUrlGroup.classList.remove('hidden');
@@ -262,21 +274,57 @@
                 (config.models || []).forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
-                    option.textContent = model;
+
+                    // Show the price right in the option, since that is where
+                    // the user is actually comparing models.
+                    const perHour = typeof estimateUsdPerVideoHour === 'function'
+                        ? estimateUsdPerVideoHour(model)
+                        : null;
+                    option.textContent = perHour != null
+                        ? `${model}  ·  ${formatUsd(perHour)}/h`
+                        : model;
+
                     if (model === config.defaultModel) {
                         option.selected = true;
                     }
                     modelSelect.appendChild(option);
                 });
+
+                updateModelCostHint();
             } else {
                 modelSelectGroup.classList.add('hidden');
                 baseUrlGroup.classList.add('hidden');
                 modelNameGroup.classList.add('hidden');
+
+                modelSelect.innerHTML = '';
+                if (modelNameInput) modelNameInput.value = '';
             }
 
             setTimeout(() => lucide.createIcons(), 50);
         }
 
+        function updateModelCostHint() {
+            if (!modelCostHint) return;
+
+            const model = modelSelect.value;
+            const description = typeof describeModelCost === 'function'
+                ? describeModelCost(model)
+                : null;
+
+            if (!description) {
+                modelCostHint.textContent = '';
+                return;
+            }
+
+            const info = (typeof MODEL_INFO !== 'undefined' && MODEL_INFO[model]) || {};
+            const parts = [description];
+            if (info.hint) parts.push(info.hint);
+
+            modelCostHint.textContent = parts.join(' - ') +
+                ` (estimated, list prices as of ${PRICES_CHECKED_ON})`;
+        }
+
+        modelSelect.addEventListener('change', updateModelCostHint);
         providerSelect.addEventListener('change', updateProviderFields);
 
         document.getElementById('togglePassword').addEventListener('click', function() {

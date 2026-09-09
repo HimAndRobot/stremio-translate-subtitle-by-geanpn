@@ -331,6 +331,19 @@ function getLimiter(provider, apikey) {
   return limiters.get(key);
 }
 
+// Reasoning-family models reject any non-default temperature on Chat
+// Completions and fail the whole request with a 400:
+//   "Unsupported value: 'temperature' does not support 0.3 with this model.
+//    Only the default (1) value is supported."
+// Matches gpt-5*, gpt-6* and the o-series, either bare (OpenAI, Groq) or
+// vendor-prefixed (OpenRouter, e.g. "openai/gpt-5.4-mini").
+// Omitting temperature is always safe, so a false positive costs nothing.
+const NO_TEMPERATURE_MODELS = /(^|\/)(gpt-5|gpt-6|o[1-9])(\b|[-.])/i;
+
+function supportsTemperature(model_name) {
+  return !NO_TEMPERATURE_MODELS.test(String(model_name || ""));
+}
+
 var count = 0;
 async function translateTextWithRetry(
   texts,
@@ -414,12 +427,17 @@ async function translateTextWithRetry(
           )}\n`;
         }
 
-        const completion = await openai.chat.completions.create({
+        const params = {
           messages: [{ role: "user", content: prompt }],
           model: model_name,
           response_format: { type: "json_object" },
-          temperature: 0.3,
-        });
+        };
+
+        if (supportsTemperature(model_name)) {
+          params.temperature = 0.3;
+        }
+
+        const completion = await openai.chat.completions.create(params);
 
         const translatedJson = JSON.parse(
           completion.choices[0].message.content
