@@ -336,7 +336,14 @@ const worker = new Worker(
             apikey,
             base_url,
             model_name,
-            targetLanguage: oldisocode
+            targetLanguage: oldisocode,
+            // Passed through so each batch worker can build the series context
+            // block for its prompt. Cheaper than having every batch re-query
+            // translation_queue for what we already have here.
+            imdbid,
+            season,
+            episode,
+            type
           };
 
           batchJobPromises.push(
