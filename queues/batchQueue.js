@@ -2,6 +2,7 @@ const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const connection = require("../connection");
 const { translateText } = require("../translateProvider");
+const { getEpisodeContext } = require("../utils/metadata");
 const fs = require("fs").promises;
 
 const redisConnection = new IORedis(
@@ -33,7 +34,18 @@ const batchQueue = new Queue("subtitle-batch", {
 const worker = new Worker(
   "subtitle-batch",
   async (job) => {
-    const { batchId, provider, apikey, base_url, model_name, targetLanguage } = job.data;
+    const {
+      batchId,
+      provider,
+      apikey,
+      base_url,
+      model_name,
+      targetLanguage,
+      imdbid,
+      season,
+      episode,
+      type,
+    } = job.data;
 
     await job.log(`[START] Processing batch ${batchId}`);
 
@@ -51,6 +63,21 @@ const worker = new Worker(
     await job.updateProgress(30);
     await job.log('[STEP] Translating batch...');
 
+    // Series/episode context for the translator prompt. Best-effort only: if
+    // Cinemeta is slow, unreachable or has no entry we translate without it
+    // exactly as before, rather than failing the batch.
+    let context = null;
+    try {
+      context = await getEpisodeContext(imdbid, type, season, episode);
+      if (context) {
+        await job.log(`[CONTEXT] ${context.replace(/\n/g, " | ")}`);
+      } else {
+        await job.log('[CONTEXT] No metadata context available, translating without it');
+      }
+    } catch (contextError) {
+      await job.log(`[CONTEXT] Skipped (${contextError.message})`);
+    }
+
     let result;
     try {
       result = await translateText(
@@ -60,7 +87,8 @@ const worker = new Worker(
         apikey,
         base_url,
         model_name,
-        batch.subtitle_entries
+        batch.subtitle_entries,
+        context
       );
     } catch (error) {
       // Extract mismatch info from error message if present

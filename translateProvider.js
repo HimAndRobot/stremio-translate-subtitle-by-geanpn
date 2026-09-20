@@ -1,6 +1,7 @@
 const OpenAI = require("openai");
 const Bottleneck = require("bottleneck");
 const FormData = require("form-data");
+const chatgptLanguages = require("./langs/translateChatGpt.lang.json");
 require("dotenv").config();
 
 const limiters = new Map();
@@ -331,6 +332,26 @@ function getLimiter(provider, apikey) {
   return limiters.get(key);
 }
 
+// Reasoning-family models reject any non-default temperature on Chat
+// Completions and fail the whole request with a 400:
+//   "Unsupported value: 'temperature' does not support 0.3 with this model.
+//    Only the default (1) value is supported."
+// Matches gpt-5*, gpt-6* and the o-series, either bare (OpenAI, Groq) or
+// vendor-prefixed (OpenRouter, e.g. "openai/gpt-5.4-mini").
+// Omitting temperature is always safe, so a false positive costs nothing.
+const NO_TEMPERATURE_MODELS = /(^|\/)(gpt-5|gpt-6|o[1-9])(\b|[-.])/i;
+
+function supportsTemperature(model_name) {
+  return !NO_TEMPERATURE_MODELS.test(String(model_name || ""));
+}
+
+// The lang maps are { code: "Display Name" }, so a plain lookup gives us the
+// human-readable name. Models translate noticeably better when told "German"
+// instead of the bare code "de" (and far better than obscure codes like "iw").
+function languageDisplayName(code) {
+  return chatgptLanguages[code] || chatgptLanguages[String(code).toLowerCase()] || code;
+}
+
 var count = 0;
 async function translateTextWithRetry(
   texts,
@@ -342,7 +363,8 @@ async function translateTextWithRetry(
   attempt = 1,
   maxRetries = 3,
   partialResults = null,
-  batchEntries = null
+  batchEntries = null,
+  context = null
 ) {
   try {
     let result = null;
@@ -392,6 +414,17 @@ async function translateTextWithRetry(
           baseURL: base_url,
         });
 
+        const languageName = languageDisplayName(targetLanguage);
+
+        let systemPrompt =
+          "You are a professional subtitle translator. You translate dialogue for film and television, preserving tone, register and idiom rather than translating word for word.";
+
+        if (context) {
+          systemPrompt +=
+            `\n\n${context}\n\n` +
+            "Use this context to disambiguate homographs and to render domain-specific terminology with the established term in the target language, rather than translating it literally word by word.";
+        }
+
         let prompt;
         let jsonInput;
 
@@ -402,24 +435,32 @@ async function translateTextWithRetry(
             partialTranslations: partialResults.map((text, index) => ({ index, text }))
           };
 
-          prompt = `You are a professional movie subtitle translator.\n\nI asked you to translate ${texts.length} subtitle texts to "${targetLanguage}", but you returned only ${partialResults.length} translations.\n\nPlease return a COMPLETE array with exactly ${texts.length} translations:\n- Keep the translations that are correct from the partial results\n- Complete the missing translations\n- Fix any incorrect translations\n\n**Strict Requirements:**\n- Output must be a JSON object with a "texts" array\n- The "texts" array must contain EXACTLY ${texts.length} elements\n- Each element must have "index" (0 to ${texts.length - 1}) and "text" (translated)\n- Preserve line breaks and formatting\n- Do not combine or split texts\n\nOriginal texts:\n${JSON.stringify(jsonInput.originalTexts)}\n\nPartial translations received:\n${JSON.stringify(jsonInput.partialTranslations)}\n`;
+          prompt = `I asked you to translate ${texts.length} subtitle texts to "${languageName}", but you returned only ${partialResults.length} translations.\n\nPlease return a COMPLETE array with exactly ${texts.length} translations:\n- Keep the translations that are correct from the partial results\n- Complete the missing translations\n- Fix any incorrect translations\n\n**Strict Requirements:**\n- Output must be a JSON object with a "texts" array\n- The "texts" array must contain EXACTLY ${texts.length} elements\n- Each element must have "index" (0 to ${texts.length - 1}) and "text" (translated)\n- Preserve line breaks and formatting\n- Do not combine or split texts\n\nOriginal texts:\n${JSON.stringify(jsonInput.originalTexts)}\n\nPartial translations received:\n${JSON.stringify(jsonInput.partialTranslations)}\n`;
         } else {
           // Normal prompt
           jsonInput = {
             texts: texts.map((text, index) => ({ index, text })),
           };
 
-          prompt = `You are a professional movie subtitle translator.\nTranslate each subtitle text in the "texts" array of the following JSON object into the specified language "${targetLanguage}".\n\nThe output must be a JSON object with the same structure as the input. The "texts" array should contain the translated texts corresponding to their original indices.\n\n**Strict Requirements:**\n- Strictly preserve line breaks and original formatting for each subtitle.\n- Do not combine or split texts during translation.\n- The number of elements in the output array must exactly match the input array.\n- Ensure the final JSON is valid and retains the complete structure.\n\nInput:\n${JSON.stringify(
+          prompt = `Translate each subtitle text in the "texts" array of the following JSON object into the specified language "${languageName}".\n\nThe output must be a JSON object with the same structure as the input. The "texts" array should contain the translated texts corresponding to their original indices.\n\n**Strict Requirements:**\n- Strictly preserve line breaks and original formatting for each subtitle.\n- Do not combine or split texts during translation.\n- The number of elements in the output array must exactly match the input array.\n- Ensure the final JSON is valid and retains the complete structure.\n\nInput:\n${JSON.stringify(
             jsonInput
           )}\n`;
         }
 
-        const completion = await openai.chat.completions.create({
-          messages: [{ role: "user", content: prompt }],
+        const params = {
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
           model: model_name,
           response_format: { type: "json_object" },
-          temperature: 0.3,
-        });
+        };
+
+        if (supportsTemperature(model_name)) {
+          params.temperature = 0.3;
+        }
+
+        const completion = await openai.chat.completions.create(params);
 
         const translatedJson = JSON.parse(
           completion.choices[0].message.content
@@ -462,7 +503,8 @@ async function translateTextWithRetry(
           attempt + 1,
           maxRetries,
           resultArray,
-          batchEntries
+          batchEntries,
+          context
         );
       }
 
@@ -478,7 +520,8 @@ async function translateTextWithRetry(
         attempt + 1,
         maxRetries,
         null,
-        batchEntries
+        batchEntries,
+        context
       );
     }
 
@@ -502,7 +545,15 @@ async function translateTextWithRetry(
       base_url,
       model_name,
       attempt + 1,
-      maxRetries
+      maxRetries,
+      // partialResults is intentionally reset - this is a fresh attempt after a
+      // hard error, not a count mismatch. batchEntries and context must be
+      // forwarded though: previously they were dropped here, which silently
+      // degraded the Google Translate path and would have lost the series
+      // context on exactly the retries that need it most.
+      null,
+      batchEntries,
+      context
     );
   }
 }
@@ -515,7 +566,8 @@ async function translateText(
   apikey,
   base_url,
   model_name,
-  batchEntries = null
+  batchEntries = null,
+  context = null
 ) {
   const limiter = getLimiter(provider, apikey);
 
@@ -530,7 +582,8 @@ async function translateText(
       1,
       3,
       null,
-      batchEntries
+      batchEntries,
+      context
     )
   );
 }
